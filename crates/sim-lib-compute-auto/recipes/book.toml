@@ -1,0 +1,6 @@
+book = "compute-auto"
+title = "Auto Compute"
+summary = "Automatic tensor compute site selection with CPU fallback."
+order = 119
+chapters = ["01-basics"]
+

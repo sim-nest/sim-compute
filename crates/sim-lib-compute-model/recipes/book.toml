@@ -1,0 +1,6 @@
+book = "compute-model"
+title = "Modeled Compute"
+summary = "Modeled resident tensor execution for provider and placement tests."
+order = 118
+chapters = ["01-basics"]
+

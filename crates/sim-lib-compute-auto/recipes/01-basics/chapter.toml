@@ -1,0 +1,4 @@
+title = "Basics"
+order = 10
+summary = "Automatic site selection and CPU fallback."
+

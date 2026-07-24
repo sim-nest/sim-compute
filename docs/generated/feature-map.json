@@ -1,0 +1,20 @@
+{
+  "generator": "xtask repo-contract v1",
+  "packages": [
+    {
+      "features": [],
+      "group": "workspace",
+      "package": "sim-lib-compute-auto"
+    },
+    {
+      "features": [],
+      "group": "workspace",
+      "package": "sim-lib-compute-model"
+    },
+    {
+      "features": [],
+      "group": "workspace",
+      "package": "xtask"
+    }
+  ]
+}

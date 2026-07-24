@@ -1,0 +1,247 @@
+{
+  "card_count": 4,
+  "cards": [
+    {
+      "id": "browse/catalog",
+      "kind": "browse-root",
+      "owner": "workspace",
+      "summary": "root browse catalog"
+    },
+    {
+      "id": "cookbook/compute-auto",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-compute-auto",
+      "summary": "Automatic tensor compute site selection with CPU fallback."
+    },
+    {
+      "id": "cookbook/compute-model",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-compute-model",
+      "summary": "Modeled resident tensor execution for provider and placement tests."
+    },
+    {
+      "id": "registry/catalog",
+      "kind": "browse-registry",
+      "owner": "workspace",
+      "summary": "registry catalog browse card"
+    }
+  ],
+  "citizen_count": 0,
+  "citizens": [],
+  "generator": "xtask repo-contract v1",
+  "group_count": 1,
+  "group_order": [
+    "workspace"
+  ],
+  "groups": {
+    "workspace": [
+      "sim-lib-compute-auto",
+      "sim-lib-compute-model",
+      "xtask"
+    ]
+  },
+  "non_citizen_exemption_count": 0,
+  "non_citizen_exemptions": [],
+  "package_count": 3,
+  "packages": [
+    {
+      "crate_name": "sim_lib_compute_auto",
+      "dependencies": [
+        {
+          "kind": "normal",
+          "optional": false,
+          "package": "sim-lib-compute-model",
+          "rename": null,
+          "target": null
+        }
+      ],
+      "description": "Automatic tensor compute site selection for SIM.",
+      "features": [],
+      "group": "workspace",
+      "manifest": "crates/sim-lib-compute-auto/Cargo.toml",
+      "name": "sim-lib-compute-auto",
+      "publish": "false",
+      "root": "crates/sim-lib-compute-auto",
+      "rustdoc_summary": "Automatic tensor compute-site selection.",
+      "target_kinds": [
+        "custom-build",
+        "lib"
+      ],
+      "targets": [
+        {
+          "crate_types": [
+            "lib"
+          ],
+          "kind": [
+            "lib"
+          ],
+          "name": "sim_lib_compute_auto",
+          "src": "crates/sim-lib-compute-auto/src/lib.rs"
+        },
+        {
+          "crate_types": [
+            "bin"
+          ],
+          "kind": [
+            "custom-build"
+          ],
+          "name": "build-script-build",
+          "src": "crates/sim-lib-compute-auto/build.rs"
+        }
+      ]
+    },
+    {
+      "crate_name": "sim_lib_compute_model",
+      "dependencies": [],
+      "description": "Modeled resident tensor compute site for SIM.",
+      "features": [],
+      "group": "workspace",
+      "manifest": "crates/sim-lib-compute-model/Cargo.toml",
+      "name": "sim-lib-compute-model",
+      "publish": "false",
+      "root": "crates/sim-lib-compute-model",
+      "rustdoc_summary": "Modeled resident tensor compute provider.",
+      "target_kinds": [
+        "custom-build",
+        "lib"
+      ],
+      "targets": [
+        {
+          "crate_types": [
+            "lib"
+          ],
+          "kind": [
+            "lib"
+          ],
+          "name": "sim_lib_compute_model",
+          "src": "crates/sim-lib-compute-model/src/lib.rs"
+        },
+        {
+          "crate_types": [
+            "bin"
+          ],
+          "kind": [
+            "custom-build"
+          ],
+          "name": "build-script-build",
+          "src": "crates/sim-lib-compute-model/build.rs"
+        }
+      ]
+    },
+    {
+      "crate_name": "xtask",
+      "dependencies": [],
+      "description": "SIM workspace package for xtask.",
+      "features": [],
+      "group": "workspace",
+      "manifest": "xtask/Cargo.toml",
+      "name": "xtask",
+      "publish": "false",
+      "root": "xtask",
+      "rustdoc_summary": "Repository automation wrapper for generated documentation and policy checks.",
+      "target_kinds": [
+        "bin"
+      ],
+      "targets": [
+        {
+          "crate_types": [
+            "bin"
+          ],
+          "kind": [
+            "bin"
+          ],
+          "name": "xtask",
+          "src": "xtask/src/main.rs"
+        }
+      ]
+    }
+  ],
+  "provenance": {
+    "api_docs": "target/doc/",
+    "generated_by": "cargo run -p xtask -- simdoc",
+    "generation_timestamp": "2026-07-24T22:54:42+02:00",
+    "generator": "xtask repo-contract v1",
+    "git_commit": "f14e0e3583961b64f95e3120780bcaa2c4d69f77",
+    "repo": "sim-compute",
+    "schema": "sim.provenance.v1",
+    "source_commit": "f14e0e3583961b64f95e3120780bcaa2c4d69f77",
+    "source_remote": "https://github.com/sim-nest/sim-compute",
+    "validation_commands": [
+      "cargo fmt --all --check",
+      "cargo test",
+      "cargo clippy --all-targets -- -D warnings",
+      "cargo doc --no-deps",
+      "cargo run -p xtask -- simdoc --check",
+      "cargo run -p xtask -- check-file-sizes",
+      "cargo run -p xtask -- repo-contract --check --repo .",
+      "cargo run -p xtask -- validation-matrix --check --repo .",
+      "cargo run -p xtask -- crate-catalog --check --repo ."
+    ],
+    "workspace_hash": "6b009cf4720c9576",
+    "workspace_hash_algorithm": "fnv1a64",
+    "workspace_hash_input_count": 18,
+    "workspace_hash_inputs": [
+      "Cargo.toml",
+      "crates/sim-lib-compute-auto/Cargo.toml",
+      "crates/sim-lib-compute-auto/build.rs",
+      "crates/sim-lib-compute-auto/recipes/01-basics/auto-compute-site/recipe.toml",
+      "crates/sim-lib-compute-auto/recipes/book.toml",
+      "crates/sim-lib-compute-auto/src/lib.rs",
+      "crates/sim-lib-compute-auto/src/tests.rs",
+      "crates/sim-lib-compute-model/Cargo.toml",
+      "crates/sim-lib-compute-model/build.rs",
+      "crates/sim-lib-compute-model/recipes/01-basics/modeled-resident-matrix/recipe.toml",
+      "crates/sim-lib-compute-model/recipes/book.toml",
+      "crates/sim-lib-compute-model/src/lib.rs",
+      "crates/sim-lib-compute-model/src/model.rs",
+      "crates/sim-lib-compute-model/src/site.rs",
+      "crates/sim-lib-compute-model/src/storage.rs",
+      "crates/sim-lib-compute-model/src/tests.rs",
+      "features.toml",
+      "xtask/Cargo.toml"
+    ]
+  },
+  "recipe_book_count": 2,
+  "recipes": [
+    {
+      "book": "compute-auto",
+      "book_toml": "crates/sim-lib-compute-auto/recipes/book.toml",
+      "card_id": "cookbook/compute-auto",
+      "group": "workspace",
+      "package": "sim-lib-compute-auto",
+      "recipe_count": 1,
+      "recipes": [
+        {
+          "card_id": "compute-auto/01-basics/auto-compute-site",
+          "codec": "lisp",
+          "id": "auto-compute-site",
+          "package": "sim-lib-compute-auto",
+          "recipe_toml": "crates/sim-lib-compute-auto/recipes/01-basics/auto-compute-site/recipe.toml",
+          "title": "Auto compute site"
+        }
+      ],
+      "summary": "Automatic tensor compute site selection with CPU fallback.",
+      "title": "Auto Compute"
+    },
+    {
+      "book": "compute-model",
+      "book_toml": "crates/sim-lib-compute-model/recipes/book.toml",
+      "card_id": "cookbook/compute-model",
+      "group": "workspace",
+      "package": "sim-lib-compute-model",
+      "recipe_count": 1,
+      "recipes": [
+        {
+          "card_id": "compute-model/01-basics/modeled-resident-matrix",
+          "codec": "lisp",
+          "id": "modeled-resident-matrix",
+          "package": "sim-lib-compute-model",
+          "recipe_toml": "crates/sim-lib-compute-model/recipes/01-basics/modeled-resident-matrix/recipe.toml",
+          "title": "Modeled resident matrix"
+        }
+      ],
+      "summary": "Modeled resident tensor execution for provider and placement tests.",
+      "title": "Modeled Compute"
+    }
+  ]
+}

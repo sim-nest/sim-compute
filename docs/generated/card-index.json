@@ -1,0 +1,30 @@
+{
+  "card_count": 4,
+  "cards": [
+    {
+      "id": "browse/catalog",
+      "kind": "browse-root",
+      "owner": "workspace",
+      "summary": "root browse catalog"
+    },
+    {
+      "id": "cookbook/compute-auto",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-compute-auto",
+      "summary": "Automatic tensor compute site selection with CPU fallback."
+    },
+    {
+      "id": "cookbook/compute-model",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-compute-model",
+      "summary": "Modeled resident tensor execution for provider and placement tests."
+    },
+    {
+      "id": "registry/catalog",
+      "kind": "browse-registry",
+      "owner": "workspace",
+      "summary": "registry catalog browse card"
+    }
+  ],
+  "generator": "xtask repo-contract v1"
+}

@@ -1,0 +1,75 @@
+schema = "sim.features"
+
+[enforcement.audience]
+user = "strict"
+framework = "strict"
+code = "strict"
+
+[enforcement.specimen]
+user = "strict"
+framework = "strict"
+code = "advisory"
+
+[enforcement.route]
+major_entrypoints = "advisory"
+frameworks = "advisory"
+
+[[feature]]
+id = "feature/sim-compute/generated-docs"
+title = "Repository documentation surface"
+summary = "Publish generated package, card, rustdoc, recipe, and Index facts for compute providers."
+owner = "crate/xtask"
+audiences = ["code"]
+guidance = "Use this row when checking the generated documentation and Index lane for compute providers."
+claims_anchors = [
+  "anchor/cli/xtask",
+  "anchor/crate/xtask",
+  "anchor/doc/generated/card-index",
+  "anchor/doc/generated/feature-map",
+  "anchor/doc/generated/provenance",
+  "anchor/doc/generated/repo-contract",
+  "anchor/doc/generated/rustdoc-index",
+  "anchor/doc/generated/sim-index-fragment",
+  "anchor/repo/sim-compute",
+]
+claims_surfaces = [
+  "cli/xtask",
+  "docs/sim-compute/generated",
+]
+
+[[feature]]
+id = "feature/sim-compute/tensor-providers"
+title = "Tensor compute providers"
+summary = "Run canonical Tensor requests through modeled resident and automatic compute sites."
+owner = "crate/sim-lib-compute-model"
+audiences = ["user", "code", "framework"]
+guidance = "Use this row when a tensor expression needs a loadable provider site. The modeled executor preserves canonical Tensor identity while returning resident storage, bounded submission evidence, counters, and injected OOM, device-loss, or readback faults. The auto site uses a compatible modeled profile when supplied and otherwise falls back to the sim-numbers CPU executor."
+claims_anchors = [
+  "anchor/crate/sim-lib-compute-auto",
+  "anchor/crate/sim-lib-compute-model",
+  "anchor/export/sim-lib-compute-auto/site/compute/auto",
+  "anchor/export/sim-lib-compute-model/site/compute/model",
+  "anchor/runtime-lib/sim-lib-compute-auto/compute-auto-lib",
+  "anchor/runtime-lib/sim-lib-compute-model/compute-model-lib",
+  "anchor/rustdoc/sim-lib-compute-auto/auto-tensor-executor",
+  "anchor/rustdoc/sim-lib-compute-model/modeled-tensor-executor",
+  "anchor/rustdoc/sim-lib-compute-model/modeled-resident-storage",
+]
+claims_surfaces = [
+  "site/sim-lib-compute-auto",
+  "site/sim-lib-compute-model",
+]
+claims_specimens = [
+  "recipe/sim-compute/crates/sim-lib-compute-model/01-basics/modeled-resident-matrix",
+  "spec-test/sim-compute/crates/sim-lib-compute-model/src/tests",
+  "spec-test/sim-compute/crates/sim-lib-compute-auto/src/tests",
+]
+
+[[route]]
+id = "route/run-tensor-on-compute-site"
+task = "Run tensor on a compute site"
+audiences = ["user", "code", "framework"]
+steps = [
+  { feature = "feature/sim-compute/tensor-providers", why = "The compute-provider row owns modeled resident and automatic site placement." },
+  { specimen = "recipe/sim-compute/crates/sim-lib-compute-model/01-basics/modeled-resident-matrix", why = "The modeled-resident recipe shows chained resident tensors with one materialization." },
+]

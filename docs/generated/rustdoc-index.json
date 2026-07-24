@@ -1,0 +1,26 @@
+{
+  "generator": "xtask repo-contract v1",
+  "packages": [
+    {
+      "crate_name": "sim_lib_compute_auto",
+      "group": "workspace",
+      "manifest": "crates/sim-lib-compute-auto/Cargo.toml",
+      "package": "sim-lib-compute-auto",
+      "summary": "Automatic tensor compute-site selection."
+    },
+    {
+      "crate_name": "sim_lib_compute_model",
+      "group": "workspace",
+      "manifest": "crates/sim-lib-compute-model/Cargo.toml",
+      "package": "sim-lib-compute-model",
+      "summary": "Modeled resident tensor compute provider."
+    },
+    {
+      "crate_name": "xtask",
+      "group": "workspace",
+      "manifest": "xtask/Cargo.toml",
+      "package": "xtask",
+      "summary": "Repository automation wrapper for generated documentation and policy checks."
+    }
+  ]
+}

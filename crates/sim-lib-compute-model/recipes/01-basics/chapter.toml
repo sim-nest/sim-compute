@@ -1,0 +1,4 @@
+title = "Basics"
+order = 10
+summary = "Resident tensor chaining and checked materialization."
+

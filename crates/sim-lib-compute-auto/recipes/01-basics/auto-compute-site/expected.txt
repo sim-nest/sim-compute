@@ -1,0 +1,2 @@
+(compute auto-site (site site/compute/auto) (without-compatible-profile cpu))
+

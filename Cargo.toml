@@ -1,0 +1,17 @@
+[workspace]
+resolver = "3"
+members = [
+  "crates/sim-lib-compute-auto",
+  "crates/sim-lib-compute-model",
+  "xtask",
+]
+
+[workspace.package]
+edition = "2024"
+license = "MPL-2.0"
+repository = "https://github.com/sim-nest/sim-compute"
+homepage = "https://github.com/sim-nest/sim-compute"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+

@@ -1,0 +1,17 @@
+{
+  "schema": "sim.card-index.v1",
+  "cards": [
+    "crates/sim-lib-compute-auto/recipes/01-basics/auto-compute-site/expected.txt",
+    "crates/sim-lib-compute-auto/recipes/01-basics/auto-compute-site/purpose.md",
+    "crates/sim-lib-compute-auto/recipes/01-basics/auto-compute-site/recipe.toml",
+    "crates/sim-lib-compute-auto/recipes/01-basics/auto-compute-site/setup.siml",
+    "crates/sim-lib-compute-auto/recipes/01-basics/chapter.toml",
+    "crates/sim-lib-compute-auto/recipes/book.toml",
+    "crates/sim-lib-compute-model/recipes/01-basics/chapter.toml",
+    "crates/sim-lib-compute-model/recipes/01-basics/modeled-resident-matrix/expected.txt",
+    "crates/sim-lib-compute-model/recipes/01-basics/modeled-resident-matrix/purpose.md",
+    "crates/sim-lib-compute-model/recipes/01-basics/modeled-resident-matrix/recipe.toml",
+    "crates/sim-lib-compute-model/recipes/01-basics/modeled-resident-matrix/setup.siml",
+    "crates/sim-lib-compute-model/recipes/book.toml"
+  ]
+}

@@ -1,0 +1,14 @@
+id = "auto-compute-site"
+title = "Auto compute site"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+expected = "expected.txt"
+order = 10
+tags = ["compute", "tensor", "auto", "fallback"]
+requires = ["compute/auto", "numbers/tensor", "standard"]
+
+[[expect]]
+form = 0
+result = "(compute auto-site (site site/compute/auto) (without-compatible-profile cpu))"
+

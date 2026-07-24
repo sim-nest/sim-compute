@@ -1,0 +1,2 @@
+(compute modeled-resident-matrix (site site/compute/model) (chain resident resident) (materializations 1) (readbacks 1))
+

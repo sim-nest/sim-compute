@@ -1,0 +1,18 @@
+id = "modeled-resident-matrix"
+title = "Modeled resident matrix"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+expected = "expected.txt"
+order = 10
+tags = ["compute", "tensor", "resident", "modeled"]
+requires = ["compute/model", "numbers/tensor", "standard"]
+capabilities = ["tensor.execute"]
+assert_tags = ["resident", "modeled"]
+assert_capabilities = ["tensor.execute"]
+assert_setup_codec = "lisp"
+
+[[expect]]
+form = 0
+result = "(compute modeled-resident-matrix (site site/compute/model) (chain resident resident) (materializations 1) (readbacks 1))"
+

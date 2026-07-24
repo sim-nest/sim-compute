@@ -1,0 +1,12 @@
+{"kind":"recipe","path":"crates/sim-lib-compute-auto/recipes/01-basics/auto-compute-site/expected.txt"}
+{"kind":"recipe","path":"crates/sim-lib-compute-auto/recipes/01-basics/auto-compute-site/purpose.md"}
+{"kind":"recipe","path":"crates/sim-lib-compute-auto/recipes/01-basics/auto-compute-site/recipe.toml"}
+{"kind":"recipe","path":"crates/sim-lib-compute-auto/recipes/01-basics/auto-compute-site/setup.siml"}
+{"kind":"recipe","path":"crates/sim-lib-compute-auto/recipes/01-basics/chapter.toml"}
+{"kind":"recipe","path":"crates/sim-lib-compute-auto/recipes/book.toml"}
+{"kind":"recipe","path":"crates/sim-lib-compute-model/recipes/01-basics/chapter.toml"}
+{"kind":"recipe","path":"crates/sim-lib-compute-model/recipes/01-basics/modeled-resident-matrix/expected.txt"}
+{"kind":"recipe","path":"crates/sim-lib-compute-model/recipes/01-basics/modeled-resident-matrix/purpose.md"}
+{"kind":"recipe","path":"crates/sim-lib-compute-model/recipes/01-basics/modeled-resident-matrix/recipe.toml"}
+{"kind":"recipe","path":"crates/sim-lib-compute-model/recipes/01-basics/modeled-resident-matrix/setup.siml"}
+{"kind":"recipe","path":"crates/sim-lib-compute-model/recipes/book.toml"}
