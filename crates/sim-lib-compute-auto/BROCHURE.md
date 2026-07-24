@@ -1,8 +1,6 @@
 # Auto Compute
 
-In one line: `sim-lib-compute-auto` gives SIM a stable automatic tensor
-placement surface that chooses an available compute site without changing the
-caller's tensor program.
+In one line: `sim-lib-compute-auto` gives SIM a stable automatic tensor placement surface that chooses an available compute site without changing the caller's tensor program.
 
 ## What it gives you
 

@@ -1,7 +1,6 @@
 # Modeled Compute
 
-In one line: `sim-lib-compute-model` gives SIM a deterministic tensor execution
-site for proving provider behavior before real hardware is involved.
+In one line: `sim-lib-compute-model` gives SIM a deterministic tensor execution site for proving provider behavior before real hardware is involved.
 
 ## What it gives you
 
