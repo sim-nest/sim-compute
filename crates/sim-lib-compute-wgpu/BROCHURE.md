@@ -1,14 +1,25 @@
 # SIM Compute WGPU
 
-In one line: `sim-lib-compute-wgpu` discovers portable GPU adapters and exports
-only probe-backed compute sites.
+In one line: `sim-lib-compute-wgpu` discovers portable GPU adapters and exports only probe-backed compute sites.
 
-Use it when SIM needs a hardware tensor-placement candidate with raw evidence:
-adapter identity, requested and granted limits, transfer and map checks, bounded
-allocation attempts, timestamp support, f16 support, portable f32 element-wise
-arithmetic/transcendentals, fixed-tree reductions, transpose, dot, and tiled
-matmul execution. The crate does not turn an absent adapter into a placeholder
-site.
+## What it gives you
 
-Pair it with `sim-lib-compute-model` for deterministic tests of resident tensor
-placement and materialization.
+It checks adapter identity, requested and granted limits, transfer and map
+behavior, bounded allocation attempts, timestamp support, f16 support, portable
+f32 element-wise arithmetic, transcendentals, fixed-tree reductions, transpose,
+dot, and tiled matrix multiplication. A site appears only when those probes
+succeed, so placement receives evidence instead of a vague hardware promise.
+
+## Why you will be glad
+
+- Use one portable GPU provider across desktop adapters and browser-shaped APIs.
+- Keep tensor placement honest with recorded limits and capability probes.
+- Exercise resident tensor materialization without vendor-specific setup.
+- Fall back cleanly when a machine has no adapter that meets the contract.
+
+## Where it fits
+
+This is the portable GPU provider in `sim-compute`. Pair it with
+`sim-lib-compute-model` for deterministic tests and place it under
+`sim-lib-compute-auto` when callers should ask for compute without naming a
+vendor backend.
