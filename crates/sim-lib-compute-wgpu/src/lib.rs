@@ -7,15 +7,22 @@
 //! sites only for adapters that pass transfer, mapping, and allocation probes.
 
 mod arena;
+mod kernels;
 mod materialization;
+mod pipeline;
 mod probe;
 mod queue;
 mod segments;
 mod site;
+mod storage;
 mod transfer;
 
 pub use arena::{WgpuAllocationId, WgpuArenaAllocation, WgpuArenaSnapshot, WgpuResidentArena};
 pub use materialization::WgpuMaterializationCache;
+pub use pipeline::{
+    WgpuKernelDType, WgpuKernelOp, WgpuPipelineCache, WgpuPipelineCacheSnapshot, WgpuPipelineKey,
+    WgpuPipelineRecord,
+};
 pub use probe::{
     AllocationAttempt, ProbeEvidence, ProbePolicy, RequestedWgpuProfile, TransferEvidence,
     WgpuAdapterEvidence, WgpuAdapterProbe, WgpuCapabilityEvidence, WgpuDiscovery,
@@ -27,6 +34,7 @@ pub use site::{
     ComputeWgpuLib, WgpuTensorExecutor, compute_wgpu_capability, compute_wgpu_lib_symbol,
     compute_wgpu_site_symbol, wgpu_executor_symbol,
 };
+pub use storage::WgpuResidentStorage;
 pub use transfer::{WgpuTransferPlan, WgpuTransferSpan};
 
 /// Cookbook recipes for this lib, embedded at build time.

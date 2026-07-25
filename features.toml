@@ -43,7 +43,7 @@ title = "Tensor compute providers"
 summary = "Run canonical Tensor requests through modeled, automatic, and probe-backed wgpu compute sites."
 owner = "crate/sim-lib-compute-model"
 audiences = ["user", "code", "framework"]
-guidance = "Use this row when a tensor expression needs a loadable provider site. The modeled executor preserves canonical Tensor identity while returning segmented resident storage, bounded queue byte/node/deadline evidence, eviction counters, cached materialization, and injected OOM, device-loss, eviction, or readback faults. The auto site uses a compatible modeled profile when supplied and otherwise falls back to the sim-numbers CPU executor. The wgpu provider enumerates adapters deterministically, records requested and granted hardware limits/features plus transfer, mapping, and bounded-allocation evidence, exposes reusable arena/segment/queue/transfer/materialization planning types, and exports only successful hardware sites."
+guidance = "Use this row when a tensor expression needs a loadable provider site. The modeled executor preserves canonical Tensor identity while returning segmented resident storage, bounded queue byte/node/deadline evidence, eviction counters, cached materialization, and injected OOM, device-loss, eviction, or readback faults. The auto site uses a compatible modeled profile when supplied and otherwise falls back to the sim-numbers CPU executor. The wgpu provider enumerates adapters deterministically, records requested and granted hardware limits/features plus transfer, mapping, and bounded-allocation evidence, executes portable f32 element-wise arithmetic and sqrt/exp/sin/cos kernels over broadcast output segments, uses native f16 only when granted, widens bf16 or unsupported half work to f32, caches validated pipelines by adapter/op/dtype/rank, and exports only successful hardware sites."
 claims_anchors = [
   "anchor/crate/sim-lib-compute-auto",
   "anchor/crate/sim-lib-compute-model",
@@ -57,6 +57,8 @@ claims_anchors = [
   "anchor/rustdoc/sim-lib-compute-model/modeled-tensor-executor",
   "anchor/rustdoc/sim-lib-compute-model/modeled-resident-storage",
   "anchor/rustdoc/sim-lib-compute-wgpu/compute-wgpu-lib",
+  "anchor/rustdoc/sim-lib-compute-wgpu/wgpu-pipeline-cache",
+  "anchor/rustdoc/sim-lib-compute-wgpu/wgpu-resident-storage",
   "anchor/rustdoc/sim-lib-compute-wgpu/wgpu-discovery",
 ]
 claims_surfaces = [

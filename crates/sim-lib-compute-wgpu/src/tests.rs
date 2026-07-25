@@ -1,12 +1,17 @@
 use std::sync::Arc;
 
-use sim_kernel::{DefaultFactory, EagerPolicy};
+use sim_kernel::{DefaultFactory, EagerPolicy, Symbol};
+use sim_lib_numbers_tensor::{
+    TensorExecution, TensorExecutor, TensorLocation, TensorMeta, TensorOp, TensorRequest,
+    add_op_symbol, build_tensor_value, cos_op_symbol, exp_op_symbol, parse_f32_literal_cell,
+    sin_op_symbol, sqrt_op_symbol, tensor_value_ref,
+};
 
 use crate::{
     AllocationAttempt, ComputeWgpuLib, ProbeEvidence, RequestedWgpuProfile, TransferEvidence,
-    WgpuAdapterEvidence, WgpuAdapterProbe, WgpuCapabilityEvidence, WgpuDiscovery,
-    WgpuLimitEvidence, WgpuMaterializationCache, WgpuQueueLimits, WgpuResidentArena,
-    WgpuSegmentPlan, WgpuSubmissionQueue, WgpuTensorExecutor, WgpuTransferPlan,
+    WgpuAdapterEvidence, WgpuAdapterProbe, WgpuCapabilityEvidence, WgpuDiscovery, WgpuKernelDType,
+    WgpuKernelOp, WgpuLimitEvidence, WgpuMaterializationCache, WgpuPipelineCache, WgpuQueueLimits,
+    WgpuResidentArena, WgpuSegmentPlan, WgpuSubmissionQueue, WgpuTensorExecutor, WgpuTransferPlan,
     compute_wgpu_capability, compute_wgpu_site_symbol,
 };
 
@@ -60,6 +65,47 @@ fn adapter(name: &str, backend: &str, success: bool) -> WgpuAdapterProbe {
             }],
         },
     }
+}
+
+fn test_cx() -> sim_kernel::Cx {
+    let mut cx = sim_kernel::Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    cx.load_lib(&sim_lib_numbers_arith::NumbersArithmeticLib::new())
+        .unwrap();
+    cx.load_lib(&sim_lib_numbers_f64::F64NumbersLib::new())
+        .unwrap();
+    cx.load_lib(&sim_lib_numbers_float::F32NumbersLib::new())
+        .unwrap();
+    cx.load_lib(&sim_lib_numbers_tensor::TensorNumbersLib::new())
+        .unwrap();
+    cx
+}
+
+fn f32_value(cx: &mut sim_kernel::Cx, canonical: &str) -> sim_kernel::Value {
+    cx.factory()
+        .number_literal(Symbol::qualified("numbers", "f32"), canonical.to_owned())
+        .unwrap()
+}
+
+fn tensor(
+    cx: &mut sim_kernel::Cx,
+    shape: Vec<usize>,
+    cells: &[&str],
+) -> sim_lib_numbers_tensor::Tensor {
+    let values = cells.iter().map(|cell| f32_value(cx, cell)).collect();
+    tensor_value_ref(
+        &build_tensor_value(cx, shape, Some(Symbol::qualified("numbers", "f32")), values).unwrap(),
+    )
+    .unwrap()
+    .clone()
+}
+
+fn f32_cells(tensor: &sim_lib_numbers_tensor::Tensor) -> Vec<f32> {
+    tensor
+        .cells()
+        .unwrap()
+        .iter()
+        .map(|cell| parse_f32_literal_cell(cell).expect("f32 tensor cell"))
+        .collect()
 }
 
 #[test]
@@ -179,4 +225,115 @@ fn materialization_cache_records_one_success_or_failure() {
             .unwrap_err()
             .contains("device lost")
     );
+}
+
+#[test]
+fn portable_kernels_complete_broadcast_arithmetic_as_resident_tensors() {
+    let mut cx = test_cx();
+    let discovery = WgpuDiscovery::from_probes(vec![adapter("alpha", "Vulkan", true)], Vec::new());
+    let executor = WgpuTensorExecutor::new(discovery.adapters[0].clone());
+    let left = tensor(&mut cx, vec![2, 1], &["1", "2"]);
+    let right = tensor(&mut cx, vec![1, 3], &["10", "20", "30"]);
+    let op = TensorOp::without_attributes(&mut cx, add_op_symbol()).unwrap();
+
+    let result = executor
+        .execute(
+            &mut cx,
+            TensorRequest::new(
+                op,
+                vec![left, right],
+                TensorMeta::new(vec![2, 3], Symbol::qualified("numbers", "f32")),
+            ),
+        )
+        .unwrap();
+
+    let TensorExecution::Complete(tensor) = result else {
+        panic!("wgpu executor must complete add");
+    };
+    assert!(matches!(
+        tensor.location(),
+        TensorLocation::Resident { site, .. } if site == compute_wgpu_site_symbol(0)
+    ));
+    assert_eq!(f32_cells(&tensor), vec![11.0, 21.0, 31.0, 12.0, 22.0, 32.0]);
+    assert_eq!(executor.flush().unwrap().accepted, 1);
+    assert_eq!(executor.pipeline_cache_snapshot().misses, 1);
+}
+
+#[test]
+fn portable_transcendentals_match_f32_nonfinite_semantics() {
+    let mut cx = test_cx();
+    let discovery = WgpuDiscovery::from_probes(vec![adapter("alpha", "Vulkan", true)], Vec::new());
+    let executor = WgpuTensorExecutor::new(discovery.adapters[0].clone());
+    let source = tensor(&mut cx, vec![4], &["0", "1", "inf", "NaN"]);
+
+    for symbol in [
+        sqrt_op_symbol(),
+        exp_op_symbol(),
+        sin_op_symbol(),
+        cos_op_symbol(),
+    ] {
+        let op = TensorOp::without_attributes(&mut cx, symbol).unwrap();
+        let result = match executor
+            .execute(
+                &mut cx,
+                TensorRequest::new(
+                    op,
+                    vec![source.clone()],
+                    TensorMeta::new(vec![4], Symbol::qualified("numbers", "f32")),
+                ),
+            )
+            .unwrap()
+        {
+            TensorExecution::Complete(tensor) => tensor,
+            TensorExecution::Unsupported { reason } => panic!("{reason}"),
+        };
+        assert_eq!(result.shape(), &[4]);
+        assert_eq!(result.dtype(), &Symbol::qualified("numbers", "f32"));
+        assert!(f32_cells(&result)[3].is_nan());
+    }
+    assert_eq!(executor.pipeline_cache_snapshot().misses, 4);
+}
+
+#[test]
+fn pipeline_cache_is_bounded_by_adapter_op_dtype_and_rank() {
+    let mut cache = WgpuPipelineCache::new(2);
+    let probe = adapter("alpha", "Vulkan", true);
+    cache.get_or_insert(&probe, WgpuKernelOp::Add, WgpuKernelDType::F32, 1);
+    cache.get_or_insert(&probe, WgpuKernelOp::Add, WgpuKernelDType::F32, 1);
+    cache.get_or_insert(&probe, WgpuKernelOp::Exp, WgpuKernelDType::F32, 1);
+    cache.get_or_insert(&probe, WgpuKernelOp::Sin, WgpuKernelDType::F32, 2);
+
+    let snapshot = cache.snapshot();
+    assert_eq!(snapshot.entries, 2);
+    assert_eq!(snapshot.hits, 1);
+    assert_eq!(snapshot.misses, 3);
+    assert_eq!(snapshot.evictions, 1);
+}
+
+#[test]
+fn dtype_policy_uses_native_f16_only_when_granted_and_widens_bf16() {
+    let mut cx = test_cx();
+    let no_f16 = WgpuDiscovery::from_probes(
+        vec![{
+            let mut probe = adapter("alpha", "Vulkan", true);
+            probe.adapter.granted_features.shader_f16 = false;
+            probe
+        }],
+        Vec::new(),
+    );
+    let executor = WgpuTensorExecutor::new(no_f16.adapters[0].clone());
+    let source = tensor(&mut cx, vec![1], &["1"]);
+    let op = TensorOp::without_attributes(&mut cx, exp_op_symbol()).unwrap();
+    let result = executor
+        .execute(
+            &mut cx,
+            TensorRequest::new(
+                op,
+                vec![source],
+                TensorMeta::new(vec![1], Symbol::qualified("numbers", "f32")),
+            ),
+        )
+        .unwrap();
+    assert!(matches!(result, TensorExecution::Complete(_)));
+    assert_eq!(executor.pipeline_cache_snapshot().misses, 1);
 }
