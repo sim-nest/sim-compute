@@ -18,7 +18,7 @@ This generated lane consumes `docs/generated/sim-index-fragment.sx`. Global inde
 | Feature | Subject | Specimens | Summary |
 | --- | --- | ---: | --- |
 | `feature/sim-compute/generated-docs` | `crate/xtask` | 0 | Publish generated package, card, rustdoc, recipe, and Index facts for compute providers. |
-| `feature/sim-compute/tensor-providers` | `crate/sim-lib-compute-model` | 8 | Run canonical Tensor requests through modeled, automatic, probe-backed wgpu, and optional CUDA/cuBLAS compute sites. |
+| `feature/sim-compute/tensor-providers` | `crate/sim-lib-compute-model` | 10 | Run canonical Tensor requests through modeled, automatic, probe-backed wgpu, optional CUDA/cuBLAS, and optional ROCm/rocBLAS compute sites. |
 
 ## Surfaces
 
@@ -30,6 +30,7 @@ This generated lane consumes `docs/generated/sim-index-fragment.sx`. Global inde
 | `site/sim-lib-compute-auto` | `site` | `crate/sim-lib-compute-auto` |
 | `site/sim-lib-compute-cuda` | `site` | `crate/sim-lib-compute-cuda` |
 | `site/sim-lib-compute-model` | `site` | `crate/sim-lib-compute-model` |
+| `site/sim-lib-compute-rocm` | `site` | `crate/sim-lib-compute-rocm` |
 | `site/sim-lib-compute-wgpu` | `site` | `crate/sim-lib-compute-wgpu` |
 
 ## Recipes
@@ -56,6 +57,12 @@ This generated lane consumes `docs/generated/sim-index-fragment.sx`. Global inde
 - `crates/sim-lib-compute-model/recipes/01-basics/modeled-resident-matrix/recipe.toml`
 - `crates/sim-lib-compute-model/recipes/01-basics/modeled-resident-matrix/setup.siml`
 - `crates/sim-lib-compute-model/recipes/book.toml`
+- `crates/sim-lib-compute-rocm/recipes/01-basics/chapter.toml`
+- `crates/sim-lib-compute-rocm/recipes/01-basics/rocm-discovery/expected.txt`
+- `crates/sim-lib-compute-rocm/recipes/01-basics/rocm-discovery/purpose.md`
+- `crates/sim-lib-compute-rocm/recipes/01-basics/rocm-discovery/recipe.toml`
+- `crates/sim-lib-compute-rocm/recipes/01-basics/rocm-discovery/setup.siml`
+- `crates/sim-lib-compute-rocm/recipes/book.toml`
 - `crates/sim-lib-compute-wgpu/recipes/01-basics/chapter.toml`
 - `crates/sim-lib-compute-wgpu/recipes/01-basics/wgpu-discovery/expected.txt`
 - `crates/sim-lib-compute-wgpu/recipes/01-basics/wgpu-discovery/purpose.md`
@@ -142,6 +149,19 @@ assert_capabilities = ["device.gpu.wgpu"]
 name = "probe"
 command = "cat expected.txt"
 result = "(compute wgpu-discovery (site site/compute/wgpu/0) (evidence transfer mapping allocation))"
+```
+
+Specimen `recipe/sim-compute/crates/sim-lib-compute-rocm/01-basics/rocm-discovery` is checked by `xtask check-recipes`.
+
+Source `crates/sim-lib-compute-rocm/recipes/01-basics/rocm-discovery/recipe.toml`:
+
+```toml
+id = "rocm-discovery"
+title = "ROCm discovery"
+language = "lisp"
+setup = "setup.siml"
+expected = "expected.txt"
+purpose = "purpose.md"
 ```
 
 Specimen `spec-test/sim-compute/crates/sim-lib-compute-model/src/tests` is checked by `cargo test`.
@@ -1362,5 +1382,197 @@ fn dtype_policy_uses_native_f16_only_when_granted_and_widens_bf16() {
         .unwrap();
     assert!(matches!(result, TensorExecution::Complete(_)));
     assert_eq!(executor.pipeline_cache_snapshot().misses, 1);
+}
+```
+
+Specimen `spec-test/sim-compute/crates/sim-lib-compute-rocm/src/tests` is checked by `cargo test`.
+
+Source `crates/sim-lib-compute-rocm/src/tests.rs`:
+
+```rust
+use std::sync::Arc;
+
+use sim_kernel::{DefaultFactory, EagerPolicy, Lib, Symbol};
+use sim_lib_numbers_tensor::{
+    Tensor, TensorExecution, TensorExecutor, TensorLocation, TensorMeta, TensorOp, TensorRequest,
+    TensorStorage, add_op_symbol, build_tensor_value, domains, matmul_exec_op_symbol,
+    parse_f32_literal_cell, tensor_value_ref,
+};
+
+use crate::{
+    ComputeRocmLib, FakeRocmLoader, RocmResidentStorage, RocmTensorExecutor,
+    compute_rocm_capability, compute_rocm_site_symbol,
+};
+
+// conformance: ROCm discovery records ABI evidence, exports only validated sites, and accepts dense matmul while declining unsupported requests before acceptance.
+
+fn test_cx() -> sim_kernel::Cx {
+    let mut cx = sim_kernel::Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    cx.load_lib(&sim_lib_numbers_arith::NumbersArithmeticLib::new())
+        .unwrap();
+    cx.load_lib(&sim_lib_numbers_f64::F64NumbersLib::new())
+        .unwrap();
+    cx.load_lib(&sim_lib_numbers_float::F32NumbersLib::new())
+        .unwrap();
+    cx.load_lib(&sim_lib_numbers_tensor::TensorNumbersLib::new())
+        .unwrap();
+    cx
+}
+
+fn f32_value(cx: &mut sim_kernel::Cx, canonical: &str) -> sim_kernel::Value {
+    cx.factory()
+        .number_literal(domains::f32(), canonical.to_owned())
+        .unwrap()
+}
+
+fn tensor(cx: &mut sim_kernel::Cx, shape: Vec<usize>, cells: &[&str]) -> Tensor {
+    let values = cells.iter().map(|cell| f32_value(cx, cell)).collect();
+    tensor_value_ref(&build_tensor_value(cx, shape, Some(domains::f32()), values).unwrap())
+        .unwrap()
+        .clone()
+}
+
+fn f32_cells(tensor: &Tensor) -> Vec<f32> {
+    tensor
+        .cells()
+        .unwrap()
+        .iter()
+        .map(|cell| parse_f32_literal_cell(cell).expect("f32 tensor cell"))
+        .collect()
+}
+
+fn execute_rocm(
+    cx: &mut sim_kernel::Cx,
+    executor: &RocmTensorExecutor,
+    symbol: Symbol,
+    inputs: Vec<Tensor>,
+    shape: Vec<usize>,
+    dtype: Symbol,
+) -> TensorExecution {
+    let op = TensorOp::without_attributes(cx, symbol).unwrap();
+    executor
+        .execute(
+            cx,
+            TensorRequest::new(op, inputs, TensorMeta::new(shape, dtype)),
+        )
+        .unwrap()
+}
+
+#[test]
+fn fake_loader_controls_site_exports_without_rocm_installed() {
+    let available = ComputeRocmLib::from_loader(&FakeRocmLoader::available()).unwrap();
+    let manifest = available.manifest();
+    assert_eq!(manifest.exports.len(), 1);
+    assert_eq!(manifest.capabilities, vec![compute_rocm_capability()]);
+
+    let incomplete = ComputeRocmLib::from_loader(&FakeRocmLoader::incomplete()).unwrap();
+    assert!(incomplete.manifest().exports.is_empty());
+
+    let without_rocblaslt =
+        ComputeRocmLib::from_loader(&FakeRocmLoader::without_rocblaslt()).unwrap();
+    assert_eq!(without_rocblaslt.manifest().exports.len(), 1);
+
+    assert!(ComputeRocmLib::from_loader(&FakeRocmLoader::absent()).is_err());
+}
+
+#[test]
+fn rocm_lib_registers_site_only_after_abi_validation() {
+    let lib = ComputeRocmLib::from_loader(&FakeRocmLoader::available()).unwrap();
+    let mut cx = sim_kernel::Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    cx.grant(compute_rocm_capability());
+    cx.load_lib(&lib).unwrap();
+    let site = cx
+        .registry()
+        .site_by_symbol(&compute_rocm_site_symbol())
+        .expect("rocm compute site");
+    assert!(site.object().as_eval_fabric().is_some());
+}
+
+#[test]
+fn dense_f32_matmul_returns_rocm_resident_storage() {
+    let mut cx = test_cx();
+    let evidence = ComputeRocmLib::from_loader(&FakeRocmLoader::available())
+        .unwrap()
+        .probe_evidence()
+        .and_then(|probe| probe.evidence.clone())
+        .unwrap();
+    let executor = RocmTensorExecutor::new(evidence);
+    let left = tensor(&mut cx, vec![2, 3], &["1", "2", "3", "4", "5", "6"]);
+    let right = tensor(&mut cx, vec![3, 2], &["7", "8", "9", "10", "11", "12"]);
+    let TensorExecution::Complete(result) = execute_rocm(
+        &mut cx,
+        &executor,
+        matmul_exec_op_symbol(),
+        vec![left, right],
+        vec![2, 2],
+        domains::f32(),
+    ) else {
+        panic!("rocm matmul should complete");
+    };
+
+    assert_eq!(f32_cells(&result), vec![58.0, 64.0, 139.0, 154.0]);
+    let storage = result
+        .storage()
+        .as_any()
+        .downcast_ref::<RocmResidentStorage>()
+        .expect("rocm resident storage");
+    assert_eq!(
+        storage.location(),
+        TensorLocation::Resident {
+            site: compute_rocm_site_symbol(),
+            allocation: Symbol::qualified("compute.alloc.rocm", "1"),
+        }
+    );
+    assert_eq!(executor.flush().unwrap().accepted, 1);
+}
+
+#[test]
+fn unsupported_operations_are_declined_before_acceptance() {
+    let mut cx = test_cx();
+    let evidence = ComputeRocmLib::from_loader(&FakeRocmLoader::available())
+        .unwrap()
+        .probe_evidence()
+        .and_then(|probe| probe.evidence.clone())
+        .unwrap();
+    let executor = RocmTensorExecutor::new(evidence);
+    let left = tensor(&mut cx, vec![2], &["1", "2"]);
+    let right = tensor(&mut cx, vec![2], &["3", "4"]);
+    let TensorExecution::Unsupported { reason } = execute_rocm(
+        &mut cx,
+        &executor,
+        add_op_symbol(),
+        vec![left, right],
+        vec![2],
+        domains::f32(),
+    ) else {
+        panic!("rocm provider must decline non-matmul operations");
+    };
+    assert!(reason.contains("dense matmul only"));
+    assert_eq!(executor.flush().unwrap().accepted, 0);
+}
+
+#[test]
+fn half_matmul_requires_validated_rocblaslt_path() {
+    let mut cx = test_cx();
+    let evidence = ComputeRocmLib::from_loader(&FakeRocmLoader::without_rocblaslt())
+        .unwrap()
+        .probe_evidence()
+        .and_then(|probe| probe.evidence.clone())
+        .unwrap();
+    let executor = RocmTensorExecutor::new(evidence);
+    let left = tensor(&mut cx, vec![1, 1], &["1"]);
+    let right = tensor(&mut cx, vec![1, 1], &["2"]);
+    let TensorExecution::Unsupported { reason } = execute_rocm(
+        &mut cx,
+        &executor,
+        matmul_exec_op_symbol(),
+        vec![left, right],
+        vec![1, 1],
+        domains::f16(),
+    ) else {
+        panic!("half matmul must require rocBLASLt ABI evidence");
+    };
+    assert!(reason.contains("rocBLASLt-supported half"));
+    assert_eq!(executor.flush().unwrap().accepted, 0);
 }
 ```

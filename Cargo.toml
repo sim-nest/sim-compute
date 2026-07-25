@@ -4,6 +4,7 @@ members = [
   "crates/sim-lib-compute-auto",
   "crates/sim-lib-compute-cuda",
   "crates/sim-lib-compute-model",
+  "crates/sim-lib-compute-rocm",
   "crates/sim-lib-compute-wgpu",
   "xtask",
 ]

@@ -19,6 +19,11 @@
     {
       "features": [],
       "group": "workspace",
+      "package": "sim-lib-compute-rocm"
+    },
+    {
+      "features": [],
+      "group": "workspace",
       "package": "sim-lib-compute-wgpu"
     },
     {

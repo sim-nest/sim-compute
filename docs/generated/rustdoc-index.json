@@ -23,6 +23,13 @@
       "summary": "Modeled resident tensor compute provider."
     },
     {
+      "crate_name": "sim_lib_compute_rocm",
+      "group": "workspace",
+      "manifest": "crates/sim-lib-compute-rocm/Cargo.toml",
+      "package": "sim-lib-compute-rocm",
+      "summary": "Optional runtime-loaded ROCm/rocBLAS tensor compute provider."
+    },
+    {
       "crate_name": "sim_lib_compute_wgpu",
       "group": "workspace",
       "manifest": "crates/sim-lib-compute-wgpu/Cargo.toml",

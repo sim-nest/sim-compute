@@ -845,6 +845,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "sim-lib-compute-rocm"
+version = "0.1.0"
+dependencies = [
+ "libloading",
+ "sim-cookbook",
+ "sim-kernel",
+ "sim-lib-numbers-arith",
+ "sim-lib-numbers-f64",
+ "sim-lib-numbers-float",
+ "sim-lib-numbers-tensor",
+]
+
+[[package]]
 name = "sim-lib-compute-wgpu"
 version = "0.1.0"
 dependencies = [

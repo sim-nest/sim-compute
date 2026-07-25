@@ -1,0 +1,2 @@
+title = "sim-lib-compute-rocm recipes"
+chapters = ["01-basics/chapter.toml"]
