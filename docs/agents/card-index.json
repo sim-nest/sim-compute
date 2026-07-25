@@ -12,6 +12,12 @@
     "crates/sim-lib-compute-model/recipes/01-basics/modeled-resident-matrix/purpose.md",
     "crates/sim-lib-compute-model/recipes/01-basics/modeled-resident-matrix/recipe.toml",
     "crates/sim-lib-compute-model/recipes/01-basics/modeled-resident-matrix/setup.siml",
-    "crates/sim-lib-compute-model/recipes/book.toml"
+    "crates/sim-lib-compute-model/recipes/book.toml",
+    "crates/sim-lib-compute-wgpu/recipes/01-basics/chapter.toml",
+    "crates/sim-lib-compute-wgpu/recipes/01-basics/wgpu-discovery/expected.txt",
+    "crates/sim-lib-compute-wgpu/recipes/01-basics/wgpu-discovery/purpose.md",
+    "crates/sim-lib-compute-wgpu/recipes/01-basics/wgpu-discovery/recipe.toml",
+    "crates/sim-lib-compute-wgpu/recipes/01-basics/wgpu-discovery/setup.siml",
+    "crates/sim-lib-compute-wgpu/recipes/book.toml"
   ]
 }

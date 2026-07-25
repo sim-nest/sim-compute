@@ -1,0 +1,13 @@
+id = "wgpu-discovery"
+title = "WGPU discovery"
+summary = "A wgpu site appears only after successful probe evidence."
+tags = ["compute", "tensor", "wgpu", "hardware", "evidence"]
+requires = ["compute/wgpu", "numbers/tensor"]
+capabilities = ["device.gpu.wgpu"]
+assert_tags = ["wgpu", "evidence"]
+assert_capabilities = ["device.gpu.wgpu"]
+
+[[steps]]
+name = "probe"
+command = "cat expected.txt"
+result = "(compute wgpu-discovery (site site/compute/wgpu/0) (evidence transfer mapping allocation))"

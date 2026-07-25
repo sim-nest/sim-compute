@@ -3,6 +3,7 @@ resolver = "3"
 members = [
   "crates/sim-lib-compute-auto",
   "crates/sim-lib-compute-model",
+  "crates/sim-lib-compute-wgpu",
   "xtask",
 ]
 
@@ -14,4 +15,3 @@ homepage = "https://github.com/sim-nest/sim-compute"
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
-

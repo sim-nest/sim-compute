@@ -40,29 +40,36 @@ claims_surfaces = [
 [[feature]]
 id = "feature/sim-compute/tensor-providers"
 title = "Tensor compute providers"
-summary = "Run canonical Tensor requests through modeled resident and automatic compute sites."
+summary = "Run canonical Tensor requests through modeled, automatic, and probe-backed wgpu compute sites."
 owner = "crate/sim-lib-compute-model"
 audiences = ["user", "code", "framework"]
-guidance = "Use this row when a tensor expression needs a loadable provider site. The modeled executor preserves canonical Tensor identity while returning resident storage, bounded submission evidence, counters, and injected OOM, device-loss, or readback faults. The auto site uses a compatible modeled profile when supplied and otherwise falls back to the sim-numbers CPU executor."
+guidance = "Use this row when a tensor expression needs a loadable provider site. The modeled executor preserves canonical Tensor identity while returning resident storage, bounded submission evidence, counters, and injected OOM, device-loss, or readback faults. The auto site uses a compatible modeled profile when supplied and otherwise falls back to the sim-numbers CPU executor. The wgpu provider enumerates adapters deterministically, records requested and granted hardware limits/features plus transfer, mapping, and bounded-allocation evidence, and exports only successful hardware sites."
 claims_anchors = [
   "anchor/crate/sim-lib-compute-auto",
   "anchor/crate/sim-lib-compute-model",
+  "anchor/crate/sim-lib-compute-wgpu",
   "anchor/export/sim-lib-compute-auto/site/compute/auto",
   "anchor/export/sim-lib-compute-model/site/compute/model",
   "anchor/runtime-lib/sim-lib-compute-auto/compute-auto-lib",
   "anchor/runtime-lib/sim-lib-compute-model/compute-model-lib",
+  "anchor/runtime-lib/sim-lib-compute-wgpu/compute-wgpu-lib",
   "anchor/rustdoc/sim-lib-compute-auto/auto-tensor-executor",
   "anchor/rustdoc/sim-lib-compute-model/modeled-tensor-executor",
   "anchor/rustdoc/sim-lib-compute-model/modeled-resident-storage",
+  "anchor/rustdoc/sim-lib-compute-wgpu/compute-wgpu-lib",
+  "anchor/rustdoc/sim-lib-compute-wgpu/wgpu-discovery",
 ]
 claims_surfaces = [
   "site/sim-lib-compute-auto",
   "site/sim-lib-compute-model",
+  "site/sim-lib-compute-wgpu",
 ]
 claims_specimens = [
   "recipe/sim-compute/crates/sim-lib-compute-model/01-basics/modeled-resident-matrix",
+  "recipe/sim-compute/crates/sim-lib-compute-wgpu/01-basics/wgpu-discovery",
   "spec-test/sim-compute/crates/sim-lib-compute-model/src/tests",
   "spec-test/sim-compute/crates/sim-lib-compute-auto/src/tests",
+  "spec-test/sim-compute/crates/sim-lib-compute-wgpu/src/tests",
 ]
 
 [[route]]
@@ -70,6 +77,6 @@ id = "route/run-tensor-on-compute-site"
 task = "Run tensor on a compute site"
 audiences = ["user", "code", "framework"]
 steps = [
-  { feature = "feature/sim-compute/tensor-providers", why = "The compute-provider row owns modeled resident and automatic site placement." },
+  { feature = "feature/sim-compute/tensor-providers", why = "The compute-provider row owns modeled resident, automatic, and probe-backed wgpu site placement." },
   { specimen = "recipe/sim-compute/crates/sim-lib-compute-model/01-basics/modeled-resident-matrix", why = "The modeled-resident recipe shows chained resident tensors with one materialization." },
 ]

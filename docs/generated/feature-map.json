@@ -14,6 +14,11 @@
     {
       "features": [],
       "group": "workspace",
+      "package": "sim-lib-compute-wgpu"
+    },
+    {
+      "features": [],
+      "group": "workspace",
       "package": "xtask"
     }
   ]

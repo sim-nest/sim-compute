@@ -16,6 +16,13 @@
       "summary": "Modeled resident tensor compute provider."
     },
     {
+      "crate_name": "sim_lib_compute_wgpu",
+      "group": "workspace",
+      "manifest": "crates/sim-lib-compute-wgpu/Cargo.toml",
+      "package": "sim-lib-compute-wgpu",
+      "summary": "Evidence-based wgpu tensor compute site discovery."
+    },
+    {
       "crate_name": "xtask",
       "group": "workspace",
       "manifest": "xtask/Cargo.toml",
