@@ -131,7 +131,7 @@
     {
       "crate_name": "xtask",
       "dependencies": [],
-      "description": "SIM workspace package for xtask.",
+      "description": "Repository automation wrapper for generated documentation and policy checks.",
       "features": [],
       "group": "workspace",
       "manifest": "xtask/Cargo.toml",
@@ -161,10 +161,10 @@
     "generated_by": "cargo run -p xtask -- simdoc",
     "generation_timestamp": "2026-07-24T22:54:42+02:00",
     "generator": "xtask repo-contract v1",
-    "git_commit": "f14e0e3583961b64f95e3120780bcaa2c4d69f77",
+    "git_commit": "9ac7f3163db8527f9af0fdf16d09570a7eff1410",
     "repo": "sim-compute",
     "schema": "sim.provenance.v1",
-    "source_commit": "f14e0e3583961b64f95e3120780bcaa2c4d69f77",
+    "source_commit": "9ac7f3163db8527f9af0fdf16d09570a7eff1410",
     "source_remote": "https://github.com/sim-nest/sim-compute",
     "validation_commands": [
       "cargo fmt --all --check",
@@ -177,7 +177,7 @@
       "cargo run -p xtask -- validation-matrix --check --repo .",
       "cargo run -p xtask -- crate-catalog --check --repo ."
     ],
-    "workspace_hash": "6b009cf4720c9576",
+    "workspace_hash": "ca4ddc8f80db701f",
     "workspace_hash_algorithm": "fnv1a64",
     "workspace_hash_input_count": 18,
     "workspace_hash_inputs": [

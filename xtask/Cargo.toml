@@ -2,6 +2,8 @@
 name = "xtask"
 version = "0.0.0"
 edition = "2024"
+description = "Repository automation wrapper for generated documentation and policy checks."
+readme = "README.md"
 publish = false
 
 [lints]

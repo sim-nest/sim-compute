@@ -1,0 +1,44 @@
+{
+  "generator": "xtask crate-catalog v1",
+  "package_count": 3,
+  "packages": [
+    {
+      "description": "Automatic tensor compute site selection for SIM.",
+      "generated_readme": false,
+      "manifest": "crates/sim-lib-compute-auto/Cargo.toml",
+      "name": "sim-lib-compute-auto",
+      "publish": "false",
+      "readme": "crates/sim-lib-compute-auto/README.md",
+      "root": "crates/sim-lib-compute-auto",
+      "target_kinds": [
+        "custom-build",
+        "lib"
+      ]
+    },
+    {
+      "description": "Modeled resident tensor compute site for SIM.",
+      "generated_readme": false,
+      "manifest": "crates/sim-lib-compute-model/Cargo.toml",
+      "name": "sim-lib-compute-model",
+      "publish": "false",
+      "readme": "crates/sim-lib-compute-model/README.md",
+      "root": "crates/sim-lib-compute-model",
+      "target_kinds": [
+        "custom-build",
+        "lib"
+      ]
+    },
+    {
+      "description": "Repository automation wrapper for generated documentation and policy checks.",
+      "generated_readme": true,
+      "manifest": "xtask/Cargo.toml",
+      "name": "xtask",
+      "publish": "false",
+      "readme": "xtask/README.md",
+      "root": "xtask",
+      "target_kinds": [
+        "bin"
+      ]
+    }
+  ]
+}
