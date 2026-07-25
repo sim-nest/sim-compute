@@ -5,10 +5,12 @@ use sim_kernel::{DefaultFactory, EagerPolicy};
 use crate::{
     AllocationAttempt, ComputeWgpuLib, ProbeEvidence, RequestedWgpuProfile, TransferEvidence,
     WgpuAdapterEvidence, WgpuAdapterProbe, WgpuCapabilityEvidence, WgpuDiscovery,
-    WgpuLimitEvidence, WgpuTensorExecutor, compute_wgpu_capability, compute_wgpu_site_symbol,
+    WgpuLimitEvidence, WgpuMaterializationCache, WgpuQueueLimits, WgpuResidentArena,
+    WgpuSegmentPlan, WgpuSubmissionQueue, WgpuTensorExecutor, WgpuTransferPlan,
+    compute_wgpu_capability, compute_wgpu_site_symbol,
 };
 
-// conformance: wgpu discovery records evidence and exports only successful adapter sites.
+// conformance: wgpu discovery records evidence, exports only successful adapter sites, and plans bounded resident submissions.
 
 fn limits(buffer_size: u64) -> WgpuLimitEvidence {
     WgpuLimitEvidence {
@@ -104,4 +106,77 @@ fn wgpu_lib_exports_sites_only_for_successful_discovery() {
         .site_by_symbol(&compute_wgpu_site_symbol(0))
         .expect("wgpu compute site");
     assert!(site.object().as_eval_fabric().is_some());
+}
+
+#[test]
+fn segment_and_transfer_plans_cross_binding_boundaries() {
+    let segments = WgpuSegmentPlan::new(40, 16, 24);
+    assert_eq!(segments.total_bytes(), 40);
+    assert_eq!(segments.segments.len(), 3);
+    assert_eq!(segments.segments[0].offset, 0);
+    assert_eq!(segments.segments[0].bytes, 16);
+    assert_eq!(segments.segments[1].offset, 16);
+    assert_eq!(segments.segments[1].bytes, 16);
+    assert_eq!(segments.segments[2].offset, 32);
+    assert_eq!(segments.segments[2].bytes, 8);
+
+    let transfer = WgpuTransferPlan::from_segments(&segments);
+    assert_eq!(transfer.spans.len(), 3);
+    assert_eq!(transfer.spans[2].offset, 32);
+    assert_eq!(transfer.spans[2].bytes, 8);
+}
+
+#[test]
+fn resident_arena_evicts_oldest_allocation_under_byte_bound() {
+    let mut arena = WgpuResidentArena::new(24);
+    let first = arena.allocate(16).unwrap();
+    let second = arena.allocate(16).unwrap();
+
+    assert!(!arena.contains(first.id));
+    assert!(arena.contains(second.id));
+    assert_eq!(arena.snapshot().resident_bytes, 16);
+    assert_eq!(arena.snapshot().live_allocations, 1);
+    assert_eq!(arena.snapshot().evictions, 1);
+    assert!(arena.allocate(32).unwrap_err().contains("exceeds arena"));
+}
+
+#[test]
+fn submission_queue_bounds_nodes_bytes_and_deadlines() {
+    let mut queue = WgpuSubmissionQueue::new(WgpuQueueLimits {
+        max_nodes: 1,
+        max_bytes: 32,
+        deadline_tick: 10,
+    });
+    queue.push(16, 10).unwrap();
+    assert!(queue.push(8, 10).unwrap_err().contains("node limit"));
+    assert_eq!(queue.flush().nodes, 1);
+    assert!(queue.push(40, 10).unwrap_err().contains("byte limit"));
+    assert!(queue.push(8, 11).unwrap_err().contains("deadline"));
+}
+
+#[test]
+fn materialization_cache_records_one_success_or_failure() {
+    let success = WgpuMaterializationCache::default();
+    let first = success
+        .get_or_try_init(|| Ok(Arc::<[u8]>::from([1, 2, 3])))
+        .unwrap();
+    let second = success
+        .get_or_try_init(|| Ok(Arc::<[u8]>::from([9])))
+        .unwrap();
+    assert_eq!(&*first, &[1, 2, 3]);
+    assert_eq!(&*second, &[1, 2, 3]);
+
+    let failure = WgpuMaterializationCache::default();
+    assert!(
+        failure
+            .get_or_try_init(|| Err("device lost".to_owned()))
+            .unwrap_err()
+            .contains("device lost")
+    );
+    assert!(
+        failure
+            .get_or_try_init(|| Ok(Arc::<[u8]>::from([1])))
+            .unwrap_err()
+            .contains("device lost")
+    );
 }

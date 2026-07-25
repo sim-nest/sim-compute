@@ -176,8 +176,11 @@ fn modeled_executor_returns_resident_tensor_and_flush_evidence() {
         TensorLocation::Resident { site, .. } if site == compute_model_site_symbol()
     ));
     assert_eq!(executor.snapshot().accepted, 1);
+    assert_eq!(executor.snapshot().queued, 1);
+    assert_eq!(executor.snapshot().queued_bytes, 48);
     assert_eq!(executor.flush().unwrap().accepted, 1);
     assert_eq!(executor.snapshot().queued, 0);
+    assert_eq!(executor.snapshot().queued_bytes, 0);
 
     let storage = tensor
         .storage()
@@ -191,6 +194,7 @@ fn modeled_executor_returns_resident_tensor_and_flush_evidence() {
             .to_string()
             .contains("compute.alloc")
     );
+    assert_eq!(storage.segments().len(), 1);
     let cells = tensor.cells().unwrap();
     assert_eq!(cells.len(), 2);
     assert_eq!(executor.snapshot().readbacks, 1);
@@ -262,6 +266,8 @@ fn modeled_faults_are_injected_at_submission_execution_and_readback() {
         Err(error) => error,
     };
     assert!(lost_error.to_string().contains("device lost"));
+    assert_eq!(lost.snapshot().queued, 0);
+    assert_eq!(lost.snapshot().queued_bytes, 0);
 
     let readback = ModeledTensorExecutor::new(ModeledComputeProfile {
         fault: Some(ModeledComputeFault::ReadbackFailure),
@@ -283,6 +289,170 @@ fn modeled_faults_are_injected_at_submission_execution_and_readback() {
             .to_string()
             .contains("readback failed")
     );
+    assert!(
+        tensor
+            .cells()
+            .unwrap_err()
+            .to_string()
+            .contains("readback failed")
+    );
+    assert_eq!(readback.snapshot().readbacks, 1);
+    assert_eq!(readback.snapshot().materialization_failures, 1);
+}
+
+#[test]
+fn segmented_storage_crosses_binding_boundaries() {
+    let mut cx = test_cx();
+    let executor = ModeledTensorExecutor::new(ModeledComputeProfile {
+        segment_tile_bytes: 16,
+        max_storage_binding_bytes: 16,
+        ..ModeledComputeProfile::default()
+    });
+    let op = TensorOp::without_attributes(&mut cx, add_op_symbol()).unwrap();
+    let request = TensorRequest::new(
+        op,
+        vec![
+            vector(&mut cx, &["1", "2", "3", "4"]),
+            vector(&mut cx, &["10", "20", "30", "40"]),
+        ],
+        TensorMeta::new(vec![4], Symbol::qualified("numbers", "i64")),
+    );
+
+    let tensor = match executor.execute(&mut cx, request).unwrap() {
+        TensorExecution::Complete(tensor) => tensor,
+        TensorExecution::Unsupported { reason } => panic!("{reason}"),
+    };
+    let storage = tensor
+        .storage()
+        .as_any()
+        .downcast_ref::<ModeledResidentStorage>()
+        .expect("modeled resident storage");
+    assert_eq!(storage.segments().len(), 2);
+    assert_eq!(storage.segments()[0].offset, 0);
+    assert_eq!(storage.segments()[0].bytes, 16);
+    assert_eq!(storage.segments()[1].offset, 16);
+    assert_eq!(storage.segments()[1].bytes, 16);
+    assert_eq!(executor.snapshot().segments, 2);
+}
+
+#[test]
+fn queue_limits_cover_nodes_bytes_and_deadlines() {
+    let mut cx = test_cx();
+    let op = TensorOp::without_attributes(&mut cx, add_op_symbol()).unwrap();
+    let depth_limited = ModeledTensorExecutor::new(ModeledComputeProfile {
+        max_queue_depth: 1,
+        ..ModeledComputeProfile::default()
+    });
+    let first = TensorRequest::new(
+        op.clone(),
+        vec![vector(&mut cx, &["1"]), vector(&mut cx, &["2"])],
+        TensorMeta::new(vec![1], Symbol::qualified("numbers", "i64")),
+    );
+    depth_limited.execute(&mut cx, first).unwrap();
+    let second = TensorRequest::new(
+        op.clone(),
+        vec![vector(&mut cx, &["3"]), vector(&mut cx, &["4"])],
+        TensorMeta::new(vec![1], Symbol::qualified("numbers", "i64")),
+    );
+    let error = match depth_limited.execute(&mut cx, second) {
+        Ok(_) => panic!("depth limit must reject a second queued submission"),
+        Err(error) => error,
+    };
+    assert!(error.to_string().contains("queue is full"));
+
+    let byte_limited = ModeledTensorExecutor::new(ModeledComputeProfile {
+        max_queue_bytes: 16,
+        ..ModeledComputeProfile::default()
+    });
+    let oversized = TensorRequest::new(
+        op.clone(),
+        vec![vector(&mut cx, &["1"]), vector(&mut cx, &["2"])],
+        TensorMeta::new(vec![1], Symbol::qualified("numbers", "i64")),
+    );
+    let error = match byte_limited.execute(&mut cx, oversized) {
+        Ok(_) => panic!("byte limit must reject an oversized submission"),
+        Err(error) => error,
+    };
+    assert!(error.to_string().contains("byte budget"));
+
+    let deadline_limited = ModeledTensorExecutor::new(ModeledComputeProfile {
+        submission_deadline_ticks: 0,
+        ..ModeledComputeProfile::default()
+    });
+    let expired = TensorRequest::new(
+        op,
+        vec![vector(&mut cx, &["1"]), vector(&mut cx, &["2"])],
+        TensorMeta::new(vec![1], Symbol::qualified("numbers", "i64")),
+    );
+    let error = match deadline_limited.execute(&mut cx, expired) {
+        Ok(_) => panic!("deadline limit must reject expired submission"),
+        Err(error) => error,
+    };
+    assert!(error.to_string().contains("deadline"));
+}
+
+#[test]
+fn bounded_resident_pool_evicts_uncached_allocations() {
+    let mut cx = test_cx();
+    let executor = ModeledTensorExecutor::new(ModeledComputeProfile {
+        max_resident_bytes: 8,
+        ..ModeledComputeProfile::default()
+    });
+    let op = TensorOp::without_attributes(&mut cx, add_op_symbol()).unwrap();
+    let first_request = TensorRequest::new(
+        op.clone(),
+        vec![vector(&mut cx, &["1"]), vector(&mut cx, &["2"])],
+        TensorMeta::new(vec![1], Symbol::qualified("numbers", "i64")),
+    );
+    let first = match executor.execute(&mut cx, first_request).unwrap() {
+        TensorExecution::Complete(tensor) => tensor,
+        TensorExecution::Unsupported { reason } => panic!("{reason}"),
+    };
+    let second_request = TensorRequest::new(
+        op,
+        vec![vector(&mut cx, &["3"]), vector(&mut cx, &["4"])],
+        TensorMeta::new(vec![1], Symbol::qualified("numbers", "i64")),
+    );
+    let second = match executor.execute(&mut cx, second_request).unwrap() {
+        TensorExecution::Complete(tensor) => tensor,
+        TensorExecution::Unsupported { reason } => panic!("{reason}"),
+    };
+
+    assert_eq!(executor.snapshot().evictions, 1);
+    assert_eq!(executor.snapshot().live_allocations, 1);
+    assert!(first.cells().unwrap_err().to_string().contains("evicted"));
+    assert_eq!(executor.snapshot().materialization_failures, 1);
+    assert_eq!(second.cells().unwrap().len(), 1);
+}
+
+#[test]
+fn cached_materialization_survives_later_eviction() {
+    let mut cx = test_cx();
+    let executor = ModeledTensorExecutor::new(ModeledComputeProfile {
+        max_resident_bytes: 8,
+        ..ModeledComputeProfile::default()
+    });
+    let op = TensorOp::without_attributes(&mut cx, add_op_symbol()).unwrap();
+    let first_request = TensorRequest::new(
+        op.clone(),
+        vec![vector(&mut cx, &["1"]), vector(&mut cx, &["2"])],
+        TensorMeta::new(vec![1], Symbol::qualified("numbers", "i64")),
+    );
+    let first = match executor.execute(&mut cx, first_request).unwrap() {
+        TensorExecution::Complete(tensor) => tensor,
+        TensorExecution::Unsupported { reason } => panic!("{reason}"),
+    };
+    assert_eq!(first.cells().unwrap().len(), 1);
+    let second_request = TensorRequest::new(
+        op,
+        vec![vector(&mut cx, &["3"]), vector(&mut cx, &["4"])],
+        TensorMeta::new(vec![1], Symbol::qualified("numbers", "i64")),
+    );
+    executor.execute(&mut cx, second_request).unwrap();
+
+    assert_eq!(executor.snapshot().evictions, 1);
+    assert_eq!(first.cells().unwrap().len(), 1);
+    assert_eq!(executor.snapshot().readbacks, 1);
 }
 
 #[test]
@@ -417,10 +587,12 @@ use sim_kernel::{DefaultFactory, EagerPolicy};
 use crate::{
     AllocationAttempt, ComputeWgpuLib, ProbeEvidence, RequestedWgpuProfile, TransferEvidence,
     WgpuAdapterEvidence, WgpuAdapterProbe, WgpuCapabilityEvidence, WgpuDiscovery,
-    WgpuLimitEvidence, WgpuTensorExecutor, compute_wgpu_capability, compute_wgpu_site_symbol,
+    WgpuLimitEvidence, WgpuMaterializationCache, WgpuQueueLimits, WgpuResidentArena,
+    WgpuSegmentPlan, WgpuSubmissionQueue, WgpuTensorExecutor, WgpuTransferPlan,
+    compute_wgpu_capability, compute_wgpu_site_symbol,
 };
 
-// conformance: wgpu discovery records evidence and exports only successful adapter sites.
+// conformance: wgpu discovery records evidence, exports only successful adapter sites, and plans bounded resident submissions.
 
 fn limits(buffer_size: u64) -> WgpuLimitEvidence {
     WgpuLimitEvidence {
@@ -516,5 +688,78 @@ fn wgpu_lib_exports_sites_only_for_successful_discovery() {
         .site_by_symbol(&compute_wgpu_site_symbol(0))
         .expect("wgpu compute site");
     assert!(site.object().as_eval_fabric().is_some());
+}
+
+#[test]
+fn segment_and_transfer_plans_cross_binding_boundaries() {
+    let segments = WgpuSegmentPlan::new(40, 16, 24);
+    assert_eq!(segments.total_bytes(), 40);
+    assert_eq!(segments.segments.len(), 3);
+    assert_eq!(segments.segments[0].offset, 0);
+    assert_eq!(segments.segments[0].bytes, 16);
+    assert_eq!(segments.segments[1].offset, 16);
+    assert_eq!(segments.segments[1].bytes, 16);
+    assert_eq!(segments.segments[2].offset, 32);
+    assert_eq!(segments.segments[2].bytes, 8);
+
+    let transfer = WgpuTransferPlan::from_segments(&segments);
+    assert_eq!(transfer.spans.len(), 3);
+    assert_eq!(transfer.spans[2].offset, 32);
+    assert_eq!(transfer.spans[2].bytes, 8);
+}
+
+#[test]
+fn resident_arena_evicts_oldest_allocation_under_byte_bound() {
+    let mut arena = WgpuResidentArena::new(24);
+    let first = arena.allocate(16).unwrap();
+    let second = arena.allocate(16).unwrap();
+
+    assert!(!arena.contains(first.id));
+    assert!(arena.contains(second.id));
+    assert_eq!(arena.snapshot().resident_bytes, 16);
+    assert_eq!(arena.snapshot().live_allocations, 1);
+    assert_eq!(arena.snapshot().evictions, 1);
+    assert!(arena.allocate(32).unwrap_err().contains("exceeds arena"));
+}
+
+#[test]
+fn submission_queue_bounds_nodes_bytes_and_deadlines() {
+    let mut queue = WgpuSubmissionQueue::new(WgpuQueueLimits {
+        max_nodes: 1,
+        max_bytes: 32,
+        deadline_tick: 10,
+    });
+    queue.push(16, 10).unwrap();
+    assert!(queue.push(8, 10).unwrap_err().contains("node limit"));
+    assert_eq!(queue.flush().nodes, 1);
+    assert!(queue.push(40, 10).unwrap_err().contains("byte limit"));
+    assert!(queue.push(8, 11).unwrap_err().contains("deadline"));
+}
+
+#[test]
+fn materialization_cache_records_one_success_or_failure() {
+    let success = WgpuMaterializationCache::default();
+    let first = success
+        .get_or_try_init(|| Ok(Arc::<[u8]>::from([1, 2, 3])))
+        .unwrap();
+    let second = success
+        .get_or_try_init(|| Ok(Arc::<[u8]>::from([9])))
+        .unwrap();
+    assert_eq!(&*first, &[1, 2, 3]);
+    assert_eq!(&*second, &[1, 2, 3]);
+
+    let failure = WgpuMaterializationCache::default();
+    assert!(
+        failure
+            .get_or_try_init(|| Err("device lost".to_owned()))
+            .unwrap_err()
+            .contains("device lost")
+    );
+    assert!(
+        failure
+            .get_or_try_init(|| Ok(Arc::<[u8]>::from([1])))
+            .unwrap_err()
+            .contains("device lost")
+    );
 }
 ```

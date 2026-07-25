@@ -12,8 +12,8 @@ mod site;
 mod storage;
 
 pub use model::{
-    ModeledComputeFault, ModeledComputeProfile, ModeledComputeSnapshot, ModeledTensorExecutor,
-    modeled_executor_symbol,
+    ModeledComputeFault, ModeledComputeProfile, ModeledComputeSnapshot, ModeledResidentSegment,
+    ModeledTensorExecutor, modeled_executor_symbol,
 };
 pub use site::{ComputeModelLib, compute_model_lib_symbol, compute_model_site_symbol};
 pub use storage::{ModeledResidentStorage, ResidentHandle};

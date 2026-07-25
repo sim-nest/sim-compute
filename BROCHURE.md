@@ -6,11 +6,11 @@ In one line: `sim-compute` gives SIM portable tensor execution sites that can pr
 
 `sim-compute` lets a tensor expression run at a modeled compute site without
 changing the canonical tensor value or the kernel. It provides a deterministic
-modeled provider, resident tensor handles, bounded submission evidence, an
-automatic placement surface that falls back cleanly when a modeled profile is
-not available, and a wgpu provider that records adapter limits, features,
-transfer, mapping, and bounded-allocation evidence before exporting a hardware
-site.
+modeled provider, segmented resident tensor handles, bounded submission
+evidence, eviction-safe materialization, an automatic placement surface that
+falls back cleanly when a modeled profile is not available, and a wgpu provider
+that records adapter limits, features, transfer, mapping, and bounded-allocation
+evidence before exporting a hardware site.
 
 ## Why you will be glad
 
@@ -18,7 +18,9 @@ Compute placement is easiest to trust when the control contract can be tested
 without a real accelerator, while hardware discovery is easiest to trust when it
 keeps raw evidence. This repository gives SIM stable offline fixtures for
 residency, readback, flush evidence, counters, injected failures, and successful
-wgpu adapter probes before GPU or remote-provider kernels arrive.
+wgpu adapter probes before GPU or remote-provider kernels arrive. The reusable
+wgpu arena, queue, segment, transfer, and materialization planning types keep
+future kernels on the same bounded contract.
 
 ## Where it fits
 
