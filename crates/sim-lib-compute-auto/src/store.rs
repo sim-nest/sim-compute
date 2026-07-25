@@ -246,6 +246,7 @@ fn profile_from_value(cx: &mut Cx, value: &Value) -> Result<MeasuredComputeProfi
             max_storage_binding_bytes: number_value(cx, &get("max-storage-binding-bytes")?)?,
             submission_deadline_ticks: number_value(cx, &get("submission-deadline-ticks")?)?,
             fault: None,
+            auto_flush_batches: false,
         },
     })
 }

@@ -3,10 +3,10 @@
   "generated_by": "cargo run -p xtask -- simdoc",
   "generation_timestamp": "2026-07-24T22:54:42+02:00",
   "generator": "xtask repo-contract v1",
-  "git_commit": "5f572eb050f4de90cd6079acde8a4411f8e57abb",
+  "git_commit": "608926d937f804ef04442498a0f770928452e9d2",
   "repo": "sim-compute",
   "schema": "sim.provenance.v1",
-  "source_commit": "5f572eb050f4de90cd6079acde8a4411f8e57abb",
+  "source_commit": "608926d937f804ef04442498a0f770928452e9d2",
   "source_remote": "https://github.com/sim-nest/sim-compute",
   "validation_commands": [
     "cargo fmt --all --check",
@@ -19,9 +19,9 @@
     "cargo run -p xtask -- validation-matrix --check --repo .",
     "cargo run -p xtask -- crate-catalog --check --repo ."
   ],
-  "workspace_hash": "a2bb2bbb5e5b3647",
+  "workspace_hash": "d8d0db5add480027",
   "workspace_hash_algorithm": "fnv1a64",
-  "workspace_hash_input_count": 61,
+  "workspace_hash_input_count": 63,
   "workspace_hash_inputs": [
     "Cargo.toml",
     "crates/sim-lib-compute-auto/Cargo.toml",
@@ -48,6 +48,8 @@
     "crates/sim-lib-compute-model/recipes/book.toml",
     "crates/sim-lib-compute-model/src/lib.rs",
     "crates/sim-lib-compute-model/src/model.rs",
+    "crates/sim-lib-compute-model/src/ode.rs",
+    "crates/sim-lib-compute-model/src/ode_tests.rs",
     "crates/sim-lib-compute-model/src/site.rs",
     "crates/sim-lib-compute-model/src/storage.rs",
     "crates/sim-lib-compute-model/src/tests.rs",

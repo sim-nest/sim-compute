@@ -53,6 +53,8 @@ pub struct ModeledComputeProfile {
     pub submission_deadline_ticks: u64,
     /// Optional deterministic fault.
     pub fault: Option<ModeledComputeFault>,
+    /// Flush queued submissions before rejecting a bounded batch overflow.
+    pub auto_flush_batches: bool,
 }
 
 impl Default for ModeledComputeProfile {
@@ -66,6 +68,7 @@ impl Default for ModeledComputeProfile {
             max_storage_binding_bytes: DEFAULT_STORAGE_BINDING_BYTES,
             submission_deadline_ticks: DEFAULT_DEADLINE_TICKS,
             fault: None,
+            auto_flush_batches: false,
         }
     }
 }
@@ -106,6 +109,8 @@ pub struct ModeledComputeSnapshot {
     pub readbacks: usize,
     /// Stable resident materialization failures.
     pub materialization_failures: usize,
+    /// Automatic bounded-batch flushes performed before accepting more work.
+    pub batch_flushes: usize,
 }
 
 #[derive(Default)]
@@ -121,6 +126,8 @@ pub(crate) struct ModeledCounters {
     segments: usize,
     readbacks: usize,
     materialization_failures: usize,
+    batch_flushes: usize,
+    internal_materializations: usize,
     tick: u64,
 }
 
@@ -171,11 +178,15 @@ impl ModeledTensorExecutor {
             segments: counters.segments,
             readbacks: counters.readbacks,
             materialization_failures: counters.materialization_failures,
+            batch_flushes: counters.batch_flushes,
         }
     }
 
     pub(crate) fn increment_readbacks(&self) {
         let mut counters = self.counters.lock().expect("modeled counters poisoned");
+        if counters.internal_materializations > 0 {
+            return;
+        }
         counters.readbacks += 1;
     }
 
@@ -192,20 +203,28 @@ impl ModeledTensorExecutor {
             .any(|allocation| allocation.active && allocation.handle == *handle)
     }
 
+    pub(crate) fn begin_internal_materialization(&self) {
+        let mut counters = self.counters.lock().expect("modeled counters poisoned");
+        counters.internal_materializations += 1;
+    }
+
+    pub(crate) fn end_internal_materialization(&self) {
+        let mut counters = self.counters.lock().expect("modeled counters poisoned");
+        counters.internal_materializations = counters.internal_materializations.saturating_sub(1);
+    }
+
     fn prepare_inputs(&self, request: TensorRequest) -> TensorRequest {
-        let inputs = request
-            .inputs
-            .iter()
-            .map(|tensor| {
-                tensor
-                    .storage()
-                    .as_any()
-                    .downcast_ref::<ModeledResidentStorage>()
-                    .and_then(ModeledResidentStorage::resident_tensor)
-                    .unwrap_or_else(|| tensor.clone())
-            })
-            .collect();
+        let inputs = request.inputs.iter().map(Self::prepare_tensor).collect();
         TensorRequest::new(request.operation, inputs, request.output)
+    }
+
+    fn prepare_tensor(tensor: &Tensor) -> Tensor {
+        tensor
+            .storage()
+            .as_any()
+            .downcast_ref::<ModeledResidentStorage>()
+            .and_then(ModeledResidentStorage::resident_tensor)
+            .unwrap_or_else(|| tensor.clone())
     }
 
     fn request_bytes(request: &TensorRequest) -> std::result::Result<u64, TensorExecError> {
@@ -241,6 +260,15 @@ impl ModeledTensorExecutor {
     fn reserve_submission(&self, bytes: u64) -> std::result::Result<(), TensorExecError> {
         let mut counters = self.counters.lock().expect("modeled counters poisoned");
         counters.tick = counters.tick.saturating_add(1);
+        if self.profile.auto_flush_batches
+            && (counters.queued >= self.profile.max_queue_depth
+                || counters.queued_bytes.saturating_add(bytes) > self.profile.max_queue_bytes)
+            && counters.queued > 0
+        {
+            counters.queued = 0;
+            counters.queued_bytes = 0;
+            counters.batch_flushes += 1;
+        }
         if counters.queued >= self.profile.max_queue_depth {
             return Err(TensorExecError::InvalidRequest {
                 message: Arc::from("modeled compute queue is full"),
@@ -361,7 +389,10 @@ impl TensorExecutor for ModeledTensorExecutor {
         }
 
         let request = self.prepare_inputs(request);
-        let result = match CpuTensorExecutor::new().execute(cx, request) {
+        self.begin_internal_materialization();
+        let result = CpuTensorExecutor::new().execute(cx, request);
+        self.end_internal_materialization();
+        let result = match result {
             Ok(result) => result,
             Err(error) => {
                 self.release_submission(request_bytes);
@@ -371,7 +402,11 @@ impl TensorExecutor for ModeledTensorExecutor {
         let TensorExecution::Complete(tensor) = result else {
             return Ok(result);
         };
-        let host_cells = tensor.cells().map_err(TensorExecError::from)?;
+        let host_tensor = Self::prepare_tensor(&tensor);
+        self.begin_internal_materialization();
+        let host_cells = host_tensor.cells().map_err(TensorExecError::from);
+        self.end_internal_materialization();
+        let host_cells = host_cells?;
         let resident_bytes = tensor_bytes(tensor.shape())?;
         let segments = self.segment_layout(resident_bytes);
         let allocation = self.allocate_resident(resident_bytes, segments.len())?;
