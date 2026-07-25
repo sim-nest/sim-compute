@@ -1,0 +1,6 @@
+id = "cuda-discovery"
+title = "CUDA discovery"
+language = "lisp"
+setup = "setup.siml"
+expected = "expected.txt"
+purpose = "purpose.md"

@@ -1,5 +1,5 @@
 {
-  "card_count": 5,
+  "card_count": 6,
   "cards": [
     {
       "id": "browse/catalog",
@@ -24,6 +24,12 @@
       "kind": "cookbook-recipe",
       "owner": "sim-lib-compute-wgpu",
       "summary": "Evidence-based portable GPU adapter discovery."
+    },
+    {
+      "id": "cookbook/sim-lib-compute-cuda",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-compute-cuda",
+      "summary": ""
     },
     {
       "id": "registry/catalog",

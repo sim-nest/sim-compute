@@ -12,7 +12,9 @@ persists measured profiles through Table/Dir backends and falls back cleanly
 when evidence is absent, stale, incompatible, or inconclusive, and a wgpu
 provider that records adapter limits, features, transfer, mapping, and
 bounded-allocation evidence before exporting a hardware site with portable
-element-wise, reduction, transpose, dot, and matmul kernels.
+element-wise, reduction, transpose, dot, and matmul kernels, plus an optional
+CUDA provider that runtime-loads the NVIDIA driver and cuBLAS/cuBLASLt symbols
+before accepting dense `f32` and supported half-family matmul.
 
 ## Why you will be glad
 
@@ -20,9 +22,10 @@ Compute placement is easiest to trust when the control contract can be tested
 without a real accelerator, while hardware discovery is easiest to trust when it
 keeps raw evidence. This repository gives SIM stable offline fixtures for
 residency, readback, flush evidence, counters, injected failures, successful
-wgpu adapter probes, and CPU-matched portable matrix primitives. The reusable
-wgpu arena, queue, segment, transfer, and materialization planning types keep
-provider kernels on the same bounded contract.
+wgpu adapter probes, CUDA ABI validation, and CPU-matched portable matrix
+primitives. The reusable wgpu arena, queue, segment, transfer, materialization,
+and CUDA resident-storage planning types keep provider kernels on the same
+bounded contract.
 
 ## Where it fits
 
