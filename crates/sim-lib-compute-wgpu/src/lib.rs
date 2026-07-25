@@ -7,6 +7,11 @@
 //! sites only for adapters that pass transfer, mapping, and allocation probes.
 
 mod arena;
+mod kernel_elementwise;
+mod kernel_linalg;
+mod kernel_reductions;
+mod kernel_support;
+mod kernel_wgsl;
 mod kernels;
 mod materialization;
 mod pipeline;
@@ -21,7 +26,7 @@ pub use arena::{WgpuAllocationId, WgpuArenaAllocation, WgpuArenaSnapshot, WgpuRe
 pub use materialization::WgpuMaterializationCache;
 pub use pipeline::{
     WgpuKernelDType, WgpuKernelOp, WgpuPipelineCache, WgpuPipelineCacheSnapshot, WgpuPipelineKey,
-    WgpuPipelineRecord,
+    WgpuPipelineRecord, WgpuTileProfile,
 };
 pub use probe::{
     AllocationAttempt, ProbeEvidence, ProbePolicy, RequestedWgpuProfile, TransferEvidence,

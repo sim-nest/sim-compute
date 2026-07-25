@@ -1,6 +1,6 @@
 # SIM Compute
 
-In one line: `sim-compute` gives SIM portable tensor execution sites that can prove placement, residency, hardware discovery, and failure behavior before kernels are enabled.
+In one line: `sim-compute` gives SIM portable tensor execution sites that can prove placement, residency, hardware discovery, kernel coverage, and failure behavior.
 
 ## What it gives you
 
@@ -10,17 +10,18 @@ modeled provider, segmented resident tensor handles, bounded submission
 evidence, eviction-safe materialization, an automatic placement surface that
 falls back cleanly when a modeled profile is not available, and a wgpu provider
 that records adapter limits, features, transfer, mapping, and bounded-allocation
-evidence before exporting a hardware site.
+evidence before exporting a hardware site with portable element-wise, reduction,
+transpose, dot, and matmul kernels.
 
 ## Why you will be glad
 
 Compute placement is easiest to trust when the control contract can be tested
 without a real accelerator, while hardware discovery is easiest to trust when it
 keeps raw evidence. This repository gives SIM stable offline fixtures for
-residency, readback, flush evidence, counters, injected failures, and successful
-wgpu adapter probes before GPU or remote-provider kernels arrive. The reusable
+residency, readback, flush evidence, counters, injected failures, successful
+wgpu adapter probes, and CPU-matched portable matrix primitives. The reusable
 wgpu arena, queue, segment, transfer, and materialization planning types keep
-future kernels on the same bounded contract.
+provider kernels on the same bounded contract.
 
 ## Where it fits
 

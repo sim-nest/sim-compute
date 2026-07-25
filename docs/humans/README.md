@@ -584,20 +584,24 @@ use std::sync::Arc;
 
 use sim_kernel::{DefaultFactory, EagerPolicy, Symbol};
 use sim_lib_numbers_tensor::{
-    TensorExecution, TensorExecutor, TensorLocation, TensorMeta, TensorOp, TensorRequest,
-    add_op_symbol, build_tensor_value, cos_op_symbol, exp_op_symbol, parse_f32_literal_cell,
-    sin_op_symbol, sqrt_op_symbol, tensor_value_ref,
+    CpuTensorExecutor, Tensor, TensorExecution, TensorExecutor, TensorLocation, TensorMeta,
+    TensorOp, TensorRequest, add_op_symbol, build_tensor_value, cos_op_symbol, dot_op_symbol,
+    exp_op_symbol, matmul_exec_op_symbol, max_op_symbol, min_op_symbol, norm_op_symbol,
+    parse_f16_literal_cell, parse_f32_literal_cell, sin_op_symbol, sqrt_op_symbol, sum_op_symbol,
+    tensor_value_ref, transpose_exec_op_symbol,
 };
 
 use crate::{
     AllocationAttempt, ComputeWgpuLib, ProbeEvidence, RequestedWgpuProfile, TransferEvidence,
     WgpuAdapterEvidence, WgpuAdapterProbe, WgpuCapabilityEvidence, WgpuDiscovery, WgpuKernelDType,
     WgpuKernelOp, WgpuLimitEvidence, WgpuMaterializationCache, WgpuPipelineCache, WgpuQueueLimits,
-    WgpuResidentArena, WgpuSegmentPlan, WgpuSubmissionQueue, WgpuTensorExecutor, WgpuTransferPlan,
-    compute_wgpu_capability, compute_wgpu_site_symbol,
+    WgpuResidentArena, WgpuResidentStorage, WgpuSegmentPlan, WgpuSubmissionQueue,
+    WgpuTensorExecutor, WgpuTransferPlan, compute_wgpu_capability, compute_wgpu_site_symbol,
 };
 
 // conformance: wgpu discovery records evidence, exports only successful adapter sites, and plans bounded resident submissions.
+
+mod primitive_tests;
 
 fn limits(buffer_size: u64) -> WgpuLimitEvidence {
     WgpuLimitEvidence {
@@ -615,6 +619,15 @@ fn limits(buffer_size: u64) -> WgpuLimitEvidence {
 }
 
 fn adapter(name: &str, backend: &str, success: bool) -> WgpuAdapterProbe {
+    adapter_with_limits(name, backend, success, limits(1 << 24))
+}
+
+fn adapter_with_limits(
+    name: &str,
+    backend: &str,
+    success: bool,
+    granted_limits: WgpuLimitEvidence,
+) -> WgpuAdapterProbe {
     WgpuAdapterProbe {
         adapter: WgpuAdapterEvidence {
             ordinal: 99,
@@ -628,7 +641,7 @@ fn adapter(name: &str, backend: &str, success: bool) -> WgpuAdapterProbe {
                 timestamp_query: true,
                 shader_f16: true,
             },
-            granted_limits: limits(1 << 24),
+            granted_limits,
             granted_features: WgpuCapabilityEvidence {
                 timestamp_query: true,
                 shader_f16: true,
@@ -688,6 +701,68 @@ fn f32_cells(tensor: &sim_lib_numbers_tensor::Tensor) -> Vec<f32> {
         .iter()
         .map(|cell| parse_f32_literal_cell(cell).expect("f32 tensor cell"))
         .collect()
+}
+
+fn execute_wgpu(
+    cx: &mut sim_kernel::Cx,
+    executor: &WgpuTensorExecutor,
+    symbol: Symbol,
+    inputs: Vec<Tensor>,
+    shape: Vec<usize>,
+    dtype: Symbol,
+) -> Tensor {
+    let op = TensorOp::without_attributes(cx, symbol).unwrap();
+    match executor
+        .execute(
+            cx,
+            TensorRequest::new(op, inputs, TensorMeta::new(shape, dtype)),
+        )
+        .unwrap()
+    {
+        TensorExecution::Complete(tensor) => tensor,
+        TensorExecution::Unsupported { reason } => panic!("{reason}"),
+    }
+}
+
+fn execute_cpu(
+    cx: &mut sim_kernel::Cx,
+    symbol: Symbol,
+    inputs: Vec<Tensor>,
+    shape: Vec<usize>,
+    dtype: Symbol,
+) -> Tensor {
+    let op = TensorOp::without_attributes(cx, symbol).unwrap();
+    match CpuTensorExecutor::new()
+        .execute(
+            cx,
+            TensorRequest::new(op, inputs, TensorMeta::new(shape, dtype)),
+        )
+        .unwrap()
+    {
+        TensorExecution::Complete(tensor) => tensor,
+        TensorExecution::Unsupported { reason } => panic!("{reason}"),
+    }
+}
+
+fn assert_same_f32_cells(left: &Tensor, right: &Tensor) {
+    assert_eq!(left.shape(), right.shape());
+    let left_cells = f32_cells(left);
+    let right_cells = f32_cells(right);
+    assert_eq!(left_cells.len(), right_cells.len());
+    for (left, right) in left_cells.iter().zip(right_cells.iter()) {
+        assert!(
+            (*left == *right) || (left.is_nan() && right.is_nan()),
+            "{left} != {right}"
+        );
+    }
+}
+
+fn resident_storage(tensor: &Tensor) -> &WgpuResidentStorage {
+    tensor
+        .storage()
+        .as_any()
+        .downcast_ref::<WgpuResidentStorage>()
+        .expect("wgpu resident storage")
 }
 
 #[test]

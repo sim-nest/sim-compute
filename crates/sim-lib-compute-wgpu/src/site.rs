@@ -13,7 +13,8 @@ use sim_lib_numbers_tensor::{
 
 use crate::{
     WgpuAdapterProbe, WgpuDiscovery, WgpuKernelDType, WgpuPipelineCache, WgpuQueueLimits,
-    WgpuResidentArena, WgpuResidentStorage, WgpuSegmentPlan, discover_wgpu_adapters,
+    WgpuResidentArena, WgpuResidentStorage, WgpuSegmentPlan, WgpuTileProfile,
+    discover_wgpu_adapters,
     kernels::{execute_portable_kernel, kernel_op},
 };
 
@@ -141,6 +142,13 @@ impl TensorExecutor for WgpuTensorExecutor {
                 sim_lib_numbers_tensor::exp_op_symbol(),
                 sim_lib_numbers_tensor::sin_op_symbol(),
                 sim_lib_numbers_tensor::cos_op_symbol(),
+                sim_lib_numbers_tensor::sum_op_symbol(),
+                sim_lib_numbers_tensor::min_op_symbol(),
+                sim_lib_numbers_tensor::max_op_symbol(),
+                sim_lib_numbers_tensor::norm_op_symbol(),
+                sim_lib_numbers_tensor::transpose_exec_op_symbol(),
+                sim_lib_numbers_tensor::dot_op_symbol(),
+                sim_lib_numbers_tensor::matmul_exec_op_symbol(),
             ],
             Some(compute_wgpu_capability()),
         )
@@ -169,9 +177,10 @@ impl TensorExecutor for WgpuTensorExecutor {
         let segments = WgpuSegmentPlan::new(bytes, boundary, boundary);
         let pipeline = {
             let mut state = self.state.lock().expect("wgpu executor state poisoned");
+            let tile = WgpuTileProfile::from_probe(&self.probe);
             let limits = WgpuQueueLimits {
                 max_nodes: 64,
-                max_bytes: self.probe.adapter.granted_limits.max_buffer_size.max(4),
+                max_bytes: tile.max_dispatch_bytes,
                 deadline_tick: u64::MAX,
             };
             if state.queued >= limits.max_nodes {

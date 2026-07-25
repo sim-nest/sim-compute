@@ -5,9 +5,10 @@ only probe-backed compute sites.
 
 Use it when SIM needs a hardware tensor-placement candidate with raw evidence:
 adapter identity, requested and granted limits, transfer and map checks, bounded
-allocation attempts, timestamp support, f16 support, and portable f32
-element-wise arithmetic/transcendental kernel execution. The crate does not turn
-an absent adapter into a placeholder site.
+allocation attempts, timestamp support, f16 support, portable f32 element-wise
+arithmetic/transcendentals, fixed-tree reductions, transpose, dot, and tiled
+matmul execution. The crate does not turn an absent adapter into a placeholder
+site.
 
-Pair it with `sim-lib-compute-model` for deterministic tests and with later
-kernel phases for reductions and linear algebra.
+Pair it with `sim-lib-compute-model` for deterministic tests of resident tensor
+placement and materialization.
