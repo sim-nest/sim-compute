@@ -8,10 +8,11 @@ In one line: `sim-compute` gives SIM portable tensor execution sites that can pr
 changing the canonical tensor value or the kernel. It provides a deterministic
 modeled provider, segmented resident tensor handles, bounded submission
 evidence, eviction-safe materialization, an automatic placement surface that
-falls back cleanly when a modeled profile is not available, and a wgpu provider
-that records adapter limits, features, transfer, mapping, and bounded-allocation
-evidence before exporting a hardware site with portable element-wise, reduction,
-transpose, dot, and matmul kernels.
+persists measured profiles through Table/Dir backends and falls back cleanly
+when evidence is absent, stale, incompatible, or inconclusive, and a wgpu
+provider that records adapter limits, features, transfer, mapping, and
+bounded-allocation evidence before exporting a hardware site with portable
+element-wise, reduction, transpose, dot, and matmul kernels.
 
 ## Why you will be glad
 

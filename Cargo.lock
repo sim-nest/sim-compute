@@ -806,6 +806,7 @@ dependencies = [
 name = "sim-lib-compute-auto"
 version = "0.1.0"
 dependencies = [
+ "sim-citizen",
  "sim-cookbook",
  "sim-kernel",
  "sim-lib-compute-model",

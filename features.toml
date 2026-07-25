@@ -43,7 +43,7 @@ title = "Tensor compute providers"
 summary = "Run canonical Tensor requests through modeled, automatic, and probe-backed wgpu compute sites."
 owner = "crate/sim-lib-compute-model"
 audiences = ["user", "code", "framework"]
-guidance = "Use this row when a tensor expression needs a loadable provider site. The modeled executor preserves canonical Tensor identity while returning segmented resident storage, bounded queue byte/node/deadline evidence, eviction counters, cached materialization, and injected OOM, device-loss, eviction, or readback faults. The auto site uses a compatible modeled profile when supplied and otherwise falls back to the sim-numbers CPU executor. The wgpu provider enumerates adapters deterministically, records requested and granted hardware limits/features plus transfer, mapping, and bounded-allocation evidence, executes portable f32 element-wise arithmetic, sqrt/exp/sin/cos, fixed-tree sum/min/max/norm reductions, transpose, dot, and tiled matmul over bounded resident segments, uses native f16 only when granted, widens bf16 or unsupported half work to f32, caches validated pipelines by adapter/op/dtype/rank/tile profile, and exports only successful hardware sites."
+guidance = "Use this row when a tensor expression needs a loadable provider site. The modeled executor preserves canonical Tensor identity while returning segmented resident storage, bounded queue byte/node/deadline evidence, eviction counters, cached materialization, and injected OOM, device-loss, eviction, or readback faults. The auto site records measured adapter/driver/backend profiles with limits, transfer, allocation, tiles, sample distributions, thermal/power context, and provenance; persists them only through caller-supplied Table/Dir values with bounded keys and bytes; chooses CPU for absent, stale, incompatible, or inconclusive evidence; and ledgers provider choices, materialization bytes, and synchronizations. The wgpu provider enumerates adapters deterministically, records requested and granted hardware limits/features plus transfer, mapping, and bounded-allocation evidence, executes portable f32 element-wise arithmetic, sqrt/exp/sin/cos, fixed-tree sum/min/max/norm reductions, transpose, dot, and tiled matmul over bounded resident segments, uses native f16 only when granted, widens bf16 or unsupported half work to f32, caches validated pipelines by adapter/op/dtype/rank/tile profile, and exports only successful hardware sites."
 claims_anchors = [
   "anchor/crate/sim-lib-compute-auto",
   "anchor/crate/sim-lib-compute-model",
@@ -68,6 +68,7 @@ claims_surfaces = [
 ]
 claims_specimens = [
   "recipe/sim-compute/crates/sim-lib-compute-model/01-basics/modeled-resident-matrix",
+  "recipe/sim-compute/crates/sim-lib-compute-auto/01-basics/measured-profile-routing",
   "recipe/sim-compute/crates/sim-lib-compute-wgpu/01-basics/wgpu-discovery",
   "spec-test/sim-compute/crates/sim-lib-compute-model/src/tests",
   "spec-test/sim-compute/crates/sim-lib-compute-auto/src/tests",
@@ -81,4 +82,5 @@ audiences = ["user", "code", "framework"]
 steps = [
   { feature = "feature/sim-compute/tensor-providers", why = "The compute-provider row owns modeled resident, automatic, and probe-backed wgpu site placement." },
   { specimen = "recipe/sim-compute/crates/sim-lib-compute-model/01-basics/modeled-resident-matrix", why = "The modeled-resident recipe shows chained resident tensors with one materialization." },
+  { specimen = "recipe/sim-compute/crates/sim-lib-compute-auto/01-basics/measured-profile-routing", why = "The auto recipe shows measured Table-backed profile routing, conservative CPU fallback, and ledger evidence." },
 ]

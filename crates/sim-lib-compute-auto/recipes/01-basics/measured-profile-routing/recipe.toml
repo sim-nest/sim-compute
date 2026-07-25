@@ -1,0 +1,13 @@
+id = "measured-profile-routing"
+title = "Measured profile routing"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+expected = "expected.txt"
+order = 20
+tags = ["compute", "tensor", "auto", "profile", "routing"]
+requires = ["compute/auto", "compute/profile", "storage/table", "numbers/tensor", "standard"]
+
+[[expect]]
+form = 0
+result = "(compute auto-profile (table supplied) (measure bounded upload download launch element reduction matmul) (fresh-compatible-conclusive device) (else cpu) (ledger provider materialization-bytes synchronizations))"

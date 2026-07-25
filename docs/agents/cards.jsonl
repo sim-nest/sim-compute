@@ -3,6 +3,10 @@
 {"kind":"recipe","path":"crates/sim-lib-compute-auto/recipes/01-basics/auto-compute-site/recipe.toml"}
 {"kind":"recipe","path":"crates/sim-lib-compute-auto/recipes/01-basics/auto-compute-site/setup.siml"}
 {"kind":"recipe","path":"crates/sim-lib-compute-auto/recipes/01-basics/chapter.toml"}
+{"kind":"recipe","path":"crates/sim-lib-compute-auto/recipes/01-basics/measured-profile-routing/expected.txt"}
+{"kind":"recipe","path":"crates/sim-lib-compute-auto/recipes/01-basics/measured-profile-routing/purpose.md"}
+{"kind":"recipe","path":"crates/sim-lib-compute-auto/recipes/01-basics/measured-profile-routing/recipe.toml"}
+{"kind":"recipe","path":"crates/sim-lib-compute-auto/recipes/01-basics/measured-profile-routing/setup.siml"}
 {"kind":"recipe","path":"crates/sim-lib-compute-auto/recipes/book.toml"}
 {"kind":"recipe","path":"crates/sim-lib-compute-model/recipes/01-basics/chapter.toml"}
 {"kind":"recipe","path":"crates/sim-lib-compute-model/recipes/01-basics/modeled-resident-matrix/expected.txt"}

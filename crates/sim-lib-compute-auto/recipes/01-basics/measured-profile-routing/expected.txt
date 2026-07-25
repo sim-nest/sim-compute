@@ -1,0 +1,1 @@
+(compute auto-profile (table supplied) (measure bounded upload download launch element reduction matmul) (fresh-compatible-conclusive device) (else cpu) (ledger provider materialization-bytes synchronizations))
