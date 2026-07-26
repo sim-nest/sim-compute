@@ -832,6 +832,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "sim-lib-compute-cli"
+version = "0.1.0"
+dependencies = [
+ "sim-cookbook",
+ "sim-kernel",
+ "sim-lib-compute-auto",
+ "sim-lib-compute-model",
+]
+
+[[package]]
 name = "sim-lib-compute-cuda"
 version = "0.1.0"
 dependencies = [

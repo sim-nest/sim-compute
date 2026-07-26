@@ -1,0 +1,3 @@
+title = "Compute command recipes"
+description = "Loadable CLI recipes for inspecting compute providers."
+chapters = ["01-basics"]

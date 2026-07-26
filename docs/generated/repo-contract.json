@@ -1,5 +1,5 @@
 {
-  "card_count": 8,
+  "card_count": 9,
   "cards": [
     {
       "id": "browse/catalog",
@@ -24,6 +24,12 @@
       "kind": "cookbook-recipe",
       "owner": "sim-lib-compute-wgpu",
       "summary": "Evidence-based portable GPU adapter discovery."
+    },
+    {
+      "id": "cookbook/sim-lib-compute-cli",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-compute-cli",
+      "summary": ""
     },
     {
       "id": "cookbook/sim-lib-compute-cuda",
@@ -60,6 +66,7 @@
   "groups": {
     "workspace": [
       "sim-lib-compute-auto",
+      "sim-lib-compute-cli",
       "sim-lib-compute-cuda",
       "sim-lib-compute-femm",
       "sim-lib-compute-model",
@@ -70,7 +77,7 @@
   },
   "non_citizen_exemption_count": 0,
   "non_citizen_exemptions": [],
-  "package_count": 7,
+  "package_count": 8,
   "packages": [
     {
       "crate_name": "sim_lib_compute_auto",
@@ -115,6 +122,59 @@
           ],
           "name": "build-script-build",
           "src": "crates/sim-lib-compute-auto/build.rs"
+        }
+      ]
+    },
+    {
+      "crate_name": "sim_lib_compute_cli",
+      "dependencies": [
+        {
+          "kind": "normal",
+          "optional": false,
+          "package": "sim-lib-compute-auto",
+          "rename": null,
+          "target": null
+        },
+        {
+          "kind": "normal",
+          "optional": false,
+          "package": "sim-lib-compute-model",
+          "rename": null,
+          "target": null
+        }
+      ],
+      "description": "Loadable compute command surface for SIM.",
+      "features": [],
+      "group": "workspace",
+      "manifest": "crates/sim-lib-compute-cli/Cargo.toml",
+      "name": "sim-lib-compute-cli",
+      "publish": "false",
+      "root": "crates/sim-lib-compute-cli",
+      "rustdoc_summary": "Loadable compute command surface.",
+      "target_kinds": [
+        "custom-build",
+        "lib"
+      ],
+      "targets": [
+        {
+          "crate_types": [
+            "lib"
+          ],
+          "kind": [
+            "lib"
+          ],
+          "name": "sim_lib_compute_cli",
+          "src": "crates/sim-lib-compute-cli/src/lib.rs"
+        },
+        {
+          "crate_types": [
+            "bin"
+          ],
+          "kind": [
+            "custom-build"
+          ],
+          "name": "build-script-build",
+          "src": "crates/sim-lib-compute-cli/build.rs"
         }
       ]
     },
@@ -341,10 +401,10 @@
     "generated_by": "cargo run -p xtask -- simdoc",
     "generation_timestamp": "2026-07-24T22:54:42+02:00",
     "generator": "xtask repo-contract v1",
-    "git_commit": "18aed30093a8f4af7fe1f70b2c49efe709d61a2a",
+    "git_commit": "3dc09cdc5ccf9c07aafcaf958fe6e53bc5df880f",
     "repo": "sim-compute",
     "schema": "sim.provenance.v1",
-    "source_commit": "18aed30093a8f4af7fe1f70b2c49efe709d61a2a",
+    "source_commit": "3dc09cdc5ccf9c07aafcaf958fe6e53bc5df880f",
     "source_remote": "https://github.com/sim-nest/sim-compute",
     "validation_commands": [
       "cargo fmt --all --check",
@@ -357,9 +417,9 @@
       "cargo run -p xtask -- validation-matrix --check --repo .",
       "cargo run -p xtask -- crate-catalog --check --repo ."
     ],
-    "workspace_hash": "9ad19f6df2da8967",
+    "workspace_hash": "b0fa414565c56611",
     "workspace_hash_algorithm": "fnv1a64",
-    "workspace_hash_input_count": 72,
+    "workspace_hash_input_count": 82,
     "workspace_hash_inputs": [
       "Cargo.toml",
       "crates/sim-lib-compute-auto/Cargo.toml",
@@ -371,6 +431,16 @@
       "crates/sim-lib-compute-auto/src/profile.rs",
       "crates/sim-lib-compute-auto/src/store.rs",
       "crates/sim-lib-compute-auto/src/tests.rs",
+      "crates/sim-lib-compute-cli/Cargo.toml",
+      "crates/sim-lib-compute-cli/build.rs",
+      "crates/sim-lib-compute-cli/recipes/01-basics/inspect-compute-device/recipe.toml",
+      "crates/sim-lib-compute-cli/recipes/book.toml",
+      "crates/sim-lib-compute-cli/src/args.rs",
+      "crates/sim-lib-compute-cli/src/envelope.rs",
+      "crates/sim-lib-compute-cli/src/evidence.rs",
+      "crates/sim-lib-compute-cli/src/lib.rs",
+      "crates/sim-lib-compute-cli/src/render.rs",
+      "crates/sim-lib-compute-cli/src/tests.rs",
       "crates/sim-lib-compute-cuda/Cargo.toml",
       "crates/sim-lib-compute-cuda/build.rs",
       "crates/sim-lib-compute-cuda/recipes/01-basics/cuda-discovery/recipe.toml",
@@ -435,7 +505,7 @@
       "xtask/Cargo.toml"
     ]
   },
-  "recipe_book_count": 6,
+  "recipe_book_count": 7,
   "recipes": [
     {
       "book": "compute-auto",
@@ -464,6 +534,26 @@
       ],
       "summary": "Automatic tensor compute site selection with CPU fallback.",
       "title": "Auto Compute"
+    },
+    {
+      "book": "sim-lib-compute-cli",
+      "book_toml": "crates/sim-lib-compute-cli/recipes/book.toml",
+      "card_id": "cookbook/sim-lib-compute-cli",
+      "group": "workspace",
+      "package": "sim-lib-compute-cli",
+      "recipe_count": 1,
+      "recipes": [
+        {
+          "card_id": "sim-lib-compute-cli/01-basics/inspect-compute-device",
+          "codec": "",
+          "id": "inspect-compute-device",
+          "package": "sim-lib-compute-cli",
+          "recipe_toml": "crates/sim-lib-compute-cli/recipes/01-basics/inspect-compute-device/recipe.toml",
+          "title": "Inspect compute device"
+        }
+      ],
+      "summary": "",
+      "title": "Compute command recipes"
     },
     {
       "book": "sim-lib-compute-cuda",

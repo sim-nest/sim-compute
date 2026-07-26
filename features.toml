@@ -106,6 +106,41 @@ steps = [
 ]
 
 [[feature]]
+id = "feature/sim-compute/compute-cli"
+title = "Compute command library"
+summary = "Export a bounded loadable `cli/main/compute` command for inspecting compute devices, probes, profiles, explanations, and recipes."
+owner = "crate/sim-lib-compute-cli"
+audiences = ["user", "code", "framework"]
+guidance = "Use this row when a host needs a command surface for compute providers without adding a binary or bootstrap fork. The library exports `cli/main/compute` as a loadable function, accepts only checked selectors and bounded ceilings, requires `compute.device`, `compute.profile.read`, and `compute.profile.write` capabilities for privileged views, renders stable text or JSON machine evidence, reports modeled no-adapter and hardware no-adapter states, and persists measured profiles only through a caller-supplied Table/Dir value."
+claims_anchors = [
+  "anchor/cli/compute",
+  "anchor/crate/sim-lib-compute-cli",
+  "anchor/export/sim-lib-compute-cli/cli/main/compute",
+  "anchor/export/sim-lib-compute-cli/model/no-adapter",
+  "anchor/runtime-lib/sim-lib-compute-cli/compute-cli-lib",
+  "anchor/rustdoc/sim-lib-compute-cli/compute-cli-lib",
+  "anchor/rustdoc/sim-lib-compute-cli/compute-command",
+  "anchor/rustdoc/sim-lib-compute-cli/parse_compute_args",
+  "anchor/rustdoc/sim-lib-compute-cli/run_command",
+]
+claims_surfaces = [
+  "cli/compute",
+]
+claims_specimens = [
+  "recipe/sim-compute/crates/sim-lib-compute-cli/01-basics/inspect-compute-device",
+]
+
+[[route]]
+id = "route/inspect-compute-device"
+task = "Inspect a compute device"
+audiences = ["user", "code", "framework"]
+steps = [
+  { feature = "feature/sim-compute/compute-cli", why = "The compute CLI row owns devices, probe, profile, explain, and recipe command behavior." },
+  { feature = "feature/sim-compute/tensor-providers", why = "Provider rows supply the modeled, automatic, and hardware site symbols the command inspects." },
+  { specimen = "recipe/sim-compute/crates/sim-lib-compute-cli/01-basics/inspect-compute-device", why = "The recipe shows the loadable command inspecting installed sites and Table-backed profile storage." },
+]
+
+[[feature]]
 id = "feature/sim-compute/femm-resident-solvers"
 title = "Resident FEMM sparse solvers"
 summary = "Export a provider-neutral FEMM LinearSolver that keeps CSR and Krylov work vectors resident while requiring f64 residual certification."

@@ -9,6 +9,13 @@
       "summary": "Automatic tensor compute-site selection."
     },
     {
+      "crate_name": "sim_lib_compute_cli",
+      "group": "workspace",
+      "manifest": "crates/sim-lib-compute-cli/Cargo.toml",
+      "package": "sim-lib-compute-cli",
+      "summary": "Loadable compute command surface."
+    },
+    {
       "crate_name": "sim_lib_compute_cuda",
       "group": "workspace",
       "manifest": "crates/sim-lib-compute-cuda/Cargo.toml",

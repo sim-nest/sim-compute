@@ -8,6 +8,12 @@
 {"kind":"recipe","path":"crates/sim-lib-compute-auto/recipes/01-basics/measured-profile-routing/recipe.toml"}
 {"kind":"recipe","path":"crates/sim-lib-compute-auto/recipes/01-basics/measured-profile-routing/setup.siml"}
 {"kind":"recipe","path":"crates/sim-lib-compute-auto/recipes/book.toml"}
+{"kind":"recipe","path":"crates/sim-lib-compute-cli/recipes/01-basics/chapter.toml"}
+{"kind":"recipe","path":"crates/sim-lib-compute-cli/recipes/01-basics/inspect-compute-device/expected.txt"}
+{"kind":"recipe","path":"crates/sim-lib-compute-cli/recipes/01-basics/inspect-compute-device/purpose.md"}
+{"kind":"recipe","path":"crates/sim-lib-compute-cli/recipes/01-basics/inspect-compute-device/recipe.toml"}
+{"kind":"recipe","path":"crates/sim-lib-compute-cli/recipes/01-basics/inspect-compute-device/setup.siml"}
+{"kind":"recipe","path":"crates/sim-lib-compute-cli/recipes/book.toml"}
 {"kind":"recipe","path":"crates/sim-lib-compute-cuda/recipes/01-basics/chapter.toml"}
 {"kind":"recipe","path":"crates/sim-lib-compute-cuda/recipes/01-basics/cuda-discovery/expected.txt"}
 {"kind":"recipe","path":"crates/sim-lib-compute-cuda/recipes/01-basics/cuda-discovery/purpose.md"}

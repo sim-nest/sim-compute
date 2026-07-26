@@ -19,12 +19,14 @@ This generated lane consumes `docs/generated/sim-index-fragment.sx`. Global inde
 | --- | --- | ---: | --- |
 | `feature/sim-compute/generated-docs` | `crate/xtask` | 0 | Publish generated package, card, rustdoc, recipe, and Index facts for compute providers. |
 | `feature/sim-compute/tensor-providers` | `crate/sim-lib-compute-model` | 10 | Run canonical Tensor requests through modeled, automatic, probe-backed wgpu, optional CUDA/cuBLAS, and optional ROCm/rocBLAS compute sites. |
+| `feature/sim-compute/compute-cli` | `crate/sim-lib-compute-cli` | 1 | Export a bounded loadable `cli/main/compute` command for inspecting compute devices, probes, profiles, explanations, and recipes. |
 | `feature/sim-compute/femm-resident-solvers` | `crate/sim-lib-compute-femm` | 2 | Export a provider-neutral FEMM LinearSolver that keeps CSR and Krylov work vectors resident while requiring f64 residual certification. |
 
 ## Surfaces
 
 | Surface | Kind | Subject |
 | --- | --- | --- |
+| `cli/compute` | `cli` | `crate/sim-lib-compute-cli` |
 | `cli/xtask` | `cli` | `crate/xtask` |
 | `docs/sim-compute/generated` | `docs` | `doc-set/sim-compute/generated` |
 | `model/sim-lib-compute-model` | `model-exchange` | `crate/sim-lib-compute-model` |
@@ -46,6 +48,12 @@ This generated lane consumes `docs/generated/sim-index-fragment.sx`. Global inde
 - `crates/sim-lib-compute-auto/recipes/01-basics/measured-profile-routing/recipe.toml`
 - `crates/sim-lib-compute-auto/recipes/01-basics/measured-profile-routing/setup.siml`
 - `crates/sim-lib-compute-auto/recipes/book.toml`
+- `crates/sim-lib-compute-cli/recipes/01-basics/chapter.toml`
+- `crates/sim-lib-compute-cli/recipes/01-basics/inspect-compute-device/expected.txt`
+- `crates/sim-lib-compute-cli/recipes/01-basics/inspect-compute-device/purpose.md`
+- `crates/sim-lib-compute-cli/recipes/01-basics/inspect-compute-device/recipe.toml`
+- `crates/sim-lib-compute-cli/recipes/01-basics/inspect-compute-device/setup.siml`
+- `crates/sim-lib-compute-cli/recipes/book.toml`
 - `crates/sim-lib-compute-cuda/recipes/01-basics/chapter.toml`
 - `crates/sim-lib-compute-cuda/recipes/01-basics/cuda-discovery/expected.txt`
 - `crates/sim-lib-compute-cuda/recipes/01-basics/cuda-discovery/purpose.md`
@@ -1582,6 +1590,26 @@ fn half_matmul_requires_validated_rocblaslt_path() {
     assert!(reason.contains("rocBLASLt-supported half"));
     assert_eq!(executor.flush().unwrap().accepted, 0);
 }
+```
+
+### `feature/sim-compute/compute-cli`
+
+Specimen `recipe/sim-compute/crates/sim-lib-compute-cli/01-basics/inspect-compute-device` is checked by `xtask check-recipes`.
+
+Source `crates/sim-lib-compute-cli/recipes/01-basics/inspect-compute-device/recipe.toml`:
+
+```toml
+id = "inspect-compute-device"
+title = "Inspect compute device"
+description = "Show bounded compute CLI evidence for installed sites and injected profile storage."
+level = "basic"
+tags = ["compute", "cli", "device", "profile"]
+requires = ["compute/cli", "compute/provider", "storage/table"]
+capabilities = ["compute.device"]
+assert_capabilities = ["compute.device"]
+setup = "setup.siml"
+expected = "expected.txt"
+result = "(compute devices (model installed) (auto installed) (profiles table-supplied))"
 ```
 
 ### `feature/sim-compute/femm-resident-solvers`
