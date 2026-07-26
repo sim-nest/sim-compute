@@ -5,7 +5,9 @@ use std::sync::Arc;
 use sim_kernel::{
     Consistency, Cx, Error, EvalFabric, EvalMode, EvalReply, EvalRequest, Expr, Result, Symbol,
 };
-use sim_lib_numbers_tensor::{TensorExecutor, TensorSite, tensor_value_ref};
+use sim_lib_numbers_tensor::{
+    SubmissionEvidence, TensorExecutor, TensorExecutorCard, TensorSite, tensor_value_ref,
+};
 
 use crate::model::{ModeledComputeProfile, ModeledComputeSnapshot, ModeledTensorExecutor};
 use crate::site::compute_model_site_symbol;
@@ -95,32 +97,48 @@ impl ResidentOdePlan {
 pub struct ResidentOdeExecution {
     /// Eval reply produced by the canonical numeric pipeline.
     pub reply: EvalReply,
-    /// Counter snapshot after final synchronization.
-    pub snapshot: ModeledComputeSnapshot,
-    /// Resident readbacks performed while executing the request.
-    pub readbacks: usize,
+    /// Executor descriptor used for the resident tensor placement.
+    pub executor: TensorExecutorCard,
+    /// Counter snapshot after final synchronization when the executor is modeled.
+    pub modeled_snapshot: Option<ModeledComputeSnapshot>,
+    /// Resident readbacks performed while executing the request when known.
+    pub modeled_readbacks: Option<usize>,
     /// Accepted tensor submissions represented by the final flush.
-    pub final_flush_accepted: usize,
+    pub final_flush: SubmissionEvidence,
 }
 
-/// Executes checked tensor ODE plans through the modeled resident site.
+/// Executes checked tensor ODE plans through an active tensor executor.
 #[derive(Clone)]
 pub struct ResidentOdeExecutor {
-    executor: ModeledTensorExecutor,
+    site: Symbol,
+    executor: Arc<dyn TensorExecutor>,
+    modeled: Option<ModeledTensorExecutor>,
 }
 
 impl ResidentOdeExecutor {
-    /// Builds an ODE executor that auto-flushes bounded tensor submission batches.
-    pub fn new(mut profile: ModeledComputeProfile) -> Self {
-        profile.auto_flush_batches = true;
+    /// Builds a resident ODE executor over an already-selected tensor executor.
+    pub fn with_executor(site: Symbol, executor: Arc<dyn TensorExecutor>) -> Self {
         Self {
-            executor: ModeledTensorExecutor::new(profile),
+            site,
+            executor,
+            modeled: None,
+        }
+    }
+
+    /// Builds an ODE executor over the modeled resident provider.
+    pub fn modeled(mut profile: ModeledComputeProfile) -> Self {
+        profile.auto_flush_batches = true;
+        let executor = ModeledTensorExecutor::new(profile);
+        Self {
+            site: compute_model_site_symbol(),
+            executor: Arc::new(executor.clone()) as Arc<dyn TensorExecutor>,
+            modeled: Some(executor),
         }
     }
 
     /// Returns the underlying modeled tensor executor.
-    pub fn tensor_executor(&self) -> &ModeledTensorExecutor {
-        &self.executor
+    pub fn modeled_tensor_executor(&self) -> Option<&ModeledTensorExecutor> {
+        self.modeled.as_ref()
     }
 
     /// Executes an ODE expression through the resident tensor site.
@@ -130,17 +148,17 @@ impl ResidentOdeExecutor {
         plan: &ResidentOdePlan,
         expr: Expr,
     ) -> Result<ResidentOdeExecution> {
-        let before = self.executor.snapshot();
-        let site = TensorSite::new(
-            compute_model_site_symbol(),
-            Arc::new(self.executor.clone()) as Arc<dyn TensorExecutor>,
-            Vec::new(),
-        );
+        let before = self.modeled.as_ref().map(ModeledTensorExecutor::snapshot);
+        let site = TensorSite::new(self.site.clone(), self.executor.clone(), Vec::new());
         let request = eval_request(expr);
         let reply = if plan.kind() == ResidentOdeKind::Fixed {
-            self.executor.begin_internal_materialization();
+            if let Some(executor) = &self.modeled {
+                executor.begin_internal_materialization();
+            }
             let reply = site.realize(cx, request);
-            self.executor.end_internal_materialization();
+            if let Some(executor) = &self.modeled {
+                executor.end_internal_materialization();
+            }
             reply?
         } else {
             site.realize(cx, request)?
@@ -162,20 +180,34 @@ impl ResidentOdeExecutor {
                 plan.dtype()
             )));
         }
-        let final_flush_accepted = self.executor.flush().map_err(Error::from)?.accepted;
-        let snapshot = self.executor.snapshot();
+        let final_flush = self.executor.flush().map_err(Error::from)?;
+        let snapshot = self.modeled.as_ref().map(ModeledTensorExecutor::snapshot);
+        let readbacks = match (&before, &snapshot) {
+            (Some(before), Some(snapshot)) => {
+                Some(snapshot.readbacks.saturating_sub(before.readbacks))
+            }
+            _ => None,
+        };
         Ok(ResidentOdeExecution {
             reply,
-            readbacks: snapshot.readbacks.saturating_sub(before.readbacks),
-            snapshot,
-            final_flush_accepted,
+            executor: self.executor.card(),
+            modeled_snapshot: snapshot,
+            modeled_readbacks: readbacks,
+            final_flush,
         })
+    }
+}
+
+impl ResidentOdeExecutor {
+    /// Builds an ODE executor that auto-flushes bounded modeled tensor batches.
+    pub fn new(profile: ModeledComputeProfile) -> Self {
+        Self::modeled(profile)
     }
 }
 
 impl Default for ResidentOdeExecutor {
     fn default() -> Self {
-        Self::new(ModeledComputeProfile::default())
+        Self::modeled(ModeledComputeProfile::default())
     }
 }
 

@@ -1,11 +1,17 @@
-use std::sync::Arc;
+use std::sync::{
+    Arc,
+    atomic::{AtomicUsize, Ordering},
+};
 
 use sim_kernel::{DefaultFactory, EagerPolicy, Expr, NumberLiteral, Symbol, Value};
-use sim_lib_numbers_tensor::{TensorLocation, tensor_value_ref};
+use sim_lib_numbers_tensor::{
+    SubmissionEvidence, TensorExecError, TensorExecution, TensorExecutor, TensorExecutorCard,
+    TensorLocation, TensorRequest, tensor_value_ref,
+};
 
 use crate::{
-    ModeledComputeProfile, ResidentOdeExecutor, ResidentOdePlan, ResidentRhsLowering,
-    compute_model_site_symbol,
+    ModeledComputeFault, ModeledComputeProfile, ModeledTensorExecutor, ResidentOdeExecutor,
+    ResidentOdePlan, ResidentRhsLowering, compute_model_site_symbol,
 };
 
 fn test_cx() -> sim_kernel::Cx {
@@ -111,6 +117,93 @@ fn tensor_f64s(cx: &mut sim_kernel::Cx, value: &Value) -> Vec<f64> {
         .collect()
 }
 
+#[derive(Clone)]
+struct CountingExecutor {
+    inner: ModeledTensorExecutor,
+    accepted: Arc<AtomicUsize>,
+    flushes: Arc<AtomicUsize>,
+}
+
+impl CountingExecutor {
+    fn new() -> Self {
+        Self {
+            inner: ModeledTensorExecutor::new(ModeledComputeProfile {
+                auto_flush_batches: true,
+                max_queue_depth: 4,
+                ..ModeledComputeProfile::default()
+            }),
+            accepted: Arc::new(AtomicUsize::new(0)),
+            flushes: Arc::new(AtomicUsize::new(0)),
+        }
+    }
+
+    fn snapshot(&self) -> (usize, usize, crate::ModeledComputeSnapshot) {
+        (
+            self.accepted.load(Ordering::SeqCst),
+            self.flushes.load(Ordering::SeqCst),
+            self.inner.snapshot(),
+        )
+    }
+}
+
+impl TensorExecutor for CountingExecutor {
+    fn card(&self) -> TensorExecutorCard {
+        TensorExecutorCard::new(
+            Symbol::qualified("test", "executor/resident-ode"),
+            "test-resident-ode",
+            Symbol::qualified("test", "resident"),
+            self.inner.card().operations.to_vec(),
+            None,
+        )
+    }
+
+    fn execute(
+        &self,
+        cx: &mut sim_kernel::Cx,
+        request: TensorRequest,
+    ) -> std::result::Result<TensorExecution, TensorExecError> {
+        let result = self.inner.execute(cx, request);
+        if matches!(result, Ok(TensorExecution::Complete(_))) {
+            self.accepted.fetch_add(1, Ordering::SeqCst);
+        }
+        result
+    }
+
+    fn flush(&self) -> std::result::Result<SubmissionEvidence, TensorExecError> {
+        self.flushes.fetch_add(1, Ordering::SeqCst);
+        self.inner.flush()
+    }
+}
+
+#[derive(Clone)]
+struct LostDeviceExecutor;
+
+impl TensorExecutor for LostDeviceExecutor {
+    fn card(&self) -> TensorExecutorCard {
+        TensorExecutorCard::new(
+            Symbol::qualified("test", "executor/lost"),
+            "test-lost-device",
+            Symbol::qualified("test", "device"),
+            ModeledTensorExecutor::default().card().operations.to_vec(),
+            None,
+        )
+    }
+
+    fn execute(
+        &self,
+        _cx: &mut sim_kernel::Cx,
+        _request: TensorRequest,
+    ) -> std::result::Result<TensorExecution, TensorExecError> {
+        Err(TensorExecError::Eval {
+            message: Arc::from("test device lost during tensor execution"),
+        })
+    }
+
+    fn flush(&self) -> std::result::Result<SubmissionEvidence, TensorExecError> {
+        Ok(SubmissionEvidence::new(self.card().symbol, 0))
+    }
+}
+
 #[test]
 fn resident_fixed_ode_batches_stages_without_readback_and_matches_cpu() {
     let mut cpu_cx = test_cx();
@@ -146,9 +239,10 @@ fn resident_fixed_ode_batches_stages_without_readback_and_matches_cpu() {
         .get(&mut cx, Symbol::new("value"))
         .unwrap();
 
-    assert_eq!(execution.readbacks, 0);
-    assert!(execution.snapshot.batch_flushes > 0);
-    assert!(execution.final_flush_accepted <= 4);
+    assert_eq!(execution.modeled_readbacks, Some(0));
+    let snapshot = execution.modeled_snapshot.as_ref().unwrap();
+    assert!(snapshot.batch_flushes > 0);
+    assert!(execution.final_flush.accepted <= 4);
     assert!(matches!(
         tensor_value_ref(&value).unwrap().location(),
         TensorLocation::Resident { site, .. } if site == compute_model_site_symbol()
@@ -191,8 +285,10 @@ fn resident_adaptive_ode_keeps_candidate_resident_with_scalar_decisions() {
         .get(&mut cx, Symbol::new("value"))
         .unwrap();
 
-    assert!(execution.readbacks > 0);
-    assert!(execution.readbacks < execution.snapshot.accepted);
+    let readbacks = execution.modeled_readbacks.unwrap();
+    let snapshot = execution.modeled_snapshot.as_ref().unwrap();
+    assert!(readbacks > 0);
+    assert!(readbacks < snapshot.accepted);
     assert!(matches!(
         tensor_value_ref(&value).unwrap().location(),
         TensorLocation::Resident { site, .. } if site == compute_model_site_symbol()
@@ -216,4 +312,113 @@ fn resident_ode_declines_small_and_nonlowerable_work_before_execution() {
     )
     .unwrap_err();
     assert!(nonlowerable.to_string().contains("lowerable"));
+}
+
+#[test]
+fn resident_ode_runs_over_dynamic_tensor_executor_without_adapter_readback() {
+    let mut cpu_cx = test_cx();
+    tensor_identity_rhs(&mut cpu_cx, "tensor-rhs");
+    let expected = run_cpu_ode(&mut cpu_cx, "rk4", "0.02");
+
+    let executor = CountingExecutor::new();
+    let observed = executor.clone();
+    let mut cx = test_cx();
+    tensor_identity_rhs(&mut cx, "tensor-rhs");
+    let resident = ResidentOdeExecutor::with_executor(
+        Symbol::qualified("test", "site/resident-ode"),
+        Arc::new(executor),
+    );
+    let plan = ResidentOdePlan::fixed(
+        vec![4],
+        Symbol::qualified("numbers", "f64"),
+        ResidentRhsLowering::TensorExpression,
+    )
+    .unwrap();
+
+    let execution = resident
+        .execute(
+            &mut cx,
+            &plan,
+            tensor_pipeline_expr("rk4", "0.02", vec_expr(&["1.0", "2.0", "-0.5", "4.0"])),
+        )
+        .unwrap();
+    let value = execution
+        .reply
+        .value
+        .object()
+        .as_table_impl()
+        .unwrap()
+        .get(&mut cx, Symbol::new("value"))
+        .unwrap();
+    let (accepted, flushes, _snapshot) = observed.snapshot();
+
+    assert_eq!(
+        execution.executor.symbol,
+        Symbol::qualified("test", "executor/resident-ode")
+    );
+    assert_eq!(execution.modeled_snapshot, None);
+    assert_eq!(execution.modeled_readbacks, None);
+    assert!(accepted > 0);
+    assert_eq!(flushes, 1);
+    assert!(execution.final_flush.accepted <= 4);
+
+    let actual = tensor_f64s(&mut cx, &value);
+    let expected = tensor_f64s(&mut cpu_cx, &expected);
+    for (actual, expected) in actual.into_iter().zip(expected) {
+        assert!((actual - expected).abs() < 1.0e-9);
+    }
+}
+
+#[test]
+fn resident_ode_reports_device_loss_from_active_tensor_executor() {
+    let mut cx = test_cx();
+    tensor_identity_rhs(&mut cx, "tensor-rhs");
+    let resident = ResidentOdeExecutor::with_executor(
+        Symbol::qualified("test", "site/lost-device"),
+        Arc::new(LostDeviceExecutor),
+    );
+    let plan = ResidentOdePlan::fixed(
+        vec![4],
+        Symbol::qualified("numbers", "f64"),
+        ResidentRhsLowering::TensorExpression,
+    )
+    .unwrap();
+
+    let error = match resident.execute(
+        &mut cx,
+        &plan,
+        tensor_pipeline_expr("rk4", "0.02", vec_expr(&["1.0", "2.0", "-0.5", "4.0"])),
+    ) {
+        Ok(_) => panic!("resident ODE must propagate device loss"),
+        Err(error) => error,
+    };
+
+    assert!(error.to_string().contains("device lost"), "{error}");
+}
+
+#[test]
+fn resident_ode_propagates_modeled_device_loss_without_rk_changes() {
+    let mut cx = test_cx();
+    tensor_identity_rhs(&mut cx, "tensor-rhs");
+    let executor = ResidentOdeExecutor::new(ModeledComputeProfile {
+        fault: Some(ModeledComputeFault::DeviceLostDuringExecute),
+        ..ModeledComputeProfile::default()
+    });
+    let plan = ResidentOdePlan::fixed(
+        vec![4],
+        Symbol::qualified("numbers", "f64"),
+        ResidentRhsLowering::TensorExpression,
+    )
+    .unwrap();
+
+    let error = match executor.execute(
+        &mut cx,
+        &plan,
+        tensor_pipeline_expr("rk4", "0.02", vec_expr(&["1.0", "2.0", "-0.5", "4.0"])),
+    ) {
+        Ok(_) => panic!("resident ODE must propagate modeled device loss"),
+        Err(error) => error,
+    };
+
+    assert!(error.to_string().contains("device lost"), "{error}");
 }
