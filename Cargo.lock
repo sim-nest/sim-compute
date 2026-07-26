@@ -823,7 +823,7 @@ dependencies = [
  "sim-citizen",
  "sim-cookbook",
  "sim-kernel",
- "sim-lib-compute-model",
+ "sim-lib-compute-model 0.2.0",
  "sim-lib-numbers-arith 0.1.1",
  "sim-lib-numbers-f64 0.1.1",
  "sim-lib-numbers-float 0.1.1",
@@ -838,7 +838,7 @@ dependencies = [
  "sim-cookbook",
  "sim-kernel",
  "sim-lib-compute-auto",
- "sim-lib-compute-model",
+ "sim-lib-compute-model 0.2.0",
 ]
 
 [[package]]
@@ -860,8 +860,13 @@ version = "0.1.0"
 dependencies = [
  "sim-cookbook",
  "sim-kernel",
+ "sim-lib-compute-model 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "sim-lib-femm-core",
  "sim-lib-femm-solve",
+ "sim-lib-numbers-arith 0.2.0",
+ "sim-lib-numbers-f64 0.2.0",
+ "sim-lib-numbers-float 0.2.0",
+ "sim-lib-numbers-tensor",
 ]
 
 [[package]]
@@ -879,6 +884,18 @@ dependencies = [
  "sim-lib-numbers-rk",
  "sim-lib-numbers-tensor",
  "sim-lib-numbers-tensor-bcast",
+ "sim-table-core",
+]
+
+[[package]]
+name = "sim-lib-compute-model"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8aad87ab9788aa5661abf9b7983ee9cc48435f7036bd8d9193b5f76fe4d42dd3"
+dependencies = [
+ "sim-cookbook",
+ "sim-kernel",
+ "sim-lib-numbers-tensor",
  "sim-table-core",
 ]
 

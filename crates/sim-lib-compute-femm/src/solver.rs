@@ -2,11 +2,13 @@ use std::any::Any;
 use std::sync::{Arc, Mutex};
 
 use sim_kernel::{DefaultFactory, Factory, Object, Result as KernelResult, Symbol};
+use sim_lib_compute_model::{ModeledComputeProfile, ModeledComputeSnapshot, ModeledTensorExecutor};
 use sim_lib_femm_core::{CsrMatrix, FemmError, FemmResult, StableId};
 use sim_lib_femm_solve::{
     DenseFallbackSolver, FactorHandle, FactorLifecycle, LinearFactor, LinearMethod, LinearSolver,
     TransposeSupport,
 };
+use sim_lib_numbers_tensor::TensorExecutor;
 
 use crate::kernels::{ResidentCsrMatrix, add_assign_f64, f64_residual, solve_f32, validate_rhs};
 
@@ -90,6 +92,10 @@ pub struct ResidentCsrSnapshot {
     pub reused_factors: usize,
     /// Rejected solves or factors.
     pub refusals: usize,
+    /// Provider submissions accepted by final flushes.
+    pub provider_submissions: usize,
+    /// Provider resident readbacks observed during Krylov work.
+    pub provider_readbacks: usize,
 }
 
 #[derive(Default)]
@@ -102,16 +108,42 @@ pub(crate) struct ResidentCsrState {
 #[derive(Clone)]
 pub struct ResidentCsrSolver {
     pub(crate) config: ResidentCsrConfig,
+    pub(crate) executor: Arc<dyn TensorExecutor>,
+    modeled: Option<ModeledTensorExecutor>,
     pub(crate) state: Arc<Mutex<ResidentCsrState>>,
 }
 
 impl ResidentCsrSolver {
-    /// Builds a resident CSR solver from a configuration.
+    /// Builds a resident CSR solver from a configuration over modeled compute.
     pub fn new(config: ResidentCsrConfig) -> Self {
+        Self::modeled(config, ModeledComputeProfile::default())
+    }
+
+    /// Builds a resident CSR solver over an already selected tensor executor.
+    pub fn with_executor(config: ResidentCsrConfig, executor: Arc<dyn TensorExecutor>) -> Self {
         Self {
             config,
+            executor,
+            modeled: None,
             state: Arc::new(Mutex::new(ResidentCsrState::default())),
         }
+    }
+
+    /// Builds a resident CSR solver over the modeled tensor provider.
+    pub fn modeled(config: ResidentCsrConfig, mut profile: ModeledComputeProfile) -> Self {
+        profile.auto_flush_batches = true;
+        let executor = ModeledTensorExecutor::new(profile);
+        Self {
+            config,
+            executor: Arc::new(executor.clone()) as Arc<dyn TensorExecutor>,
+            modeled: Some(executor),
+            state: Arc::new(Mutex::new(ResidentCsrState::default())),
+        }
+    }
+
+    /// Returns the modeled provider snapshot when this solver owns one.
+    pub fn modeled_snapshot(&self) -> Option<ModeledComputeSnapshot> {
+        self.modeled.as_ref().map(ModeledTensorExecutor::snapshot)
     }
 
     /// Returns the current evidence snapshot.
@@ -208,7 +240,7 @@ impl Default for ResidentCsrSolver {
 impl LinearSolver for ResidentCsrSolver {
     fn factor(&self, k: &CsrMatrix) -> FemmResult<FactorHandle> {
         k.validate()?;
-        let matrix = ResidentCsrMatrix::from_csr(k)?;
+        let matrix = ResidentCsrMatrix::from_csr(self, k)?;
         let bytes = matrix.resident_bytes()?;
         if bytes > self.config.max_resident_bytes {
             return self.refuse(FemmError::BudgetExceeded(format!(
@@ -265,7 +297,7 @@ impl LinearSolver for ResidentCsrSolver {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 struct ResidentCsrFactor {
     upload_id: usize,
     fingerprint: StableId,

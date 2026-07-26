@@ -1,11 +1,13 @@
 use std::sync::Arc;
 
 use sim_kernel::{Cx, DefaultFactory, EagerPolicy, Export, Lib};
+use sim_lib_compute_model::{ModeledComputeFault, ModeledComputeProfile};
 use sim_lib_femm_core::{CsrMatrix, FemmError, StableId};
 use sim_lib_femm_solve::{
     FactorHandle, FactorLifecycle, LinearFactor, LinearMethod, LinearSolver, LinearSolverValue,
     TransposeSupport, linear_solver_symbol,
 };
+use sim_lib_numbers_tensor::CpuTensorExecutor;
 
 use crate::{
     ComputeFemmLib, ResidentCsrConfig, ResidentCsrSolver, ResidentKrylovMethod,
@@ -66,6 +68,47 @@ fn factor_reuse_is_fingerprinted_without_reupload() {
     assert_eq!(solver.snapshot().uploads, 1);
     assert_eq!(solver.snapshot().reused_factors, 2);
     assert_eq!(reused.lifecycle(), FactorLifecycle::Reused);
+}
+
+#[test]
+fn modeled_provider_agrees_with_cpu_provider_and_counts_readbacks() {
+    let modeled = ResidentCsrSolver::default();
+    let modeled_factor = modeled.factor(&spd_matrix()).unwrap();
+    let modeled_x = modeled.solve(&modeled_factor, &[15.0, 10.0, 10.0]).unwrap();
+
+    let cpu = ResidentCsrSolver::with_executor(
+        ResidentCsrConfig::default(),
+        Arc::new(CpuTensorExecutor::new()),
+    );
+    let cpu_factor = cpu.factor(&spd_matrix()).unwrap();
+    let cpu_x = cpu.solve(&cpu_factor, &[15.0, 10.0, 10.0]).unwrap();
+
+    for (modeled, cpu) in modeled_x.iter().zip(&cpu_x) {
+        assert!((modeled - cpu).abs() < 1.0e-6);
+    }
+    let snapshot = modeled.snapshot();
+    let modeled_snapshot = modeled.modeled_snapshot().unwrap();
+    assert!(modeled_snapshot.accepted > snapshot.spmv_dispatches + snapshot.vector_dispatches);
+    assert!(snapshot.provider_readbacks > 0);
+    assert!(snapshot.provider_readbacks <= modeled_snapshot.accepted);
+    assert_eq!(modeled_snapshot.readbacks, snapshot.provider_readbacks);
+}
+
+#[test]
+fn provider_loss_fails_closed_before_factor_or_solve_acceptance() {
+    let solver = ResidentCsrSolver::modeled(
+        ResidentCsrConfig::default(),
+        ModeledComputeProfile {
+            fault: Some(ModeledComputeFault::DeviceLostDuringExecute),
+            ..ModeledComputeProfile::default()
+        },
+    );
+    let err = solver.factor(&spd_matrix()).unwrap_err();
+
+    assert!(
+        matches!(err, FemmError::SolveDidNotConverge(message) if message.contains("provider failure"))
+    );
+    assert_eq!(solver.snapshot().refusals, 1);
 }
 
 #[test]

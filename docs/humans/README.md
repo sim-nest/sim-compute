@@ -1784,6 +1784,7 @@ Source `crates/sim-lib-compute-femm/src/lib.rs`:
 //! `SolveCertificate` after its own f64 residual acceptance.
 
 mod kernels;
+mod provider_work;
 mod runtime;
 mod solver;
 

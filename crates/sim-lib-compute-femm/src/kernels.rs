@@ -1,20 +1,25 @@
-use crate::solver::{ResidentCsrSolver, ResidentKrylovMethod};
 use sim_lib_femm_core::{CsrMatrix, FemmError, FemmResult};
+use sim_lib_numbers_tensor::{Tensor, matmul_exec_op_symbol};
+
+use crate::provider_work::ProviderWork;
+use crate::solver::{ResidentCsrSolver, ResidentKrylovMethod};
 
 const BREAKDOWN_TOL_F32: f32 = 1.0e-20;
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub(crate) struct ResidentCsrMatrix {
     pub(crate) rows: usize,
     rowptr: Vec<usize>,
     colind: Vec<usize>,
     vals: Vec<f32>,
     vals_f64: Vec<f64>,
+    resident_dense: Tensor,
 }
 
 impl ResidentCsrMatrix {
-    pub(crate) fn from_csr(matrix: &CsrMatrix) -> FemmResult<Self> {
+    pub(crate) fn from_csr(solver: &ResidentCsrSolver, matrix: &CsrMatrix) -> FemmResult<Self> {
         matrix.validate()?;
+        let rows = matrix.rows();
         let vals = matrix
             .vals
             .iter()
@@ -29,12 +34,22 @@ impl ResidentCsrMatrix {
                 }
             })
             .collect::<FemmResult<Vec<_>>>()?;
+        let mut dense = vec![0.0_f32; rows * rows];
+        for row in 0..rows {
+            for idx in matrix.rowptr[row]..matrix.rowptr[row + 1] {
+                dense[row * rows + matrix.colind[idx]] = vals[idx];
+            }
+        }
+        let mut work = ProviderWork::new(solver);
+        let resident_dense = work.upload_tensor(vec![rows, rows], &dense)?;
+        work.finish()?;
         Ok(Self {
-            rows: matrix.rows(),
+            rows,
             rowptr: matrix.rowptr.clone(),
             colind: matrix.colind.clone(),
             vals,
             vals_f64: matrix.vals.clone(),
+            resident_dense,
         })
     }
 
@@ -43,28 +58,6 @@ impl ResidentCsrMatrix {
         let colind = bytes_for_len(self.colind.len(), std::mem::size_of::<usize>())?;
         let vals = bytes_for_len(self.vals.len(), std::mem::size_of::<f32>())?;
         Ok(rowptr.saturating_add(colind).saturating_add(vals))
-    }
-
-    fn matvec_f32(&self, x: &[f32]) -> FemmResult<Vec<f32>> {
-        if x.len() != self.rows {
-            return Err(FemmError::MalformedMatrix(format!(
-                "resident SpMV vector length {} does not match rows {}",
-                x.len(),
-                self.rows
-            )));
-        }
-        let mut out = vec![0.0_f32; self.rows];
-        for (row, out_value) in out.iter_mut().enumerate() {
-            let mut sum = 0.0_f32;
-            for idx in self.rowptr[row]..self.rowptr[row + 1] {
-                sum = finite_f32(
-                    sum + self.vals[idx] * x[self.colind[idx]],
-                    "resident SpMV produced a non-finite value",
-                )?;
-            }
-            *out_value = sum;
-        }
-        Ok(out)
     }
 
     pub(crate) fn to_dense_f64(&self) -> FemmResult<Vec<Vec<f64>>> {
@@ -104,10 +97,14 @@ pub(crate) fn solve_f32(
             }
         })
         .collect::<FemmResult<Vec<_>>>()?;
+    let mut work = ProviderWork::new(solver);
+    let rhs = work.upload_tensor(vec![rhs.len()], &rhs)?;
     let x = match solver.config.method {
-        ResidentKrylovMethod::Cg => cg_f32(solver, matrix, &rhs)?,
-        ResidentKrylovMethod::Bicgstab => bicgstab_f32(solver, matrix, &rhs)?,
+        ResidentKrylovMethod::Cg => cg_f32(solver, &mut work, matrix, &rhs)?,
+        ResidentKrylovMethod::Bicgstab => bicgstab_f32(solver, &mut work, matrix, &rhs)?,
     };
+    let x = work.tensor_values(&x)?;
+    work.finish()?;
     x.into_iter()
         .map(|value| {
             if value.is_finite() {
@@ -123,31 +120,33 @@ pub(crate) fn solve_f32(
 
 fn cg_f32(
     solver: &ResidentCsrSolver,
+    work: &mut ProviderWork<'_>,
     matrix: &ResidentCsrMatrix,
-    b: &[f32],
-) -> FemmResult<Vec<f32>> {
-    if b.iter().all(|value| *value == 0.0) {
-        return Ok(vec![0.0; b.len()]);
+    b: &Tensor,
+) -> FemmResult<Tensor> {
+    let b_values = work.tensor_values(b)?;
+    if b_values.iter().all(|value| *value == 0.0) {
+        return work.upload_tensor(vec![b_values.len()], &vec![0.0; b_values.len()]);
     }
-    let mut x = vec![0.0_f32; b.len()];
-    let mut r = b.to_vec();
+    let mut x = work.upload_tensor(vec![b_values.len()], &vec![0.0; b_values.len()])?;
+    let mut r = b.clone();
     let mut p = r.clone();
-    let mut rs_old = dot_f32(&r, &r, "resident cg residual")?;
+    let mut rs_old = work.dot(&r, &r, "resident cg residual")?;
     for iter in 0..solver.config.max_iters {
-        let ap = resident_spmv(solver, matrix, &p)?;
-        let denom = dot_f32(&p, &ap, "resident cg denominator")?;
+        let ap = resident_spmv(solver, work, matrix, &p)?;
+        let denom = work.dot(&p, &ap, "resident cg denominator")?;
         if denom.abs() < BREAKDOWN_TOL_F32 {
             return solver.refuse(FemmError::SolveDidNotConverge(
                 "resident cg breakdown: zero denominator".to_owned(),
             ));
         }
         let alpha = finite_f32(rs_old / denom, "non-finite resident cg alpha")?;
-        for i in 0..x.len() {
-            x[i] = finite_f32(x[i] + alpha * p[i], "non-finite resident cg solution")?;
-            r[i] = finite_f32(r[i] - alpha * ap[i], "non-finite resident cg residual")?;
-        }
-        resident_vector_update(solver);
-        let residual = sync_residual_scalar(solver, &r, iter)?;
+        let alpha_p = work.scale(&p, alpha)?;
+        x = work.add(&x, &alpha_p, "non-finite resident cg solution")?;
+        let alpha_ap = work.scale(&ap, alpha)?;
+        r = work.sub(&r, &alpha_ap, "non-finite resident cg residual")?;
+        resident_vector_update(solver, 2);
+        let residual = sync_residual_scalar(solver, work, &r, iter)?;
         if residual < solver.config.tol_f32 {
             return Ok(x);
         }
@@ -156,12 +155,11 @@ fn cg_f32(
                 "resident cg breakdown: residual denominator vanished".to_owned(),
             ));
         }
-        let rs_new = dot_f32(&r, &r, "resident cg residual")?;
+        let rs_new = work.dot(&r, &r, "resident cg residual")?;
         let beta = finite_f32(rs_new / rs_old, "non-finite resident cg beta")?;
-        for i in 0..p.len() {
-            p[i] = finite_f32(r[i] + beta * p[i], "non-finite resident cg direction")?;
-        }
-        resident_vector_update(solver);
+        let beta_p = work.scale(&p, beta)?;
+        p = work.add(&r, &beta_p, "non-finite resident cg direction")?;
+        resident_vector_update(solver, 1);
         rs_old = rs_new;
     }
     solver.refuse(FemmError::SolveDidNotConverge(
@@ -171,23 +169,25 @@ fn cg_f32(
 
 fn bicgstab_f32(
     solver: &ResidentCsrSolver,
+    work: &mut ProviderWork<'_>,
     matrix: &ResidentCsrMatrix,
-    b: &[f32],
-) -> FemmResult<Vec<f32>> {
-    if b.iter().all(|value| *value == 0.0) {
-        return Ok(vec![0.0; b.len()]);
+    b: &Tensor,
+) -> FemmResult<Tensor> {
+    let b_values = work.tensor_values(b)?;
+    if b_values.iter().all(|value| *value == 0.0) {
+        return work.upload_tensor(vec![b_values.len()], &vec![0.0; b_values.len()]);
     }
-    let n = b.len();
-    let mut x = vec![0.0_f32; n];
-    let mut r = b.to_vec();
+    let n = b_values.len();
+    let mut x = work.upload_tensor(vec![n], &vec![0.0; n])?;
+    let mut r = b.clone();
     let r_hat = r.clone();
     let mut rho_prev = 1.0_f32;
     let mut alpha = 1.0_f32;
     let mut omega = 1.0_f32;
-    let mut v = vec![0.0_f32; n];
-    let mut p = vec![0.0_f32; n];
+    let mut v = work.upload_tensor(vec![n], &vec![0.0; n])?;
+    let mut p = work.upload_tensor(vec![n], &vec![0.0; n])?;
     for iter in 0..solver.config.max_iters {
-        let rho = dot_f32(&r_hat, &r, "resident bicgstab rho")?;
+        let rho = work.dot(&r_hat, &r, "resident bicgstab rho")?;
         if rho.abs() < BREAKDOWN_TOL_F32
             || rho_prev.abs() < BREAKDOWN_TOL_F32
             || omega.abs() < BREAKDOWN_TOL_F32
@@ -200,51 +200,50 @@ fn bicgstab_f32(
             (rho / rho_prev) * (alpha / omega),
             "non-finite resident bicgstab beta",
         )?;
-        for i in 0..n {
-            p[i] = finite_f32(
-                r[i] + beta * (p[i] - omega * v[i]),
-                "non-finite resident bicgstab direction",
-            )?;
-        }
-        resident_vector_update(solver);
-        v = resident_spmv(solver, matrix, &p)?;
-        let alpha_denom = dot_f32(&r_hat, &v, "resident bicgstab alpha denominator")?;
+        let omega_v = work.scale(&v, omega)?;
+        let p_minus_omega_v = work.sub(&p, &omega_v, "non-finite resident bicgstab direction")?;
+        let beta_direction = work.scale(&p_minus_omega_v, beta)?;
+        p = work.add(
+            &r,
+            &beta_direction,
+            "non-finite resident bicgstab direction",
+        )?;
+        resident_vector_update(solver, 3);
+        v = resident_spmv(solver, work, matrix, &p)?;
+        let alpha_denom = work.dot(&r_hat, &v, "resident bicgstab alpha denominator")?;
         if alpha_denom.abs() < BREAKDOWN_TOL_F32 {
             return solver.refuse(FemmError::SolveDidNotConverge(
                 "resident bicgstab breakdown: alpha denominator vanished".to_owned(),
             ));
         }
         alpha = finite_f32(rho / alpha_denom, "non-finite resident bicgstab alpha")?;
-        let s = (0..n)
-            .map(|i| finite_f32(r[i] - alpha * v[i], "non-finite resident bicgstab stage"))
-            .collect::<FemmResult<Vec<_>>>()?;
-        resident_vector_update(solver);
-        if sync_residual_scalar(solver, &s, iter)? < solver.config.tol_f32 {
-            for i in 0..n {
-                x[i] = finite_f32(x[i] + alpha * p[i], "non-finite resident bicgstab solution")?;
-            }
+        let alpha_v = work.scale(&v, alpha)?;
+        let s = work.sub(&r, &alpha_v, "non-finite resident bicgstab stage")?;
+        resident_vector_update(solver, 2);
+        if sync_residual_scalar(solver, work, &s, iter)? < solver.config.tol_f32 {
+            let alpha_p = work.scale(&p, alpha)?;
+            x = work.add(&x, &alpha_p, "non-finite resident bicgstab solution")?;
             return Ok(x);
         }
-        let t = resident_spmv(solver, matrix, &s)?;
-        let omega_den = dot_f32(&t, &t, "resident bicgstab omega denominator")?;
+        let t = resident_spmv(solver, work, matrix, &s)?;
+        let omega_den = work.dot(&t, &t, "resident bicgstab omega denominator")?;
         if omega_den.abs() < BREAKDOWN_TOL_F32 {
             return solver.refuse(FemmError::SolveDidNotConverge(
                 "resident bicgstab breakdown: omega denominator vanished".to_owned(),
             ));
         }
         omega = finite_f32(
-            dot_f32(&t, &s, "resident bicgstab omega numerator")? / omega_den,
+            work.dot(&t, &s, "resident bicgstab omega numerator")? / omega_den,
             "non-finite resident bicgstab omega",
         )?;
-        for i in 0..n {
-            x[i] = finite_f32(
-                x[i] + alpha * p[i] + omega * s[i],
-                "non-finite resident bicgstab solution",
-            )?;
-            r[i] = finite_f32(s[i] - omega * t[i], "non-finite resident bicgstab residual")?;
-        }
-        resident_vector_update(solver);
-        if sync_residual_scalar(solver, &r, iter)? < solver.config.tol_f32 {
+        let alpha_p = work.scale(&p, alpha)?;
+        let omega_s = work.scale(&s, omega)?;
+        let x_stage = work.add(&x, &alpha_p, "non-finite resident bicgstab solution")?;
+        x = work.add(&x_stage, &omega_s, "non-finite resident bicgstab solution")?;
+        let omega_t = work.scale(&t, omega)?;
+        r = work.sub(&s, &omega_t, "non-finite resident bicgstab residual")?;
+        resident_vector_update(solver, 4);
+        if sync_residual_scalar(solver, work, &r, iter)? < solver.config.tol_f32 {
             return Ok(x);
         }
         rho_prev = rho;
@@ -256,34 +255,41 @@ fn bicgstab_f32(
 
 pub(crate) fn resident_spmv(
     solver: &ResidentCsrSolver,
+    work: &mut ProviderWork<'_>,
     matrix: &ResidentCsrMatrix,
-    x: &[f32],
-) -> FemmResult<Vec<f32>> {
+    x: &Tensor,
+) -> FemmResult<Tensor> {
     solver
         .state
         .lock()
         .expect("resident CSR state poisoned")
         .snapshot
         .spmv_dispatches += 1;
-    matrix.matvec_f32(x)
+    work.execute(
+        matmul_exec_op_symbol(),
+        vec![matrix.resident_dense.clone(), x.clone()],
+        vec![matrix.rows],
+        "resident SpMV",
+    )
 }
 
-pub(crate) fn resident_vector_update(solver: &ResidentCsrSolver) {
+pub(crate) fn resident_vector_update(solver: &ResidentCsrSolver, count: usize) {
     solver
         .state
         .lock()
         .expect("resident CSR state poisoned")
         .snapshot
-        .vector_dispatches += 1;
+        .vector_dispatches += count;
 }
 
 pub(crate) fn sync_residual_scalar(
     solver: &ResidentCsrSolver,
-    residual: &[f32],
+    work: &mut ProviderWork<'_>,
+    residual: &Tensor,
     iter: usize,
 ) -> FemmResult<f32> {
     let cadence = solver.config.scalar_sync_cadence.max(1);
-    let norm = norm_f32(residual, "resident residual scalar")?;
+    let norm = work.norm(residual, "resident residual scalar")?;
     if iter.is_multiple_of(cadence) || norm < solver.config.tol_f32 {
         solver
             .state
@@ -360,25 +366,6 @@ pub(crate) fn add_assign_f64(left: &mut [f64], right: &[f64]) -> FemmResult<()> 
         *left = finite_f64(*left + right, "non-finite iterative refinement correction")?;
     }
     Ok(())
-}
-
-fn dot_f32(left: &[f32], right: &[f32], context: &str) -> FemmResult<f32> {
-    if left.len() != right.len() {
-        return Err(FemmError::MalformedMatrix(format!(
-            "{context} vector length mismatch: {} != {}",
-            left.len(),
-            right.len()
-        )));
-    }
-    let mut sum = 0.0_f32;
-    for (left, right) in left.iter().zip(right) {
-        sum = finite_f32(sum + left * right, context)?;
-    }
-    Ok(sum)
-}
-
-fn norm_f32(values: &[f32], context: &str) -> FemmResult<f32> {
-    finite_f32(dot_f32(values, values, context)?.sqrt(), context)
 }
 
 fn finite_f32(value: f32, context: &str) -> FemmResult<f32> {
