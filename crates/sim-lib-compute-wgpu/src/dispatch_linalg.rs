@@ -2,17 +2,15 @@
 
 use std::sync::Arc;
 
-use sim_kernel::Symbol;
 use sim_lib_numbers_tensor::{Tensor, TensorExecError, TensorRequest, bounded_element_count};
-use wgpu::util::DeviceExt;
 
 use crate::{
     WgpuKernelDType, WgpuTensorExecutor,
     dispatch::{
-        buffer_size, check_storage_buffer_limit, compiled_pipeline, f32_bytes, read_f32s,
-        readback_buffer, tensor_f32_values, u32_count,
+        WgpuDispatchBuffer, buffer_size, check_storage_buffer_limit, compiled_pipeline, f32_bytes,
+        tensor_f32_values, u32_count,
     },
-    kernel_support::{invalid, number_value, round, shape_error},
+    kernel_support::{invalid, shape_error},
 };
 
 pub(crate) fn execute_linalg_dispatch(
@@ -21,7 +19,7 @@ pub(crate) fn execute_linalg_dispatch(
     request: &TensorRequest,
     op: crate::WgpuKernelOp,
     dtype: WgpuKernelDType,
-) -> std::result::Result<(Tensor, Symbol), TensorExecError> {
+) -> std::result::Result<WgpuDispatchBuffer, TensorExecError> {
     let Some(context) = &executor.context else {
         return Err(invalid("wgpu device context is unavailable"));
     };
@@ -37,34 +35,33 @@ pub(crate) fn execute_linalg_dispatch(
     check_storage_buffer_limit(executor, right_values.len(), "wgpu linalg right input")?;
     check_storage_buffer_limit(executor, len, "wgpu linalg output")?;
     let output_size = buffer_size(len)?;
-    let left = context
-        .device
-        .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("sim-compute-wgpu-linalg-left"),
-            contents: &f32_bytes(&left_values),
-            usage: wgpu::BufferUsages::STORAGE,
-        });
-    let right = context
-        .device
-        .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("sim-compute-wgpu-linalg-right"),
-            contents: &f32_bytes(&right_values),
-            usage: wgpu::BufferUsages::STORAGE,
-        });
+    let left = upload_buffer(
+        executor,
+        context,
+        "sim-compute-wgpu-linalg-left",
+        wgpu::BufferUsages::STORAGE,
+        &f32_bytes(&left_values),
+    );
+    let right = upload_buffer(
+        executor,
+        context,
+        "sim-compute-wgpu-linalg-right",
+        wgpu::BufferUsages::STORAGE,
+        &f32_bytes(&right_values),
+    );
     let output = context.device.create_buffer(&wgpu::BufferDescriptor {
         label: Some("sim-compute-wgpu-linalg-output"),
         size: output_size,
         usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_SRC,
         mapped_at_creation: false,
     });
-    let readback = readback_buffer(&context.device, output_size, "linalg");
-    let params = context
-        .device
-        .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("sim-compute-wgpu-linalg-params"),
-            contents: &plan.params_bytes(),
-            usage: wgpu::BufferUsages::UNIFORM,
-        });
+    let params = upload_buffer(
+        executor,
+        context,
+        "sim-compute-wgpu-linalg-params",
+        wgpu::BufferUsages::UNIFORM,
+        &plan.params_bytes(),
+    );
     let pipeline = compiled_pipeline(executor, context, op, dtype, request.output.shape().len());
     let layout = pipeline.pipeline.get_bind_group_layout(0);
     let bind_group = context
@@ -106,24 +103,32 @@ pub(crate) fn execute_linalg_dispatch(
         let (x, y) = plan.workgroups()?;
         pass.dispatch_workgroups(x, y, 1);
     }
-    encoder.copy_buffer_to_buffer(&output, 0, &readback, 0, output_size);
     context.queue.submit([encoder.finish()]);
-    let cells = read_f32s(context, &readback, len)?
-        .into_iter()
-        .map(|value| number_value(cx, request.output.dtype(), round(dtype, value)))
-        .collect::<std::result::Result<Arc<[_]>, _>>()?;
-    let tensor = sim_lib_numbers_tensor::build_tensor_value(
-        cx,
-        request.output.shape().to_vec(),
-        Some(request.output.dtype().clone()),
-        cells.to_vec(),
-    )
-    .map_err(TensorExecError::from)?
-    .object()
-    .downcast_ref::<Tensor>()
-    .cloned()
-    .ok_or_else(|| invalid("wgpu dispatch produced a non-tensor value"))?;
-    Ok((tensor, pipeline.record.symbol))
+    Ok(WgpuDispatchBuffer {
+        buffer: Arc::new(output),
+        pipeline: pipeline.record.symbol,
+        len,
+    })
+}
+
+fn upload_buffer(
+    executor: &WgpuTensorExecutor,
+    context: &crate::site::WgpuExecutionContext,
+    label: &'static str,
+    usage: wgpu::BufferUsages,
+    bytes: &[u8],
+) -> wgpu::Buffer {
+    let buffer = context.device.create_buffer(&wgpu::BufferDescriptor {
+        label: Some(label),
+        size: bytes.len().max(4) as u64,
+        usage: usage | wgpu::BufferUsages::COPY_DST,
+        mapped_at_creation: false,
+    });
+    context.queue.write_buffer(&buffer, 0, bytes);
+    executor
+        .physical_counters()
+        .record_upload(bytes.len() as u64);
+    buffer
 }
 
 struct LinalgPlan<'a> {

@@ -4,12 +4,17 @@ use std::sync::Arc;
 
 use sim_kernel::Symbol;
 use sim_lib_numbers_tensor::{Tensor, TensorExecError, TensorRequest, bounded_element_count};
-use wgpu::util::DeviceExt;
 
 use crate::{
-    WgpuKernelDType, WgpuTensorExecutor,
-    kernel_support::{invalid, number_value, numeric_cell, round, shape_error},
+    WgpuKernelDType, WgpuResidentStorage, WgpuTensorExecutor,
+    kernel_support::{invalid, numeric_cell, round, shape_error},
 };
+
+pub(crate) struct WgpuDispatchBuffer {
+    pub(crate) buffer: Arc<wgpu::Buffer>,
+    pub(crate) pipeline: Symbol,
+    pub(crate) len: usize,
+}
 
 pub(crate) fn execute_pointwise_dispatch(
     executor: &WgpuTensorExecutor,
@@ -18,51 +23,31 @@ pub(crate) fn execute_pointwise_dispatch(
     op: crate::WgpuKernelOp,
     dtype: WgpuKernelDType,
     bytes: u64,
-) -> std::result::Result<(Tensor, Symbol), TensorExecError> {
+) -> std::result::Result<WgpuDispatchBuffer, TensorExecError> {
     let Some(context) = &executor.context else {
         return Err(invalid("wgpu device context is unavailable"));
     };
     let shape = request.output.shape();
     let len = bounded_element_count(shape).map_err(TensorExecError::from)?;
-    let left_values = expanded_left(cx, request, op, shape)?;
-    let right_values = expanded_right(cx, request, op, shape)?;
-    let left_bytes = f32_bytes(&left_values);
-    let right_bytes = f32_bytes(&right_values);
+    let left_source = pointwise_input_source(cx, executor, request, op, shape, true)?;
+    let right_source = pointwise_input_source(cx, executor, request, op, shape, false)?;
     let output_size = bytes.max(4);
     let params = pointwise_params_bytes(op, len)?;
-    let left = context
-        .device
-        .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("sim-compute-wgpu-left"),
-            contents: &left_bytes,
-            usage: wgpu::BufferUsages::STORAGE,
-        });
-    let right = context
-        .device
-        .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("sim-compute-wgpu-right"),
-            contents: &right_bytes,
-            usage: wgpu::BufferUsages::STORAGE,
-        });
+    let left = input_buffer(context, executor, "sim-compute-wgpu-left", left_source)?;
+    let right = input_buffer(context, executor, "sim-compute-wgpu-right", right_source)?;
     let output = context.device.create_buffer(&wgpu::BufferDescriptor {
         label: Some("sim-compute-wgpu-output"),
         size: output_size,
         usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_SRC,
         mapped_at_creation: false,
     });
-    let readback = context.device.create_buffer(&wgpu::BufferDescriptor {
-        label: Some("sim-compute-wgpu-readback"),
-        size: output_size,
-        usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
-        mapped_at_creation: false,
-    });
-    let params = context
-        .device
-        .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("sim-compute-wgpu-params"),
-            contents: &params,
-            usage: wgpu::BufferUsages::UNIFORM,
-        });
+    let params = upload_buffer(
+        executor,
+        context,
+        "sim-compute-wgpu-params",
+        wgpu::BufferUsages::UNIFORM,
+        &params,
+    );
     let pipeline = {
         let mut state = executor.state.lock().expect("wgpu executor state poisoned");
         state.pipelines.get_or_insert_compiled(
@@ -82,11 +67,11 @@ pub(crate) fn execute_pointwise_dispatch(
             entries: &[
                 wgpu::BindGroupEntry {
                     binding: 0,
-                    resource: left.as_entire_binding(),
+                    resource: left.buffer.as_entire_binding(),
                 },
                 wgpu::BindGroupEntry {
                     binding: 1,
-                    resource: right.as_entire_binding(),
+                    resource: right.buffer.as_entire_binding(),
                 },
                 wgpu::BindGroupEntry {
                     binding: 2,
@@ -112,48 +97,118 @@ pub(crate) fn execute_pointwise_dispatch(
         pass.set_bind_group(0, &bind_group, &[]);
         pass.dispatch_workgroups(workgroups(len)?, 1, 1);
     }
-    encoder.copy_buffer_to_buffer(&output, 0, &readback, 0, output_size);
     context.queue.submit([encoder.finish()]);
-    let (sender, receiver) = std::sync::mpsc::channel();
-    readback
-        .slice(..)
-        .map_async(wgpu::MapMode::Read, move |result| {
-            let _ = sender.send(result);
-        });
-    context
-        .device
-        .poll(wgpu::PollType::wait_indefinitely())
-        .map_err(|err| invalid(format!("wgpu device poll failed: {err}")))?;
-    receiver
-        .recv()
-        .map_err(|err| invalid(format!("wgpu readback callback failed: {err}")))?
-        .map_err(|err| invalid(format!("wgpu readback map failed: {err}")))?;
-    let mapped = readback
-        .slice(..)
-        .get_mapped_range()
-        .map_err(|err| invalid(format!("wgpu readback range failed: {err}")))?
-        .to_vec();
-    readback.unmap();
-    let cells = mapped
-        .chunks_exact(4)
-        .take(len)
-        .map(|bytes| {
-            let value = f32::from_ne_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]);
-            number_value(cx, request.output.dtype(), round(dtype, value))
-        })
-        .collect::<std::result::Result<Arc<[_]>, _>>()?;
-    let tensor = sim_lib_numbers_tensor::build_tensor_value(
-        cx,
-        shape.to_vec(),
-        Some(request.output.dtype().clone()),
-        cells.to_vec(),
-    )
-    .map_err(TensorExecError::from)?
-    .object()
-    .downcast_ref::<Tensor>()
-    .cloned()
-    .ok_or_else(|| invalid("wgpu dispatch produced a non-tensor value"))?;
-    Ok((tensor, pipeline.record.symbol))
+    Ok(WgpuDispatchBuffer {
+        buffer: Arc::new(output),
+        pipeline: pipeline.record.symbol,
+        len,
+    })
+}
+
+struct InputBuffer {
+    buffer: Arc<wgpu::Buffer>,
+}
+
+enum InputSource {
+    Resident(Arc<wgpu::Buffer>),
+    Host(Vec<f32>),
+}
+
+fn pointwise_input_source(
+    cx: &mut sim_kernel::Cx,
+    executor: &WgpuTensorExecutor,
+    request: &TensorRequest,
+    op: crate::WgpuKernelOp,
+    shape: &[usize],
+    left: bool,
+) -> std::result::Result<InputSource, TensorExecError> {
+    let tensor = if op.is_binary() {
+        let [lhs, rhs] = request.inputs.as_ref() else {
+            return Err(invalid(
+                "wgpu binary dispatch expects exactly two tensor inputs",
+            ));
+        };
+        if left { lhs } else { rhs }
+    } else if left {
+        let [tensor] = request.inputs.as_ref() else {
+            return Err(invalid(
+                "wgpu unary dispatch expects exactly one tensor input",
+            ));
+        };
+        tensor
+    } else {
+        return Ok(InputSource::Host(vec![
+            0.0;
+            bounded_element_count(shape)
+                .map_err(TensorExecError::from)?
+        ]));
+    };
+    if tensor.shape() == shape
+        && let Some(storage) = tensor
+            .storage()
+            .as_any()
+            .downcast_ref::<WgpuResidentStorage>()
+        && let Some(context) = &executor.context
+        && Arc::ptr_eq(&storage.context().device, &context.device)
+    {
+        return Ok(InputSource::Resident(storage.buffer()));
+    }
+    if op.is_binary() {
+        if left {
+            expanded_left(cx, request, op, shape).map(InputSource::Host)
+        } else {
+            expanded_right(cx, request, op, shape).map(InputSource::Host)
+        }
+    } else {
+        expanded_left(cx, request, op, shape).map(InputSource::Host)
+    }
+}
+
+fn input_buffer(
+    context: &crate::site::WgpuExecutionContext,
+    executor: &WgpuTensorExecutor,
+    label: &'static str,
+    source: InputSource,
+) -> std::result::Result<InputBuffer, TensorExecError> {
+    match source {
+        InputSource::Resident(buffer) => Ok(InputBuffer { buffer }),
+        InputSource::Host(values) => {
+            let bytes = f32_bytes(&values);
+            let buffer = context.device.create_buffer(&wgpu::BufferDescriptor {
+                label: Some(label),
+                size: bytes.len().max(4) as u64,
+                usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
+                mapped_at_creation: false,
+            });
+            context.queue.write_buffer(&buffer, 0, &bytes);
+            executor
+                .physical_counters()
+                .record_upload(bytes.len() as u64);
+            Ok(InputBuffer {
+                buffer: Arc::new(buffer),
+            })
+        }
+    }
+}
+
+fn upload_buffer(
+    executor: &WgpuTensorExecutor,
+    context: &crate::site::WgpuExecutionContext,
+    label: &'static str,
+    usage: wgpu::BufferUsages,
+    bytes: &[u8],
+) -> wgpu::Buffer {
+    let buffer = context.device.create_buffer(&wgpu::BufferDescriptor {
+        label: Some(label),
+        size: bytes.len().max(4) as u64,
+        usage: usage | wgpu::BufferUsages::COPY_DST,
+        mapped_at_creation: false,
+    });
+    context.queue.write_buffer(&buffer, 0, bytes);
+    executor
+        .physical_counters()
+        .record_upload(bytes.len() as u64);
+    buffer
 }
 
 pub(crate) fn is_pointwise_dispatch(op: crate::WgpuKernelOp) -> bool {
@@ -309,25 +364,6 @@ pub(crate) fn tensor_f32_values(
         .iter()
         .map(|cell| numeric_cell(cx, cell).map(|value| round(dtype, value)))
         .collect::<std::result::Result<Vec<_>, _>>()
-}
-
-pub(crate) fn scalar_tensor(
-    cx: &mut sim_kernel::Cx,
-    request: &TensorRequest,
-    value: f32,
-) -> std::result::Result<Tensor, TensorExecError> {
-    let cell = number_value(cx, request.output.dtype(), value)?;
-    sim_lib_numbers_tensor::build_tensor_value(
-        cx,
-        Vec::new(),
-        Some(request.output.dtype().clone()),
-        vec![cell],
-    )
-    .map_err(TensorExecError::from)?
-    .object()
-    .downcast_ref::<Tensor>()
-    .cloned()
-    .ok_or_else(|| invalid("wgpu dispatch produced a non-tensor value"))
 }
 
 pub(crate) fn compiled_pipeline(

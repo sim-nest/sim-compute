@@ -23,6 +23,7 @@ use crate::{
 // conformance: wgpu discovery records evidence, exports only successful adapter sites, and plans bounded resident submissions.
 
 mod primitive_tests;
+mod residency_tests;
 
 fn limits(buffer_size: u64) -> WgpuLimitEvidence {
     WgpuLimitEvidence {

@@ -12,8 +12,9 @@ use sim_lib_numbers_tensor::{
 };
 
 use crate::{
-    WgpuAdapterProbe, WgpuDiscovery, WgpuKernelDType, WgpuPipelineCache, WgpuQueueLimits,
-    WgpuResidentArena, WgpuResidentStorage, WgpuSegmentPlan, WgpuTileProfile,
+    WgpuAdapterProbe, WgpuDiscovery, WgpuKernelDType, WgpuPhysicalCounters, WgpuPipelineCache,
+    WgpuQueueLimits, WgpuResidentArena, WgpuResidentStorage, WgpuResidentStorageDescriptor,
+    WgpuSegmentPlan, WgpuTileProfile,
     dispatch::{execute_pointwise_dispatch, is_pointwise_dispatch},
     dispatch_linalg::execute_linalg_dispatch,
     dispatch_reductions::execute_reduction_dispatch,
@@ -56,6 +57,7 @@ pub(crate) struct WgpuExecutorState {
     queued: usize,
     queued_bytes: u64,
     accepted: usize,
+    physical: WgpuPhysicalCounters,
 }
 
 #[derive(Clone, Debug)]
@@ -83,6 +85,7 @@ impl WgpuTensorExecutor {
                 queued: 0,
                 queued_bytes: 0,
                 accepted: 0,
+                physical: WgpuPhysicalCounters::default(),
             })),
             context,
         }
@@ -100,6 +103,23 @@ impl WgpuTensorExecutor {
             .expect("wgpu executor state poisoned")
             .pipelines
             .snapshot()
+    }
+
+    /// Returns queue-derived physical submission evidence.
+    pub fn physical_evidence(&self) -> crate::PhysicalSubmissionEvidence {
+        self.state
+            .lock()
+            .expect("wgpu executor state poisoned")
+            .physical
+            .snapshot()
+    }
+
+    pub(crate) fn physical_counters(&self) -> WgpuPhysicalCounters {
+        self.state
+            .lock()
+            .expect("wgpu executor state poisoned")
+            .physical
+            .clone()
     }
 
     fn dtype_for(
@@ -123,22 +143,6 @@ impl WgpuTensorExecutor {
                 "wgpu portable kernels accept f32/f64/half-family tensor dtypes",
             ))
         }
-    }
-
-    fn prepare_inputs(&self, request: TensorRequest) -> TensorRequest {
-        let inputs = request
-            .inputs
-            .iter()
-            .map(|tensor| {
-                tensor
-                    .storage()
-                    .as_any()
-                    .downcast_ref::<WgpuResidentStorage>()
-                    .and_then(WgpuResidentStorage::resident_tensor)
-                    .unwrap_or_else(|| tensor.clone())
-            })
-            .collect();
-        TensorRequest::new(request.operation, inputs, request.output)
     }
 
     fn check_submission_limits(&self, bytes: u64) -> std::result::Result<(), TensorExecError> {
@@ -202,7 +206,6 @@ impl TensorExecutor for WgpuTensorExecutor {
             });
         };
         let dtype = self.dtype_for(&request)?;
-        let request = self.prepare_inputs(request);
         let bytes = tensor_bytes(request.output.shape())?;
         self.check_submission_limits(bytes)?;
         let dispatched = if is_pointwise_dispatch(op) {
@@ -216,11 +219,26 @@ impl TensorExecutor for WgpuTensorExecutor {
         } else {
             None
         };
-        let (tensor, pipeline_symbol) = if let Some((tensor, symbol)) = dispatched {
-            (tensor, Some(symbol))
+        let (buffer, pipeline_symbol, len) = if let Some(output) = dispatched {
+            (output.buffer, Some(output.pipeline), output.len)
         } else {
             let tensor = execute_portable_kernel(cx, &request, dtype)?;
-            (tensor, None)
+            let values = crate::dispatch::tensor_f32_values(cx, &tensor, dtype)?;
+            let bytes = crate::dispatch::f32_bytes(&values);
+            let Some(context) = &self.context else {
+                return Err(invalid("wgpu device context is unavailable"));
+            };
+            let buffer = context.device.create_buffer(&wgpu::BufferDescriptor {
+                label: Some("sim-compute-wgpu-portable-upload"),
+                size: bytes.len().max(4) as u64,
+                usage: wgpu::BufferUsages::STORAGE
+                    | wgpu::BufferUsages::COPY_DST
+                    | wgpu::BufferUsages::COPY_SRC,
+                mapped_at_creation: false,
+            });
+            context.queue.write_buffer(&buffer, 0, &bytes);
+            self.physical_counters().record_upload(bytes.len() as u64);
+            (Arc::new(buffer), None, values.len())
         };
         let boundary = self
             .probe
@@ -229,6 +247,7 @@ impl TensorExecutor for WgpuTensorExecutor {
             .max_storage_buffer_binding_size
             .max(4);
         let segments = WgpuSegmentPlan::new(bytes, boundary, boundary);
+        self.physical_counters().record_submit(&segments.segments);
         let pipeline = {
             let mut state = self.state.lock().expect("wgpu executor state poisoned");
             let allocation = state.arena.allocate(bytes.max(4)).map_err(invalid)?;
@@ -240,25 +259,29 @@ impl TensorExecutor for WgpuTensorExecutor {
             } else {
                 state
                     .pipelines
-                    .get_or_insert(&self.probe, op, dtype, tensor.shape().len())
+                    .get_or_insert(&self.probe, op, dtype, request.output.shape().len())
                     .symbol
             };
             (allocation, pipeline)
         };
-        let cells = tensor.cells().map_err(TensorExecError::from)?;
-        let storage = WgpuResidentStorage::new(
-            compute_wgpu_site_symbol(self.probe.adapter.ordinal),
-            pipeline.0,
-            pipeline.1,
-            segments.segments,
-            tensor.shape().to_vec(),
-            tensor.dtype().clone(),
-            cells,
-        );
+        let storage = WgpuResidentStorage::new(WgpuResidentStorageDescriptor {
+            site: compute_wgpu_site_symbol(self.probe.adapter.ordinal),
+            allocation: pipeline.0,
+            pipeline: pipeline.1,
+            segments: segments.segments,
+            dtype: request.output.dtype().clone(),
+            len,
+            buffer,
+            context: self
+                .context
+                .clone()
+                .ok_or_else(|| invalid("wgpu device context is unavailable"))?,
+            counters: self.physical_counters(),
+        });
         Ok(TensorExecution::Complete(
             sim_lib_numbers_tensor::Tensor::from_storage(
-                tensor.shape().to_vec(),
-                tensor.dtype().clone(),
+                request.output.shape().to_vec(),
+                request.output.dtype().clone(),
                 Arc::new(storage),
             )?,
         ))

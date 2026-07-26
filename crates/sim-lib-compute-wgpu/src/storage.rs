@@ -6,9 +6,13 @@ use std::{
 };
 
 use sim_kernel::{DefaultFactory, Error, Factory, Result, Symbol, Value};
-use sim_lib_numbers_tensor::{Tensor, TensorLocation, TensorStorage};
+use sim_lib_numbers_tensor::{TensorLocation, TensorStorage};
 
-use crate::{WgpuArenaAllocation, WgpuMaterializationCache, WgpuResidentSegment};
+use crate::{
+    WgpuArenaAllocation, WgpuMaterializationCache, WgpuPhysicalCounters, WgpuResidentSegment,
+    dispatch::{read_f32s, readback_buffer},
+    site::WgpuExecutionContext,
+};
 
 /// Resident storage that records a validated wgpu pipeline result.
 pub struct WgpuResidentStorage {
@@ -16,32 +20,40 @@ pub struct WgpuResidentStorage {
     allocation: WgpuArenaAllocation,
     pipeline: Symbol,
     segments: Arc<[WgpuResidentSegment]>,
-    shape: Arc<[usize]>,
     dtype: Symbol,
-    cells: Arc<[Value]>,
+    len: usize,
+    buffer: Arc<wgpu::Buffer>,
+    context: WgpuExecutionContext,
+    counters: WgpuPhysicalCounters,
     cache: WgpuMaterializationCache,
     materialized: OnceLock<Result<Arc<dyn TensorStorage>>>,
 }
 
+pub(crate) struct WgpuResidentStorageDescriptor {
+    pub(crate) site: Symbol,
+    pub(crate) allocation: WgpuArenaAllocation,
+    pub(crate) pipeline: Symbol,
+    pub(crate) segments: Vec<WgpuResidentSegment>,
+    pub(crate) dtype: Symbol,
+    pub(crate) len: usize,
+    pub(crate) buffer: Arc<wgpu::Buffer>,
+    pub(crate) context: WgpuExecutionContext,
+    pub(crate) counters: WgpuPhysicalCounters,
+}
+
 impl WgpuResidentStorage {
-    /// Builds resident storage around host-equivalent cells.
-    pub fn new(
-        site: Symbol,
-        allocation: WgpuArenaAllocation,
-        pipeline: Symbol,
-        segments: Vec<WgpuResidentSegment>,
-        shape: Vec<usize>,
-        dtype: Symbol,
-        cells: Arc<[Value]>,
-    ) -> Self {
+    /// Builds resident storage around a real device buffer.
+    pub(crate) fn new(descriptor: WgpuResidentStorageDescriptor) -> Self {
         Self {
-            site,
-            allocation,
-            pipeline,
-            segments: segments.into(),
-            shape: shape.into(),
-            dtype,
-            cells,
+            site: descriptor.site,
+            allocation: descriptor.allocation,
+            pipeline: descriptor.pipeline,
+            segments: descriptor.segments.into(),
+            dtype: descriptor.dtype,
+            len: descriptor.len,
+            buffer: descriptor.buffer,
+            context: descriptor.context,
+            counters: descriptor.counters,
             cache: WgpuMaterializationCache::default(),
             materialized: OnceLock::new(),
         }
@@ -62,17 +74,14 @@ impl WgpuResidentStorage {
         &self.segments
     }
 
-    /// Rebuilds a canonical tensor without counting a user materialization.
-    pub fn resident_tensor(&self) -> Option<Tensor> {
-        Tensor::from_storage(
-            self.shape.to_vec(),
-            self.dtype.clone(),
-            Arc::new(BoxedWgpuStorage::new(
-                self.dtype.clone(),
-                self.cells.clone(),
-            )),
-        )
-        .ok()
+    /// Returns the bindable resident device buffer.
+    pub(crate) fn buffer(&self) -> Arc<wgpu::Buffer> {
+        self.buffer.clone()
+    }
+
+    /// Returns the retained device context that owns the buffer.
+    pub(crate) fn context(&self) -> &WgpuExecutionContext {
+        &self.context
     }
 }
 
@@ -82,7 +91,7 @@ impl TensorStorage for WgpuResidentStorage {
     }
 
     fn len(&self) -> usize {
-        self.cells.len()
+        self.len
     }
 
     fn location(&self) -> TensorLocation {
@@ -99,12 +108,41 @@ impl TensorStorage for WgpuResidentStorage {
     fn materialize(&self) -> Result<Arc<dyn TensorStorage>> {
         self.materialized
             .get_or_init(|| {
-                self.cache
-                    .get_or_try_init(|| Ok(Arc::<[u8]>::from([])))
+                self.counters.record_full_readback();
+                let size = self.allocation.bytes.max(4);
+                let readback = readback_buffer(&self.context.device, size, "materialize");
+                let mut encoder =
+                    self.context
+                        .device
+                        .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                            label: Some("sim-compute-wgpu-materialize-encoder"),
+                        });
+                encoder.copy_buffer_to_buffer(&self.buffer, 0, &readback, 0, size);
+                self.context.queue.submit([encoder.finish()]);
+                self.counters.record_submit(&self.segments);
+                let values = self
+                    .cache
+                    .get_or_try_init(|| {
+                        let values = read_f32s(&self.context, &readback, self.len)
+                            .map_err(|err| err.to_string())?;
+                        Ok(values
+                            .iter()
+                            .flat_map(|value| value.to_ne_bytes())
+                            .collect::<Vec<_>>()
+                            .into())
+                    })
                     .map_err(Error::Eval)?;
+                let cells = values
+                    .chunks_exact(4)
+                    .take(self.len)
+                    .map(|bytes| {
+                        let value = f32::from_ne_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]);
+                        DefaultFactory.number_literal(self.dtype.clone(), value.to_string())
+                    })
+                    .collect::<Result<Vec<_>>>()?;
                 Ok(Arc::new(BoxedWgpuStorage::new(
                     self.dtype.clone(),
-                    self.cells.clone(),
+                    cells.into(),
                 )))
             })
             .clone()

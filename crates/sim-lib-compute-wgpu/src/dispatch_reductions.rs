@@ -1,14 +1,13 @@
 //! Real wgpu reduction dispatch for retained device contexts.
 
 use sim_kernel::Symbol;
-use sim_lib_numbers_tensor::{Tensor, TensorExecError, TensorRequest};
-use wgpu::util::DeviceExt;
+use sim_lib_numbers_tensor::{TensorExecError, TensorRequest};
 
 use crate::{
     WgpuKernelDType, WgpuTensorExecutor,
     dispatch::{
-        buffer_size, check_storage_buffer_limit, compiled_pipeline, f32_bytes, pipeline_symbol,
-        read_f32s, readback_buffer, scalar_tensor, tensor_f32_values, u32_count,
+        WgpuDispatchBuffer, buffer_size, check_storage_buffer_limit, compiled_pipeline, f32_bytes,
+        pipeline_symbol, read_f32s, readback_buffer, tensor_f32_values, u32_count,
     },
     kernel_reductions::fixed_tree_sum_values,
     kernel_support::{invalid, round, shape_error},
@@ -20,7 +19,7 @@ pub(crate) fn execute_reduction_dispatch(
     request: &TensorRequest,
     op: crate::WgpuKernelOp,
     dtype: WgpuKernelDType,
-) -> std::result::Result<(Tensor, Symbol), TensorExecError> {
+) -> std::result::Result<WgpuDispatchBuffer, TensorExecError> {
     let Some(context) = &executor.context else {
         return Err(invalid("wgpu device context is unavailable"));
     };
@@ -37,22 +36,21 @@ pub(crate) fn execute_reduction_dispatch(
         if matches!(op, crate::WgpuKernelOp::Min | crate::WgpuKernelOp::Max) {
             return Err(invalid("wgpu min/max reductions require at least one cell"));
         }
-        let tensor = scalar_tensor(cx, request, 0.0)?;
         let symbol = pipeline_symbol(executor, context, op, dtype, 0);
-        return Ok((tensor, symbol));
+        return scalar_resident_buffer(executor, context, 0.0, symbol);
     }
     let input_values = tensor_f32_values(cx, tensor, dtype)?;
     let partial_count = len.div_ceil(512);
     check_storage_buffer_limit(executor, input_values.len(), "wgpu reduction input")?;
     check_storage_buffer_limit(executor, partial_count, "wgpu reduction partial output")?;
     let output_size = buffer_size(partial_count)?;
-    let input = context
-        .device
-        .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("sim-compute-wgpu-reduction-input"),
-            contents: &f32_bytes(&input_values),
-            usage: wgpu::BufferUsages::STORAGE,
-        });
+    let input = upload_buffer(
+        executor,
+        context,
+        "sim-compute-wgpu-reduction-input",
+        wgpu::BufferUsages::STORAGE,
+        &f32_bytes(&input_values),
+    );
     let partials = context.device.create_buffer(&wgpu::BufferDescriptor {
         label: Some("sim-compute-wgpu-reduction-partials"),
         size: output_size,
@@ -60,13 +58,13 @@ pub(crate) fn execute_reduction_dispatch(
         mapped_at_creation: false,
     });
     let readback = readback_buffer(&context.device, output_size, "reduction");
-    let params = context
-        .device
-        .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("sim-compute-wgpu-reduction-params"),
-            contents: &reduction_params_bytes(op, len)?,
-            usage: wgpu::BufferUsages::UNIFORM,
-        });
+    let params = upload_buffer(
+        executor,
+        context,
+        "sim-compute-wgpu-reduction-params",
+        wgpu::BufferUsages::UNIFORM,
+        &reduction_params_bytes(op, len)?,
+    );
     let pipeline = compiled_pipeline(executor, context, op, dtype, 0);
     let layout = pipeline.pipeline.get_bind_group_layout(0);
     let bind_group = context
@@ -109,6 +107,7 @@ pub(crate) fn execute_reduction_dispatch(
     }
     encoder.copy_buffer_to_buffer(&partials, 0, &readback, 0, output_size);
     context.queue.submit([encoder.finish()]);
+    executor.physical_counters().record_scalar_sync();
     let partials = read_f32s(context, &readback, partial_count)?;
     let value = match op {
         crate::WgpuKernelOp::Sum => fixed_tree_sum_values(partials, dtype),
@@ -121,10 +120,55 @@ pub(crate) fn execute_reduction_dispatch(
             ));
         }
     };
-    Ok((
-        scalar_tensor(cx, request, round(dtype, value))?,
+    scalar_resident_buffer(
+        executor,
+        context,
+        round(dtype, value),
         pipeline.record.symbol,
-    ))
+    )
+}
+
+fn upload_buffer(
+    executor: &WgpuTensorExecutor,
+    context: &crate::site::WgpuExecutionContext,
+    label: &'static str,
+    usage: wgpu::BufferUsages,
+    bytes: &[u8],
+) -> wgpu::Buffer {
+    let buffer = context.device.create_buffer(&wgpu::BufferDescriptor {
+        label: Some(label),
+        size: bytes.len().max(4) as u64,
+        usage: usage | wgpu::BufferUsages::COPY_DST,
+        mapped_at_creation: false,
+    });
+    context.queue.write_buffer(&buffer, 0, bytes);
+    executor
+        .physical_counters()
+        .record_upload(bytes.len() as u64);
+    buffer
+}
+
+fn scalar_resident_buffer(
+    executor: &WgpuTensorExecutor,
+    context: &crate::site::WgpuExecutionContext,
+    value: f32,
+    pipeline: Symbol,
+) -> std::result::Result<WgpuDispatchBuffer, TensorExecError> {
+    let buffer = context.device.create_buffer(&wgpu::BufferDescriptor {
+        label: Some("sim-compute-wgpu-reduction-scalar"),
+        size: 4,
+        usage: wgpu::BufferUsages::STORAGE
+            | wgpu::BufferUsages::COPY_DST
+            | wgpu::BufferUsages::COPY_SRC,
+        mapped_at_creation: false,
+    });
+    context.queue.write_buffer(&buffer, 0, &value.to_ne_bytes());
+    executor.physical_counters().record_upload(4);
+    Ok(WgpuDispatchBuffer {
+        buffer: std::sync::Arc::new(buffer),
+        pipeline,
+        len: 1,
+    })
 }
 
 fn fixed_tree_min_max(

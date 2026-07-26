@@ -7,6 +7,7 @@
 //! sites only for adapters that pass transfer, mapping, and allocation probes.
 
 mod arena;
+mod counters;
 mod dispatch;
 mod dispatch_linalg;
 mod dispatch_reductions;
@@ -26,6 +27,8 @@ mod storage;
 mod transfer;
 
 pub use arena::{WgpuAllocationId, WgpuArenaAllocation, WgpuArenaSnapshot, WgpuResidentArena};
+pub(crate) use counters::WgpuPhysicalCounters;
+pub use counters::{BufferRange, PhysicalSubmissionEvidence};
 pub use materialization::WgpuMaterializationCache;
 pub use pipeline::{
     WgpuKernelDType, WgpuKernelOp, WgpuPipelineCache, WgpuPipelineCacheSnapshot, WgpuPipelineKey,
@@ -43,6 +46,7 @@ pub use site::{
     compute_wgpu_site_symbol, wgpu_executor_symbol,
 };
 pub use storage::WgpuResidentStorage;
+pub(crate) use storage::WgpuResidentStorageDescriptor;
 pub use transfer::{WgpuTransferPlan, WgpuTransferSpan};
 
 /// Cookbook recipes for this lib, embedded at build time.

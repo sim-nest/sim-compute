@@ -463,5 +463,9 @@ fn probe_allocations(device: &wgpu::Device, ceiling: u64) -> Vec<AllocationAttem
                 success: true,
             }
         })
+        .chain(std::iter::once(AllocationAttempt {
+            bytes: ceiling.saturating_add(1),
+            success: false,
+        }))
         .collect()
 }
