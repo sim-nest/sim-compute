@@ -14,8 +14,9 @@ use sim_lib_numbers_tensor::{
 use crate::{
     WgpuAdapterProbe, WgpuDiscovery, WgpuKernelDType, WgpuPipelineCache, WgpuQueueLimits,
     WgpuResidentArena, WgpuResidentStorage, WgpuSegmentPlan, WgpuTileProfile,
-    discover_wgpu_adapters,
+    dispatch::{execute_pointwise_dispatch, is_pointwise_dispatch},
     kernels::{execute_portable_kernel, kernel_op},
+    probe::discover_wgpu_adapter_runtimes,
 };
 
 /// Stable symbol for the wgpu runtime library.
@@ -41,22 +42,36 @@ pub fn compute_wgpu_capability() -> CapabilityName {
 /// Tensor executor descriptor backed by a successful wgpu probe.
 #[derive(Clone)]
 pub struct WgpuTensorExecutor {
-    probe: WgpuAdapterProbe,
-    state: Arc<Mutex<WgpuExecutorState>>,
+    pub(crate) probe: WgpuAdapterProbe,
+    pub(crate) state: Arc<Mutex<WgpuExecutorState>>,
+    pub(crate) context: Option<WgpuExecutionContext>,
 }
 
 #[derive(Debug)]
-struct WgpuExecutorState {
-    pipelines: WgpuPipelineCache,
+pub(crate) struct WgpuExecutorState {
+    pub(crate) pipelines: WgpuPipelineCache,
     arena: WgpuResidentArena,
     queued: usize,
     queued_bytes: u64,
     accepted: usize,
 }
 
+#[derive(Clone, Debug)]
+pub(crate) struct WgpuExecutionContext {
+    pub(crate) device: Arc<wgpu::Device>,
+    pub(crate) queue: Arc<wgpu::Queue>,
+}
+
 impl WgpuTensorExecutor {
     /// Builds an executor from successful probe evidence.
     pub fn new(probe: WgpuAdapterProbe) -> Self {
+        Self::from_parts(probe, None)
+    }
+
+    pub(crate) fn from_parts(
+        probe: WgpuAdapterProbe,
+        context: Option<WgpuExecutionContext>,
+    ) -> Self {
         let arena_bytes = probe.adapter.granted_limits.max_buffer_size.max(4);
         Self {
             probe,
@@ -67,6 +82,7 @@ impl WgpuTensorExecutor {
                 queued_bytes: 0,
                 accepted: 0,
             })),
+            context,
         }
     }
 
@@ -122,6 +138,23 @@ impl WgpuTensorExecutor {
             .collect();
         TensorRequest::new(request.operation, inputs, request.output)
     }
+
+    fn check_submission_limits(&self, bytes: u64) -> std::result::Result<(), TensorExecError> {
+        let state = self.state.lock().expect("wgpu executor state poisoned");
+        let tile = WgpuTileProfile::from_probe(&self.probe);
+        let limits = WgpuQueueLimits {
+            max_nodes: 64,
+            max_bytes: tile.max_dispatch_bytes,
+            deadline_tick: u64::MAX,
+        };
+        if state.queued >= limits.max_nodes {
+            return Err(invalid("wgpu submission queue node limit reached"));
+        }
+        if state.queued_bytes.saturating_add(bytes) > limits.max_bytes {
+            return Err(invalid("wgpu submission queue byte limit reached"));
+        }
+        Ok(())
+    }
 }
 
 impl TensorExecutor for WgpuTensorExecutor {
@@ -138,8 +171,10 @@ impl TensorExecutor for WgpuTensorExecutor {
                 sim_lib_numbers_tensor::sub_op_symbol(),
                 sim_lib_numbers_tensor::mul_op_symbol(),
                 sim_lib_numbers_tensor::div_op_symbol(),
+                sim_lib_numbers_tensor::neg_op_symbol(),
                 sim_lib_numbers_tensor::sqrt_op_symbol(),
                 sim_lib_numbers_tensor::exp_op_symbol(),
+                Symbol::qualified("tensor", "op/log"),
                 sim_lib_numbers_tensor::sin_op_symbol(),
                 sim_lib_numbers_tensor::cos_op_symbol(),
                 sim_lib_numbers_tensor::sum_op_symbol(),
@@ -166,8 +201,21 @@ impl TensorExecutor for WgpuTensorExecutor {
         };
         let dtype = self.dtype_for(&request)?;
         let request = self.prepare_inputs(request);
-        let tensor = execute_portable_kernel(cx, &request, dtype)?;
-        let bytes = tensor_bytes(tensor.shape())?;
+        let bytes = tensor_bytes(request.output.shape())?;
+        self.check_submission_limits(bytes)?;
+        let dispatched = if is_pointwise_dispatch(op) {
+            Some(execute_pointwise_dispatch(
+                self, cx, &request, op, dtype, bytes,
+            )?)
+        } else {
+            None
+        };
+        let (tensor, pipeline_symbol) = if let Some((tensor, symbol)) = dispatched {
+            (tensor, Some(symbol))
+        } else {
+            let tensor = execute_portable_kernel(cx, &request, dtype)?;
+            (tensor, None)
+        };
         let boundary = self
             .probe
             .adapter
@@ -177,27 +225,19 @@ impl TensorExecutor for WgpuTensorExecutor {
         let segments = WgpuSegmentPlan::new(bytes, boundary, boundary);
         let pipeline = {
             let mut state = self.state.lock().expect("wgpu executor state poisoned");
-            let tile = WgpuTileProfile::from_probe(&self.probe);
-            let limits = WgpuQueueLimits {
-                max_nodes: 64,
-                max_bytes: tile.max_dispatch_bytes,
-                deadline_tick: u64::MAX,
-            };
-            if state.queued >= limits.max_nodes {
-                return Err(invalid("wgpu submission queue node limit reached"));
-            }
-            if state.queued_bytes.saturating_add(bytes) > limits.max_bytes {
-                return Err(invalid("wgpu submission queue byte limit reached"));
-            }
             let allocation = state.arena.allocate(bytes.max(4)).map_err(invalid)?;
             state.queued += 1;
             state.queued_bytes += bytes;
             state.accepted += 1;
-            let pipeline =
+            let pipeline = if let Some(pipeline_symbol) = pipeline_symbol {
+                pipeline_symbol
+            } else {
                 state
                     .pipelines
-                    .get_or_insert(&self.probe, op, dtype, tensor.shape().len());
-            (allocation, pipeline.symbol)
+                    .get_or_insert(&self.probe, op, dtype, tensor.shape().len())
+                    .symbol
+            };
+            (allocation, pipeline)
         };
         let cells = tensor.cells().map_err(TensorExecError::from)?;
         let storage = WgpuResidentStorage::new(
@@ -260,19 +300,36 @@ fn unsupported(operation: Symbol, reason: impl Into<Arc<str>>) -> TensorExecErro
 #[derive(Clone, Debug, Default)]
 pub struct ComputeWgpuLib {
     discovery: WgpuDiscovery,
+    contexts: Vec<WgpuExecutionContext>,
 }
 
 impl ComputeWgpuLib {
     /// Probes local wgpu adapters and builds a library from successful sites.
     pub fn probe() -> Result<Self> {
-        let discovery = discover_wgpu_adapters(&Default::default())
+        let runtimes = discover_wgpu_adapter_runtimes(&Default::default())
             .map_err(|err| sim_kernel::Error::Eval(err.to_string()))?;
-        Ok(Self { discovery })
+        let mut probes = Vec::with_capacity(runtimes.len());
+        let mut contexts = Vec::with_capacity(runtimes.len());
+        for runtime in runtimes {
+            probes.push(runtime.probe);
+            contexts.push(WgpuExecutionContext {
+                device: Arc::new(runtime.device),
+                queue: Arc::new(runtime.queue),
+            });
+        }
+        let discovery = WgpuDiscovery::from_probes(probes, Vec::new());
+        Ok(Self {
+            discovery,
+            contexts,
+        })
     }
 
     /// Builds a library from precomputed discovery evidence.
     pub fn from_discovery(discovery: WgpuDiscovery) -> Self {
-        Self { discovery }
+        Self {
+            discovery,
+            contexts: Vec::new(),
+        }
     }
 
     /// Returns discovery evidence, including failed-adapter diagnostics.
@@ -305,7 +362,14 @@ impl Lib for ComputeWgpuLib {
     fn load(&self, _cx: &mut sim_kernel::LoadCx, linker: &mut Linker<'_>) -> Result<()> {
         for probe in &self.discovery.adapters {
             let symbol = compute_wgpu_site_symbol(probe.adapter.ordinal);
-            let executor = Arc::new(WgpuTensorExecutor::new(probe.clone()));
+            let executor = if let Some(context) = self.contexts.get(probe.adapter.ordinal) {
+                Arc::new(WgpuTensorExecutor::from_parts(
+                    probe.clone(),
+                    Some(context.clone()),
+                ))
+            } else {
+                Arc::new(WgpuTensorExecutor::new(probe.clone()))
+            };
             let site = TensorSite::new(symbol.clone(), executor, vec![compute_wgpu_capability()]);
             linker.site_value(symbol, DefaultFactory.opaque(Arc::new(site))?)?;
         }

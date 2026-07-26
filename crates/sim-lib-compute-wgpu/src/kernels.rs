@@ -4,8 +4,8 @@ use sim_kernel::{Cx, Symbol};
 use sim_lib_numbers_tensor::{
     Tensor, TensorExecError, TensorRequest, add_op_symbol, bounded_element_count, cos_op_symbol,
     div_op_symbol, dot_op_symbol, exp_op_symbol, matmul_exec_op_symbol, max_op_symbol,
-    min_op_symbol, mul_op_symbol, norm_op_symbol, sin_op_symbol, sqrt_op_symbol, sub_op_symbol,
-    sum_op_symbol, transpose_exec_op_symbol,
+    min_op_symbol, mul_op_symbol, neg_op_symbol, norm_op_symbol, sin_op_symbol, sqrt_op_symbol,
+    sub_op_symbol, sum_op_symbol, transpose_exec_op_symbol,
 };
 
 use crate::{
@@ -17,7 +17,8 @@ use crate::{
 };
 
 pub use crate::kernel_wgsl::{
-    PORTABLE_ELEMENTWISE_WGSL, PORTABLE_LINALG_WGSL, PORTABLE_REDUCTION_WGSL,
+    POINTWISE_DISPATCH_WGSL, PORTABLE_ELEMENTWISE_WGSL, PORTABLE_LINALG_WGSL,
+    PORTABLE_REDUCTION_WGSL,
 };
 
 /// Returns the portable kernel operation for a tensor request.
@@ -30,10 +31,14 @@ pub fn kernel_op(symbol: &Symbol) -> Option<WgpuKernelOp> {
         Some(WgpuKernelOp::Mul)
     } else if *symbol == div_op_symbol() {
         Some(WgpuKernelOp::Div)
+    } else if *symbol == neg_op_symbol() {
+        Some(WgpuKernelOp::Neg)
     } else if *symbol == sqrt_op_symbol() {
         Some(WgpuKernelOp::Sqrt)
     } else if *symbol == exp_op_symbol() {
         Some(WgpuKernelOp::Exp)
+    } else if *symbol == Symbol::qualified("tensor", "op/log") {
+        Some(WgpuKernelOp::Log)
     } else if *symbol == sin_op_symbol() {
         Some(WgpuKernelOp::Sin)
     } else if *symbol == cos_op_symbol() {

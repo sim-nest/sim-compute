@@ -7,6 +7,7 @@
 //! sites only for adapters that pass transfer, mapping, and allocation probes.
 
 mod arena;
+mod dispatch;
 mod kernel_elementwise;
 mod kernel_linalg;
 mod kernel_reductions;

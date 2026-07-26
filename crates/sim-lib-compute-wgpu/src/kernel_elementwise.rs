@@ -73,8 +73,10 @@ pub(crate) fn execute_unary(
         .map(|cell| {
             let input = numeric_cell(cx, cell)?;
             let value = match op {
+                WgpuKernelOp::Neg => -input,
                 WgpuKernelOp::Sqrt => input.sqrt(),
                 WgpuKernelOp::Exp => input.exp(),
+                WgpuKernelOp::Log => input.ln(),
                 WgpuKernelOp::Sin => input.sin(),
                 WgpuKernelOp::Cos => input.cos(),
                 _ => unreachable!("unary kernel op checked by caller"),

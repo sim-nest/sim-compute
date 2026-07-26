@@ -2,7 +2,7 @@
 
 use std::sync::mpsc;
 
-use sim_lib_compute_auto::{ComputeEvidenceKind, ComputePhysicalEvidence};
+use sim_lib_compute_auto::{ComputeDeviceIdentity, ComputeEvidenceKind, ComputePhysicalEvidence};
 use wgpu::{
     Adapter, Backends, BufferDescriptor, BufferUsages, DeviceDescriptor, ExperimentalFeatures,
     Features, Instance, Limits, MapMode, MemoryHints, PollType,
@@ -173,15 +173,36 @@ impl ProbeEvidence {
 /// One successful adapter probe.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct WgpuAdapterProbe {
+    /// Whether this evidence came from a real retained device or a synthetic fixture.
+    pub evidence_kind: ComputeEvidenceKind,
+    /// Claimed adapter identity for physical evidence verification.
+    pub claimed_identity: Option<ComputeDeviceIdentity>,
+    /// Observed adapter identity captured by the producer.
+    pub observed_identity: Option<ComputeDeviceIdentity>,
     /// Adapter and capability evidence.
     pub adapter: WgpuAdapterEvidence,
     /// Raw probe evidence.
     pub probe: ProbeEvidence,
 }
 
+/// A successful adapter probe with the retained device context that produced it.
+pub(crate) struct WgpuAdapterRuntime {
+    pub(crate) probe: WgpuAdapterProbe,
+    pub(crate) device: wgpu::Device,
+    pub(crate) queue: wgpu::Queue,
+}
+
 impl ComputePhysicalEvidence for WgpuAdapterProbe {
     fn evidence_kind(&self) -> ComputeEvidenceKind {
-        ComputeEvidenceKind::HostEmulated
+        self.evidence_kind
+    }
+
+    fn claimed_identity(&self) -> Option<&ComputeDeviceIdentity> {
+        self.claimed_identity.as_ref()
+    }
+
+    fn observed_identity(&self) -> Option<&ComputeDeviceIdentity> {
+        self.observed_identity.as_ref()
     }
 }
 
@@ -265,26 +286,65 @@ impl std::error::Error for WgpuDiscoveryError {}
 
 /// Enumerates adapters and returns only probe-backed site candidates.
 pub fn discover_wgpu_adapters(policy: &ProbePolicy) -> Result<WgpuDiscovery, WgpuDiscoveryError> {
+    let (runtimes, diagnostics) = discover_wgpu_adapter_runtimes_with_diagnostics(policy)?;
+    Ok(WgpuDiscovery::from_probes(
+        runtimes.into_iter().map(|runtime| runtime.probe).collect(),
+        diagnostics,
+    ))
+}
+
+/// Enumerates adapters and returns probe-backed site candidates with retained devices.
+pub(crate) fn discover_wgpu_adapter_runtimes(
+    policy: &ProbePolicy,
+) -> Result<Vec<WgpuAdapterRuntime>, WgpuDiscoveryError> {
+    discover_wgpu_adapter_runtimes_with_diagnostics(policy).map(|(runtimes, _)| runtimes)
+}
+
+fn discover_wgpu_adapter_runtimes_with_diagnostics(
+    policy: &ProbePolicy,
+) -> Result<(Vec<WgpuAdapterRuntime>, Vec<String>), WgpuDiscoveryError> {
     let instance = Instance::default();
     let adapters = pollster::block_on(instance.enumerate_adapters(policy.backends));
-    let mut probes = Vec::new();
+    let mut runtimes = Vec::new();
     let mut diagnostics = Vec::new();
 
     for adapter in adapters {
         match probe_adapter(adapter, policy) {
-            Ok(probe) => probes.push(probe),
+            Ok(runtime) => runtimes.push(runtime),
             Err(error) => diagnostics.push(error.to_string()),
         }
     }
 
-    Ok(WgpuDiscovery::from_probes(probes, diagnostics))
+    runtimes.retain(|runtime| {
+        if runtime.probe.probe.successful() {
+            true
+        } else {
+            diagnostics.push(format!(
+                "wgpu adapter {} did not pass required probes",
+                runtime.probe.adapter.name
+            ));
+            false
+        }
+    });
+    runtimes.sort_by(|left, right| {
+        left.probe
+            .adapter
+            .sort_key()
+            .cmp(&right.probe.adapter.sort_key())
+    });
+    for (ordinal, runtime) in runtimes.iter_mut().enumerate() {
+        runtime.probe.adapter.ordinal = ordinal;
+    }
+    Ok((runtimes, diagnostics))
 }
 
 fn probe_adapter(
     adapter: Adapter,
     policy: &ProbePolicy,
-) -> Result<WgpuAdapterProbe, WgpuDiscoveryError> {
+) -> Result<WgpuAdapterRuntime, WgpuDiscoveryError> {
     let info = adapter.get_info();
+    let backend = format!("{:?}", info.backend);
+    let identity = ComputeDeviceIdentity::new(info.name.clone(), "wgpu", backend.clone());
     let supported_features = adapter.features();
     let required_features = supported_features & (Features::TIMESTAMP_QUERY | Features::SHADER_F16);
     let required_limits = Limits::downlevel_defaults().using_resolution(adapter.limits());
@@ -309,22 +369,29 @@ fn probe_adapter(
             .min(policy.max_allocation_probe_bytes),
     );
 
-    Ok(WgpuAdapterProbe {
-        adapter: WgpuAdapterEvidence {
-            ordinal: 0,
-            name: info.name,
-            backend: format!("{:?}", info.backend),
-            adapter_type: format!("{:?}", info.device_type),
-            vendor: info.vendor,
-            device: info.device,
-            requested,
-            granted_limits: WgpuLimitEvidence::from_limits(&device.limits()),
-            granted_features: WgpuCapabilityEvidence::from_features(device.features()),
+    Ok(WgpuAdapterRuntime {
+        probe: WgpuAdapterProbe {
+            evidence_kind: ComputeEvidenceKind::PhysicalDevice,
+            claimed_identity: Some(identity.clone()),
+            observed_identity: Some(identity),
+            adapter: WgpuAdapterEvidence {
+                ordinal: 0,
+                name: info.name,
+                backend,
+                adapter_type: format!("{:?}", info.device_type),
+                vendor: info.vendor,
+                device: info.device,
+                requested,
+                granted_limits: WgpuLimitEvidence::from_limits(&device.limits()),
+                granted_features: WgpuCapabilityEvidence::from_features(device.features()),
+            },
+            probe: ProbeEvidence {
+                transfer,
+                allocation_attempts,
+            },
         },
-        probe: ProbeEvidence {
-            transfer,
-            allocation_attempts,
-        },
+        device,
+        queue,
     })
 }
 

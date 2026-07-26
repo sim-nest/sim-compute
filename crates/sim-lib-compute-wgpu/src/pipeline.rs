@@ -1,6 +1,7 @@
 //! Bounded validated pipeline cache for portable wgpu tensor kernels.
 
 use std::collections::VecDeque;
+use std::sync::Arc;
 
 use sim_kernel::Symbol;
 
@@ -20,10 +21,14 @@ pub enum WgpuKernelOp {
     Mul,
     /// Element-wise division.
     Div,
+    /// Element-wise negation.
+    Neg,
     /// Element-wise square root.
     Sqrt,
     /// Element-wise exponential.
     Exp,
+    /// Element-wise natural logarithm.
+    Log,
     /// Element-wise sine.
     Sin,
     /// Element-wise cosine.
@@ -55,7 +60,9 @@ impl WgpuKernelOp {
         matches!(
             self,
             Self::Sqrt
+                | Self::Neg
                 | Self::Exp
+                | Self::Log
                 | Self::Sin
                 | Self::Cos
                 | Self::Sum
@@ -82,8 +89,10 @@ impl WgpuKernelOp {
             Self::Sub => "sub",
             Self::Mul => "mul",
             Self::Div => "div",
+            Self::Neg => "neg",
             Self::Sqrt => "sqrt",
             Self::Exp => "exp",
+            Self::Log => "log",
             Self::Sin => "sin",
             Self::Cos => "cos",
             Self::Sum => "sum",
@@ -105,6 +114,15 @@ impl WgpuKernelOp {
             PORTABLE_ELEMENTWISE_WGSL.len()
         }
     }
+}
+
+/// A compiled pipeline paired with its stable evidence record.
+#[derive(Clone, Debug)]
+pub struct WgpuCompiledPipeline {
+    /// Public evidence for this validated pipeline.
+    pub record: WgpuPipelineRecord,
+    /// Retained native compute pipeline.
+    pub pipeline: Arc<wgpu::ComputePipeline>,
 }
 
 /// Dtype strategy selected for a portable kernel.
@@ -203,6 +221,7 @@ pub struct WgpuPipelineCacheSnapshot {
 pub struct WgpuPipelineCache {
     capacity: usize,
     entries: VecDeque<WgpuPipelineRecord>,
+    compiled: VecDeque<(WgpuPipelineKey, Arc<wgpu::ComputePipeline>)>,
     hits: usize,
     misses: usize,
     evictions: usize,
@@ -214,6 +233,7 @@ impl WgpuPipelineCache {
         Self {
             capacity: capacity.max(1),
             entries: VecDeque::new(),
+            compiled: VecDeque::new(),
             hits: 0,
             misses: 0,
             evictions: 0,
@@ -242,7 +262,10 @@ impl WgpuPipelineCache {
         }
         self.misses += 1;
         if self.entries.len() == self.capacity {
-            self.entries.pop_front();
+            if let Some(evicted) = self.entries.pop_front() {
+                self.compiled
+                    .retain(|(compiled_key, _)| *compiled_key != evicted.key);
+            }
             self.evictions += 1;
         }
         let record = WgpuPipelineRecord {
@@ -261,6 +284,44 @@ impl WgpuPipelineCache {
         };
         self.entries.push_back(record.clone());
         record
+    }
+
+    /// Returns an existing compiled pipeline or validates, compiles, and inserts one.
+    pub fn get_or_insert_compiled(
+        &mut self,
+        device: &wgpu::Device,
+        probe: &WgpuAdapterProbe,
+        op: WgpuKernelOp,
+        dtype: WgpuKernelDType,
+        rank: usize,
+    ) -> WgpuCompiledPipeline {
+        let record = self.get_or_insert(probe, op, dtype, rank);
+        if let Some((_, pipeline)) = self
+            .compiled
+            .iter()
+            .find(|(compiled_key, _)| *compiled_key == record.key)
+        {
+            return WgpuCompiledPipeline {
+                record,
+                pipeline: pipeline.clone(),
+            };
+        }
+        let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: Some("sim-compute-wgpu-pointwise"),
+            source: wgpu::ShaderSource::Wgsl(crate::kernels::POINTWISE_DISPATCH_WGSL.into()),
+        });
+        let pipeline = device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+            label: Some("sim-compute-wgpu-pointwise"),
+            layout: None,
+            module: &shader,
+            entry_point: Some("main"),
+            compilation_options: Default::default(),
+            cache: None,
+        });
+        let pipeline = Arc::new(pipeline);
+        self.compiled
+            .push_back((record.key.clone(), pipeline.clone()));
+        WgpuCompiledPipeline { record, pipeline }
     }
 
     /// Returns cache pressure and reuse counters.

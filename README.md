@@ -5,7 +5,7 @@ The first providers are a modeled resident executor, an automatic selector that
 loads bounded synthetic profiles through caller-supplied Table/Dir values and
 falls back to the published `sim-numbers` CPU tensor executor unless explicit
 `physical-device` evidence is present, a probe-backed `wgpu` discovery library
-whose current tensor execution is host-emulated after adapter probes, an
+whose retained device path dispatches pointwise tensor work on `wgpu`, an
 optional runtime-loaded CUDA/cuBLAS provider for dense matmul when NVIDIA
 libraries are present, and a Linux-only ROCm/rocBLAS provider for dense matmul
 when compatible AMD HIP runtime libraries and `gfx*` target evidence are

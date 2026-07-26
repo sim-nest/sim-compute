@@ -1,5 +1,31 @@
 //! WGSL source fixtures for portable wgpu pipelines.
 
+/// WGSL source used by real pointwise wgpu dispatches.
+pub const POINTWISE_DISPATCH_WGSL: &str = r#"
+struct KernelParams { op: u32, len: u32 }
+@group(0) @binding(0) var<storage, read> left: array<f32>;
+@group(0) @binding(1) var<storage, read> right: array<f32>;
+@group(0) @binding(2) var<storage, read_write> out: array<f32>;
+@group(0) @binding(3) var<uniform> params: KernelParams;
+@compute @workgroup_size(64)
+fn main(@builtin(global_invocation_id) id: vec3<u32>) {
+    let i = id.x;
+    if (i >= params.len) { return; }
+    let x = left[i];
+    let y = right[i];
+    if (params.op == 0u) { out[i] = x + y; }
+    else if (params.op == 1u) { out[i] = x - y; }
+    else if (params.op == 2u) { out[i] = x * y; }
+    else if (params.op == 3u) { out[i] = x / y; }
+    else if (params.op == 4u) { out[i] = -x; }
+    else if (params.op == 5u) { out[i] = sqrt(x); }
+    else if (params.op == 6u) { out[i] = exp(x); }
+    else if (params.op == 7u) { out[i] = log(x); }
+    else if (params.op == 8u) { out[i] = sin(x); }
+    else { out[i] = cos(x); }
+}
+"#;
+
 /// Portable WGSL source used by validated element-wise pipelines.
 pub const PORTABLE_ELEMENTWISE_WGSL: &str = r#"
 struct KernelParams { op: u32, len: u32 }

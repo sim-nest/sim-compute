@@ -3,17 +3,18 @@
 `sim-lib-compute-wgpu` discovers `wgpu` adapters and registers SIM tensor sites
 only for adapters that pass device, transfer, mapping, and bounded allocation
 probes. Adapter names and device ids are diagnostic evidence, not stable SIM
-identity. The current tensor execution path is explicitly host-emulated: probes
-touch `wgpu`, but portable kernels and resident records are evaluated and kept on
-the host until the real device-dispatch phase replaces this implementation.
+identity. Retained physical probes keep the selected `wgpu::Device` and
+`wgpu::Queue` and dispatch pointwise tensor kernels on that device. Synthetic
+evidence-only fixtures stay host-emulated and fail explicitly if asked to
+dispatch pointwise work without a retained device context.
 
-The exported site runs portable f32 element-wise arithmetic, transcendentals
-(`sqrt`, `exp`, `sin`, and `cos`), fixed-tree `sum`/`min`/`max`/`norm`
-reductions, `transpose`, `dot`, and tiled `matmul` over bounded resident
-segments. Native f16 is selected only when shader f16 was granted by the
-adapter; bf16 and unsupported half paths widen to f32. Validated pipelines are
-cached by adapter, operation, dtype strategy, rank, and the tile profile selected
-from granted limits.
+The exported site runs f32 add, subtract, multiply, divide, negation, `sqrt`,
+`exp`, `log`, `sin`, and `cos` through real `wgpu` compute passes, then returns bounded
+resident tensors. Fixed-tree `sum`/`min`/`max`/`norm` reductions, `transpose`,
+`dot`, and tiled `matmul` remain on the portable resident path. Native f16 is
+selected only when shader f16 was granted by the adapter; bf16 and unsupported
+half paths widen to f32. Validated pipelines are cached by adapter, operation,
+dtype strategy, rank, and the tile profile selected from granted limits.
 
 The crate also exposes reusable arena, segment, transfer, queue, pipeline-cache,
 and materialization planning types so later kernels share the same bounded
