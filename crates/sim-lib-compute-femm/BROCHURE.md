@@ -6,7 +6,7 @@ In one line: `sim-lib-compute-femm` gives SIM a provider-neutral resident sparse
 
 The crate implements a loadable FEMM `LinearSolver` over CSR matrices. It models
 factor upload reuse by fingerprint, resident f32 Krylov work vectors, explicit
-convergence synchronizations, and bounded f64 refinement.
+convergence synchronizations, and bounded CPU f64 refinement.
 
 ## Why you will be glad
 

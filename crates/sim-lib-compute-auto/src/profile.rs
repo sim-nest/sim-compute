@@ -7,6 +7,8 @@ use sim_kernel::Symbol;
 use sim_lib_compute_model::ModeledComputeProfile;
 use sim_lib_numbers_tensor::TensorRequest;
 
+use crate::{ComputeEvidenceKind, ComputePhysicalEvidence, verify_physical};
+
 const DEFAULT_STALE_AFTER_TICKS: u64 = 10_000;
 const CELL_BYTES: u64 = 8;
 
@@ -111,12 +113,16 @@ pub struct ComputeThermalPowerContext {
 /// Provenance for a measured profile.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ComputeProfileProvenance {
+    /// Evidence kind for this profile.
+    pub evidence_kind: ComputeEvidenceKind,
     /// Tool or library that produced the profile.
     pub producer: String,
     /// Logical measurement tick.
     pub measured_at_tick: u64,
     /// Profile validity horizon in logical ticks.
     pub stale_after_ticks: u64,
+    /// Device identity observed by the producer before caller naming.
+    pub observed_identity: Option<ComputeDeviceIdentity>,
 }
 
 /// Checked measured profile used by automatic routing.
@@ -210,6 +216,20 @@ impl MeasuredComputeProfile {
     }
 }
 
+impl ComputePhysicalEvidence for MeasuredComputeProfile {
+    fn evidence_kind(&self) -> ComputeEvidenceKind {
+        self.provenance.evidence_kind
+    }
+
+    fn claimed_identity(&self) -> Option<&ComputeDeviceIdentity> {
+        Some(&self.identity)
+    }
+
+    fn observed_identity(&self) -> Option<&ComputeDeviceIdentity> {
+        self.provenance.observed_identity.as_ref()
+    }
+}
+
 /// Citizen class symbol for measured compute profile read-construct records.
 pub fn measured_compute_profile_citizen_symbol() -> Symbol {
     Symbol::qualified("compute-profile", "MeasuredProfile")
@@ -269,7 +289,7 @@ pub fn measure_bounded_profile(
         .filter(|bytes| *bytes <= modeled.max_resident_bytes)
         .collect::<Vec<_>>();
     MeasuredComputeProfile {
-        identity,
+        identity: identity.clone(),
         limits: ComputeProfileLimits::from(&modeled),
         samples: ComputeProfileSamples {
             upload_bytes_per_tick: bounded_transfers.clone(),
@@ -290,9 +310,11 @@ pub fn measure_bounded_profile(
         tile_bytes,
         allocation_bytes,
         provenance: ComputeProfileProvenance {
+            evidence_kind: ComputeEvidenceKind::Modeled,
             producer: producer.into(),
             measured_at_tick: now_tick,
             stale_after_ticks: DEFAULT_STALE_AFTER_TICKS,
+            observed_identity: Some(identity.clone()),
         },
         modeled,
     }
@@ -309,6 +331,8 @@ pub enum AutoRouteDecision {
     Incompatible,
     /// The profile lacks required bounded samples or limits.
     Inconclusive,
+    /// The profile is modeled, host-emulated, or caller-renamed.
+    NonPhysical,
     /// Device evidence was accepted.
     Device,
 }
@@ -346,6 +370,9 @@ impl AutoComputeRouter {
         }
         if !profile.is_conclusive() {
             return (AutoRouteDecision::Inconclusive, None);
+        }
+        if verify_physical(profile).is_err() {
+            return (AutoRouteDecision::NonPhysical, None);
         }
         (AutoRouteDecision::Device, Some(profile.modeled_profile()))
     }

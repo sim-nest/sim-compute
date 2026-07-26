@@ -2,6 +2,7 @@
 
 use std::sync::mpsc;
 
+use sim_lib_compute_auto::{ComputeEvidenceKind, ComputePhysicalEvidence};
 use wgpu::{
     Adapter, Backends, BufferDescriptor, BufferUsages, DeviceDescriptor, ExperimentalFeatures,
     Features, Instance, Limits, MapMode, MemoryHints, PollType,
@@ -176,6 +177,12 @@ pub struct WgpuAdapterProbe {
     pub adapter: WgpuAdapterEvidence,
     /// Raw probe evidence.
     pub probe: ProbeEvidence,
+}
+
+impl ComputePhysicalEvidence for WgpuAdapterProbe {
+    fn evidence_kind(&self) -> ComputeEvidenceKind {
+        ComputeEvidenceKind::HostEmulated
+    }
 }
 
 /// Complete discovery result.

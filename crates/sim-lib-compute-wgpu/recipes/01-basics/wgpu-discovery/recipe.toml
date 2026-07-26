@@ -1,6 +1,6 @@
 id = "wgpu-discovery"
 title = "WGPU discovery"
-summary = "A wgpu site appears only after successful probe evidence."
+summary = "A host-emulated wgpu site appears only after successful probe evidence."
 tags = ["compute", "tensor", "wgpu", "hardware", "evidence"]
 requires = ["compute/wgpu", "numbers/tensor"]
 capabilities = ["device.gpu.wgpu"]
@@ -10,4 +10,4 @@ assert_capabilities = ["device.gpu.wgpu"]
 [[steps]]
 name = "probe"
 command = "cat expected.txt"
-result = "(compute wgpu-discovery (site site/compute/wgpu/0) (evidence transfer mapping allocation))"
+result = "(compute wgpu-discovery (site site/compute/wgpu/0) (evidence-kind host-emulated) (evidence transfer mapping allocation))"

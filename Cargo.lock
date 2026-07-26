@@ -903,6 +903,7 @@ dependencies = [
  "pollster",
  "sim-cookbook",
  "sim-kernel",
+ "sim-lib-compute-auto",
  "sim-lib-numbers-arith 0.1.1",
  "sim-lib-numbers-f64 0.1.1",
  "sim-lib-numbers-float 0.1.1",

@@ -12,5 +12,6 @@ arena budgets, and caches one synchronized materialization result.
 
 The resident ODE adapter composes the published `sim-numbers` tensor ODE
 pipeline with the modeled tensor site. It batches fixed RK stages through
-bounded auto-flushed submissions, keeps adaptive candidates resident, and limits
-adaptive host observation to scalar error decisions.
+bounded auto-flushed modeled submissions, keeps adaptive candidates
+modeled-resident, and limits adaptive host observation to scalar error
+decisions.

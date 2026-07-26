@@ -4,11 +4,12 @@ use sim_kernel::{Cx, Error, Expr, NumberLiteral, Result, Symbol, Value};
 use sim_lib_compute_model::ModeledComputeProfile;
 
 use crate::{
-    ComputeDeviceIdentity, ComputeProfileLimits, ComputeProfileProvenance, ComputeProfileSamples,
-    ComputeThermalPowerContext, MeasuredComputeProfile,
+    ComputeDeviceIdentity, ComputeEvidenceKind, ComputeProfileLimits, ComputeProfileProvenance,
+    ComputeProfileSamples, ComputeThermalPowerContext, MeasuredComputeProfile,
 };
 
-const PROFILE_SCHEMA: &str = "sim.compute.auto.profile.v1";
+const PROFILE_SCHEMA: &str = "sim.compute.auto.profile.v2";
+const LEGACY_PROFILE_SCHEMA: &str = "sim.compute.auto.profile.v1";
 const DEFAULT_MAX_KEY_BYTES: usize = 96;
 const DEFAULT_MAX_PROFILE_BYTES: usize = 8192;
 
@@ -179,7 +180,19 @@ fn profile_to_value(cx: &mut Cx, profile: &MeasuredComputeProfile) -> Result<Val
             sym("modeled-provider"),
             string(cx, &profile.modeled.provider)?,
         ),
+        (
+            sym("evidence-kind"),
+            string(cx, profile.provenance.evidence_kind.as_str())?,
+        ),
     ];
+    let mut entries = entries;
+    if let Some(observed) = &profile.provenance.observed_identity {
+        entries.extend([
+            (sym("observed-adapter"), string(cx, &observed.adapter)?),
+            (sym("observed-driver"), string(cx, &observed.driver)?),
+            (sym("observed-backend"), string(cx, &observed.backend)?),
+        ]);
+    }
     cx.factory().table(entries)
 }
 
@@ -199,16 +212,38 @@ fn profile_from_value(cx: &mut Cx, value: &Value) -> Result<MeasuredComputeProfi
             .map(|(_, value)| value.clone())
             .ok_or_else(|| Error::Eval(format!("compute profile missing {name}")))
     };
-    if string_value(cx, &get("schema")?)? != PROFILE_SCHEMA {
+    let schema = string_value(cx, &get("schema")?)?;
+    if schema != PROFILE_SCHEMA && schema != LEGACY_PROFILE_SCHEMA {
         return Err(Error::Eval("unsupported compute profile schema".to_owned()));
     }
     let max_queue_depth = number_value(cx, &get("max-queue-depth")?)?;
+    let identity = ComputeDeviceIdentity {
+        adapter: string_value(cx, &get("adapter")?)?,
+        driver: string_value(cx, &get("driver")?)?,
+        backend: string_value(cx, &get("backend")?)?,
+    };
+    let evidence_kind = match maybe_string(cx, &entries, "evidence-kind")? {
+        Some(kind) => ComputeEvidenceKind::try_from(kind.as_str())
+            .map_err(|err| Error::Eval(err.to_string()))?,
+        None => ComputeEvidenceKind::Modeled,
+    };
+    let observed_identity = match (
+        maybe_string(cx, &entries, "observed-adapter")?,
+        maybe_string(cx, &entries, "observed-driver")?,
+        maybe_string(cx, &entries, "observed-backend")?,
+    ) {
+        (Some(adapter), Some(driver), Some(backend)) => {
+            Some(ComputeDeviceIdentity::new(adapter, driver, backend))
+        }
+        (None, None, None) => None,
+        _ => {
+            return Err(Error::Eval(
+                "compute profile has partial observed identity".to_owned(),
+            ));
+        }
+    };
     Ok(MeasuredComputeProfile {
-        identity: ComputeDeviceIdentity {
-            adapter: string_value(cx, &get("adapter")?)?,
-            driver: string_value(cx, &get("driver")?)?,
-            backend: string_value(cx, &get("backend")?)?,
-        },
+        identity,
         limits: ComputeProfileLimits {
             max_resident_bytes: number_value(cx, &get("max-resident-bytes")?)?,
             max_storage_binding_bytes: number_value(cx, &get("max-storage-binding-bytes")?)?,
@@ -232,9 +267,11 @@ fn profile_from_value(cx: &mut Cx, value: &Value) -> Result<MeasuredComputeProfi
         tile_bytes: number_value(cx, &get("tile-bytes")?)?,
         allocation_bytes: number_vec(cx, &get("allocation-bytes")?)?,
         provenance: ComputeProfileProvenance {
+            evidence_kind,
             producer: string_value(cx, &get("producer")?)?,
             measured_at_tick: number_value(cx, &get("measured-at-tick")?)?,
             stale_after_ticks: number_value(cx, &get("stale-after-ticks")?)?,
+            observed_identity,
         },
         modeled: ModeledComputeProfile {
             provider: string_value(cx, &get("modeled-provider")?)?,
@@ -249,6 +286,14 @@ fn profile_from_value(cx: &mut Cx, value: &Value) -> Result<MeasuredComputeProfi
             auto_flush_batches: false,
         },
     })
+}
+
+fn maybe_string(cx: &mut Cx, entries: &[(Symbol, Value)], name: &str) -> Result<Option<String>> {
+    entries
+        .iter()
+        .find(|(key, _)| *key == sym(name))
+        .map(|(_, value)| string_value(cx, value))
+        .transpose()
 }
 
 fn number(cx: &mut Cx, value: u64) -> Result<Value> {

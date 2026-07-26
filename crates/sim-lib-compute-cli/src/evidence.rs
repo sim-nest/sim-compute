@@ -242,6 +242,7 @@ fn decision_label(decision: &AutoRouteDecision) -> &'static str {
         AutoRouteDecision::Stale => "stale",
         AutoRouteDecision::Incompatible => "incompatible",
         AutoRouteDecision::Inconclusive => "inconclusive",
+        AutoRouteDecision::NonPhysical => "non-physical",
         AutoRouteDecision::Device => "device",
     }
 }

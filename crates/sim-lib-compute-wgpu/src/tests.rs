@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use sim_kernel::{DefaultFactory, EagerPolicy, Symbol};
+use sim_lib_compute_auto::verify_physical;
 use sim_lib_numbers_tensor::{
     CpuTensorExecutor, Tensor, TensorExecution, TensorExecutor, TensorLocation, TensorMeta,
     TensorOp, TensorRequest, add_op_symbol, build_tensor_value, cos_op_symbol, dot_op_symbol,
@@ -205,6 +206,13 @@ fn discovery_keeps_only_successful_probe_backed_adapters() {
             .iter()
             .any(|diagnostic| diagnostic.contains("did not pass required probes"))
     );
+}
+
+#[test]
+fn host_emulated_wgpu_probe_cannot_satisfy_physical_acceptance() {
+    let host_emulated_wgpu = adapter("alpha", "Vulkan", true);
+
+    assert!(verify_physical(&host_emulated_wgpu).is_err());
 }
 
 #[test]

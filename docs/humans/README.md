@@ -130,7 +130,7 @@ requires = ["compute/auto", "compute/profile", "storage/table", "numbers/tensor"
 
 [[expect]]
 form = 0
-result = "(compute auto-profile (table supplied) (measure bounded upload download launch element reduction matmul) (fresh-compatible-conclusive device) (else cpu) (ledger provider materialization-bytes synchronizations))"
+result = "(compute auto-profile (table supplied) (synthetic bounded upload download launch element reduction matmul) (physical-device required) (else cpu) (ledger provider materialization-bytes synchronizations))"
 ```
 
 Specimen `recipe/sim-compute/crates/sim-lib-compute-cuda/01-basics/cuda-discovery` is checked by `xtask check-recipes`.
@@ -153,7 +153,7 @@ Source `crates/sim-lib-compute-wgpu/recipes/01-basics/wgpu-discovery/recipe.toml
 ```toml
 id = "wgpu-discovery"
 title = "WGPU discovery"
-summary = "A wgpu site appears only after successful probe evidence."
+summary = "A host-emulated wgpu site appears only after successful probe evidence."
 tags = ["compute", "tensor", "wgpu", "hardware", "evidence"]
 requires = ["compute/wgpu", "numbers/tensor"]
 capabilities = ["device.gpu.wgpu"]
@@ -163,7 +163,7 @@ assert_capabilities = ["device.gpu.wgpu"]
 [[steps]]
 name = "probe"
 command = "cat expected.txt"
-result = "(compute wgpu-discovery (site site/compute/wgpu/0) (evidence transfer mapping allocation))"
+result = "(compute wgpu-discovery (site site/compute/wgpu/0) (evidence-kind host-emulated) (evidence transfer mapping allocation))"
 ```
 
 Specimen `recipe/sim-compute/crates/sim-lib-compute-rocm/01-basics/rocm-discovery` is checked by `xtask check-recipes`.
@@ -563,9 +563,10 @@ use sim_lib_numbers_tensor::{
 
 use crate::{
     AutoComputeProfile, AutoRouteDecision, AutoTensorExecutor, BenchmarkBounds, ComputeAutoLib,
-    ComputeDeviceIdentity, ComputeThermalPowerContext, ProfileStore, ProfileStorePolicy,
-    compute_auto_site_symbol, measure_bounded_profile, measured_compute_profile_citizen_symbol,
-    measured_compute_profile_shape_symbol,
+    ComputeDeviceIdentity, ComputeEvidenceKind, ComputeThermalPowerContext, ProfileStore,
+    ProfileStorePolicy, compute_auto_site_symbol, measure_bounded_profile,
+    measured_compute_profile_citizen_symbol, measured_compute_profile_shape_symbol,
+    verify_physical,
 };
 
 // conformance: auto compute site selects modeled providers and falls back to CPU without a compatible profile.
@@ -674,8 +675,40 @@ fn measured_profile_round_trips_through_supplied_table() {
     let loaded = store.load(&mut cx, key).unwrap().unwrap();
 
     assert_eq!(loaded.identity, identity);
+    assert_eq!(
+        loaded.provenance.evidence_kind,
+        ComputeEvidenceKind::Modeled
+    );
+    assert_eq!(loaded.provenance.observed_identity, Some(identity));
     assert!(loaded.is_conclusive());
     assert_eq!(store.keys(&mut cx).unwrap().len(), 1);
+}
+
+#[test]
+fn physical_verifier_rejects_modeled_synthetic_and_renamed_profiles() {
+    let identity = ComputeDeviceIdentity::new("adapter-a", "driver-1", "modeled");
+    let modeled_profile = ModeledComputeProfile::default();
+    assert!(verify_physical(&modeled_profile).is_err());
+
+    let mut synthetic_profile = measure_bounded_profile(
+        identity.clone(),
+        ModeledComputeProfile::default(),
+        ComputeThermalPowerContext {
+            thermal: "steady".to_owned(),
+            power: "plugged".to_owned(),
+        },
+        "unit-test",
+        7,
+        BenchmarkBounds::default(),
+    );
+    assert!(verify_physical(&synthetic_profile).is_err());
+
+    synthetic_profile.provenance.evidence_kind = ComputeEvidenceKind::PhysicalDevice;
+    synthetic_profile.identity.adapter = "caller-renamed".to_owned();
+    assert!(verify_physical(&synthetic_profile).is_err());
+
+    synthetic_profile.identity = identity;
+    assert!(verify_physical(&synthetic_profile).is_ok());
 }
 
 #[test]
@@ -696,7 +729,7 @@ fn measured_profile_exposes_citizen_and_shape_records() {
 fn measured_profile_routes_device_only_when_fresh_compatible_and_conclusive() {
     let mut cx = test_cx();
     let identity = ComputeDeviceIdentity::new("adapter-a", "driver-1", "modeled");
-    let measured = measure_bounded_profile(
+    let mut measured = measure_bounded_profile(
         identity.clone(),
         ModeledComputeProfile::default(),
         ComputeThermalPowerContext {
@@ -707,6 +740,7 @@ fn measured_profile_routes_device_only_when_fresh_compatible_and_conclusive() {
         7,
         BenchmarkBounds::default(),
     );
+    measured.provenance.evidence_kind = ComputeEvidenceKind::PhysicalDevice;
     let executor = AutoTensorExecutor::new(AutoComputeProfile {
         modeled: None,
         measured: Some(measured),
@@ -734,6 +768,31 @@ fn measured_profile_routes_device_only_when_fresh_compatible_and_conclusive() {
     assert_eq!(events[0].decision, AutoRouteDecision::Device);
     assert!(events[0].materialization_bytes > 0);
     assert_eq!(events[1].synchronizations, 1);
+}
+
+#[test]
+fn synthetic_measured_profile_cannot_select_device_route() {
+    let identity = ComputeDeviceIdentity::new("adapter-a", "driver-1", "modeled");
+    let measured = measure_bounded_profile(
+        identity.clone(),
+        ModeledComputeProfile::default(),
+        ComputeThermalPowerContext {
+            thermal: "steady".to_owned(),
+            power: "plugged".to_owned(),
+        },
+        "unit-test",
+        7,
+        BenchmarkBounds::default(),
+    );
+    let executor = AutoTensorExecutor::new(AutoComputeProfile {
+        modeled: None,
+        measured: Some(measured),
+        expected: Some(identity),
+        now_tick: 8,
+    });
+
+    assert_eq!(executor.route_decision(), AutoRouteDecision::NonPhysical);
+    assert!(executor.uses_cpu_fallback());
 }
 
 #[test]
@@ -987,6 +1046,7 @@ Source `crates/sim-lib-compute-wgpu/src/tests.rs`:
 use std::sync::Arc;
 
 use sim_kernel::{DefaultFactory, EagerPolicy, Symbol};
+use sim_lib_compute_auto::verify_physical;
 use sim_lib_numbers_tensor::{
     CpuTensorExecutor, Tensor, TensorExecution, TensorExecutor, TensorLocation, TensorMeta,
     TensorOp, TensorRequest, add_op_symbol, build_tensor_value, cos_op_symbol, dot_op_symbol,
@@ -1191,6 +1251,13 @@ fn discovery_keeps_only_successful_probe_backed_adapters() {
             .iter()
             .any(|diagnostic| diagnostic.contains("did not pass required probes"))
     );
+}
+
+#[test]
+fn host_emulated_wgpu_probe_cannot_satisfy_physical_acceptance() {
+    let host_emulated_wgpu = adapter("alpha", "Vulkan", true);
+
+    assert!(verify_physical(&host_emulated_wgpu).is_err());
 }
 
 #[test]

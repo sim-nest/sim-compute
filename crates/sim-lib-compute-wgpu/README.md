@@ -3,7 +3,9 @@
 `sim-lib-compute-wgpu` discovers `wgpu` adapters and registers SIM tensor sites
 only for adapters that pass device, transfer, mapping, and bounded allocation
 probes. Adapter names and device ids are diagnostic evidence, not stable SIM
-identity.
+identity. The current tensor execution path is explicitly host-emulated: probes
+touch `wgpu`, but portable kernels and resident records are evaluated and kept on
+the host until the real device-dispatch phase replaces this implementation.
 
 The exported site runs portable f32 element-wise arithmetic, transcendentals
 (`sqrt`, `exp`, `sin`, and `cos`), fixed-tree `sum`/`min`/`max`/`norm`

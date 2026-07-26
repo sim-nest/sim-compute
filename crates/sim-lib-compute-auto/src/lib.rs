@@ -2,6 +2,7 @@
 #![deny(missing_docs)]
 //! Automatic tensor compute-site selection.
 
+mod evidence;
 mod profile;
 mod store;
 
@@ -17,6 +18,9 @@ use sim_lib_numbers_tensor::{
     TensorExecutorCard, TensorRequest, TensorSite,
 };
 
+pub use evidence::{
+    ComputeEvidenceKind, ComputePhysicalEvidence, PhysicalEvidenceError, verify_physical,
+};
 pub use profile::{
     AutoComputeRouter, AutoRouteDecision, AutoRoutingEvent, AutoRoutingLedger, BenchmarkBounds,
     ComputeDeviceIdentity, ComputeProfileLimits, ComputeProfileProvenance, ComputeProfileSamples,

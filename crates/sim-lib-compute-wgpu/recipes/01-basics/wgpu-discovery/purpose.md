@@ -1,4 +1,4 @@
 # Purpose
 
-Show that a wgpu compute site is exported only after successful hardware
-discovery and probe evidence.
+Show that a host-emulated wgpu compute site is exported only after successful
+adapter discovery and probe evidence.
