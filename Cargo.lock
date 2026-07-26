@@ -818,7 +818,7 @@ dependencies = [
 
 [[package]]
 name = "sim-lib-compute-auto"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "sim-citizen",
  "sim-cookbook",
@@ -833,7 +833,7 @@ dependencies = [
 
 [[package]]
 name = "sim-lib-compute-cli"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "sim-cookbook",
  "sim-kernel",
@@ -866,7 +866,7 @@ dependencies = [
 
 [[package]]
 name = "sim-lib-compute-model"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "sim-cookbook",
  "sim-kernel",
