@@ -1,7 +1,6 @@
 # Resident FEMM Compute
 
-In one line: `sim-lib-compute-femm` gives SIM a provider-neutral resident sparse
-linear solver that still has to pass f64 FEMM certificate checks.
+In one line: `sim-lib-compute-femm` gives SIM a provider-neutral resident sparse linear solver that still has to pass f64 FEMM certificate checks.
 
 ## What it gives you
 

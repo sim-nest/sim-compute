@@ -6,9 +6,11 @@ Generated from Cargo metadata by `xtask crate-catalog v1`.
 
 | Package | Publish | Targets | Description |
 | --- | --- | --- | --- |
-| `sim-lib-compute-auto` | `false` | `custom-build, lib` | Automatic tensor compute site selection for SIM. |
-| `sim-lib-compute-cuda` | `false` | `custom-build, lib` | Runtime-loaded CUDA/cuBLAS tensor compute site for SIM. |
-| `sim-lib-compute-model` | `false` | `custom-build, lib` | Modeled resident tensor compute site for SIM. |
-| `sim-lib-compute-rocm` | `false` | `custom-build, lib` | Runtime-loaded ROCm/rocBLAS tensor compute site for SIM. |
-| `sim-lib-compute-wgpu` | `false` | `custom-build, lib` | Evidence-based wgpu tensor compute site discovery for SIM. |
+| `sim-lib-compute-auto` | `true` | `custom-build, lib` | Automatic tensor compute site selection for SIM. |
+| `sim-lib-compute-cli` | `true` | `custom-build, lib` | Loadable compute command surface for SIM. |
+| `sim-lib-compute-cuda` | `true` | `custom-build, lib` | Runtime-loaded CUDA/cuBLAS tensor compute site for SIM. |
+| `sim-lib-compute-femm` | `true` | `custom-build, lib` | Provider-neutral resident CSR FEMM linear solver for SIM. |
+| `sim-lib-compute-model` | `true` | `custom-build, lib` | Modeled resident tensor compute site for SIM. |
+| `sim-lib-compute-rocm` | `true` | `custom-build, lib` | Runtime-loaded ROCm/rocBLAS tensor compute site for SIM. |
+| `sim-lib-compute-wgpu` | `true` | `custom-build, lib` | Evidence-based wgpu tensor compute site discovery for SIM. |
 | `xtask` | `false` | `bin` | Repository automation wrapper for generated documentation and policy checks. |
