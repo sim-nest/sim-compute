@@ -18,9 +18,9 @@ use host::{
 };
 
 const SCHEMA: &str = "sim.compute-acceptance/v1";
-const TARGET_CLASS: &str = "gpu:nvidia/rtx-5080-laptop";
 const EVIDENCE_KIND: &str = "physical-device";
 const HARNESS: &str = "sim-lib-compute-cli/acceptance/portable-v1";
+const MANIFEST: &str = include_str!("../acceptance/portable-v1.sx");
 const REQUIRED_CASES: &[(&str, &str)] = &[
     ("probe-allocation-transfer", "probe/allocation/transfer"),
     ("pointwise-transcendental", "pointwise/transcendental"),
@@ -28,6 +28,17 @@ const REQUIRED_CASES: &[(&str, &str)] = &[
     ("cross-binding-segmentation", "cross-binding/segmentation"),
     ("fixed-adaptive-ode", "ode/fixed-adaptive"),
     ("certified-femm", "femm/certified"),
+];
+const TARGETS: &[(&str, &[&str])] = &[
+    (
+        "gpu:nvidia/rtx-5080-laptop",
+        &["NVIDIA GeForce RTX 5080 Laptop GPU"],
+    ),
+    ("gpu:nvidia/rtx-5090", &["NVIDIA GeForce RTX 5090"]),
+    (
+        "gpu:amd/gfx1151",
+        &["AMD Radeon Graphics", "RADV STRIX_HALO", "Radeon 8060S"],
+    ),
 ];
 /// Acceptance command result.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -60,15 +71,20 @@ fn capture(request: &AcceptanceRequest) -> Result<AcceptanceEvidence, ComputeCli
         .output
         .as_deref()
         .ok_or_else(|| ComputeCliError::new("capture requires --output"))?;
+    let target = request
+        .target
+        .as_deref()
+        .ok_or_else(|| ComputeCliError::new("capture requires --target"))?;
+    target_spec(target)?;
     let manifest = fs::read_to_string(manifest_path)
         .map_err(|err| ComputeCliError::new(format!("read acceptance manifest: {err}")))?;
     let cases = manifest_cases(&manifest)?;
-    let gpu = physical_gpu()?;
+    let gpu = physical_gpu(target)?;
     let artifact = Artifact {
         source: request.source.clone(),
         harness_hash: stable_hash(HARNESS.as_bytes()),
         manifest_hash: stable_hash(manifest.as_bytes()),
-        target: TARGET_CLASS.to_owned(),
+        target: target.to_owned(),
         adapter: sanitize_adapter(&gpu.name)?,
         backend: "wgpu".to_owned(),
         driver: sanitize_token(&gpu.driver, "driver")?,
@@ -248,11 +264,10 @@ impl Artifact {
         if self.harness_hash != stable_hash(HARNESS.as_bytes()) {
             return Err(ComputeCliError::new("acceptance harness hash mismatch"));
         }
-        if self.target != TARGET_CLASS {
-            return Err(ComputeCliError::new(
-                "acceptance target capability mismatch",
-            ));
+        if self.manifest_hash != stable_hash(MANIFEST.as_bytes()) {
+            return Err(ComputeCliError::new("acceptance manifest hash mismatch"));
         }
+        let adapter_needles = target_spec(&self.target)?;
         if self.evidence != EVIDENCE_KIND {
             return Err(ComputeCliError::new(
                 "acceptance evidence is not physical-device",
@@ -268,8 +283,18 @@ impl Artifact {
         ] {
             reject_private_value(value)?;
         }
-        if !self.adapter.contains("RTX 5080") {
-            return Err(ComputeCliError::new("acceptance adapter is not RTX 5080"));
+        if !adapter_needles
+            .iter()
+            .any(|needle| self.adapter.contains(needle))
+        {
+            return Err(ComputeCliError::new(
+                "acceptance adapter does not match target capability",
+            ));
+        }
+        if self.backend != "wgpu" || self.caps != "storage-buffer,compute-shader,f32" {
+            return Err(ComputeCliError::new(
+                "acceptance backend capability evidence mismatch",
+            ));
         }
         let required = manifest_cases
             .iter()
@@ -307,6 +332,13 @@ impl Artifact {
         }
         Ok(())
     }
+}
+
+fn target_spec(target: &str) -> Result<&'static [&'static str], ComputeCliError> {
+    TARGETS
+        .iter()
+        .find_map(|(capability, needles)| (*capability == target).then_some(*needles))
+        .ok_or_else(|| ComputeCliError::new("unsupported acceptance target capability"))
 }
 
 fn manifest_cases(text: &str) -> Result<Vec<ManifestCase>, ComputeCliError> {

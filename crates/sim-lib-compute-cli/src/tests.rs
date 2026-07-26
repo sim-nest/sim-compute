@@ -192,6 +192,8 @@ fn acceptance_verify_is_read_only_and_capture_requires_capability() {
         "crates/sim-lib-compute-cli/acceptance/portable-v1.sx".to_owned(),
         "--source".to_owned(),
         "0123456789abcdef0123456789abcdef01234567".to_owned(),
+        "--target".to_owned(),
+        "gpu:nvidia/rtx-5080-laptop".to_owned(),
         "--output".to_owned(),
         "/tmp/sim-compute-acceptance-test.sx".to_owned(),
     ])

@@ -106,6 +106,8 @@ pub struct AcceptanceRequest {
     pub manifest: Option<String>,
     /// Exact sim-compute source commit expected by the artifact.
     pub source: String,
+    /// Exact registered target capability captured by the artifact.
+    pub target: Option<String>,
     /// Output artifact path for capture.
     pub output: Option<String>,
     /// Input artifact path for verify/import.
@@ -248,6 +250,7 @@ fn parse_acceptance(args: &[String]) -> Result<AcceptanceRequest, ComputeCliErro
         },
         manifest: None,
         source: String::new(),
+        target: None,
         output: None,
         input: None,
     };
@@ -258,6 +261,9 @@ fn parse_acceptance(args: &[String]) -> Result<AcceptanceRequest, ComputeCliErro
                 request.manifest = Some(checked_path(take_value(args, &mut i, "--manifest")?)?)
             }
             "--source" => request.source = checked_hash(take_value(args, &mut i, "--source")?)?,
+            "--target" => {
+                request.target = Some(checked_capability(take_value(args, &mut i, "--target")?)?)
+            }
             "--output" => {
                 request.output = Some(checked_path(take_value(args, &mut i, "--output")?)?)
             }
@@ -282,14 +288,22 @@ fn parse_acceptance(args: &[String]) -> Result<AcceptanceRequest, ComputeCliErro
     }
     match request.action {
         AcceptanceAction::Capture => {
-            if request.manifest.is_none() || request.output.is_none() || request.input.is_some() {
+            if request.manifest.is_none()
+                || request.target.is_none()
+                || request.output.is_none()
+                || request.input.is_some()
+            {
                 return Err(ComputeCliError::new(
-                    "acceptance capture requires --manifest and --output only",
+                    "acceptance capture requires --manifest, --target, and --output only",
                 ));
             }
         }
         AcceptanceAction::Verify | AcceptanceAction::Import => {
-            if request.input.is_none() || request.manifest.is_some() || request.output.is_some() {
+            if request.input.is_none()
+                || request.manifest.is_some()
+                || request.target.is_some()
+                || request.output.is_some()
+            {
                 return Err(ComputeCliError::new(
                     "acceptance verify/import requires one input artifact",
                 ));
@@ -357,6 +371,21 @@ fn checked_path(value: String) -> Result<String, ComputeCliError> {
         || value.contains('\r')
     {
         return Err(ComputeCliError::new("path is outside acceptance policy"));
+    }
+    Ok(value)
+}
+
+fn checked_capability(value: String) -> Result<String, ComputeCliError> {
+    if value.is_empty()
+        || value.len() > MAX_SELECTOR_BYTES
+        || value.contains("..")
+        || !value
+            .chars()
+            .all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, ':' | '-' | '_' | '/' | '.'))
+    {
+        return Err(ComputeCliError::new(
+            "target capability is outside acceptance policy",
+        ));
     }
     Ok(value)
 }

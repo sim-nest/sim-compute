@@ -26,7 +26,19 @@ pub(super) struct GpuEvidence {
     pub(super) temperature: String,
 }
 
-pub(super) fn physical_gpu() -> Result<GpuEvidence, ComputeCliError> {
+pub(super) fn physical_gpu(target: &str) -> Result<GpuEvidence, ComputeCliError> {
+    if target == "gpu:amd/gfx1151" {
+        return physical_vulkan_gpu(&["AMD Radeon Graphics", "RADV STRIX_HALO", "Radeon 8060S"]);
+    }
+    let needle = match target {
+        "gpu:nvidia/rtx-5080-laptop" => "RTX 5080",
+        "gpu:nvidia/rtx-5090" => "RTX 5090",
+        _ => {
+            return Err(ComputeCliError::new(
+                "unsupported acceptance target capability",
+            ));
+        }
+    };
     let output = Command::new("nvidia-smi")
         .args([
             "--query-gpu=name,driver_version,power.draw,temperature.gpu",
@@ -41,8 +53,8 @@ pub(super) fn physical_gpu() -> Result<GpuEvidence, ComputeCliError> {
         .map_err(|_| ComputeCliError::new("nvidia-smi output was not utf-8"))?;
     let row = stdout
         .lines()
-        .find(|line| line.contains("RTX 5080"))
-        .ok_or_else(|| ComputeCliError::new("no RTX 5080 GPU found"))?;
+        .find(|line| line.contains(needle))
+        .ok_or_else(|| ComputeCliError::new("requested NVIDIA GPU was not found"))?;
     let cols = row.split(',').map(str::trim).collect::<Vec<_>>();
     if cols.len() != 4 {
         return Err(ComputeCliError::new("unexpected nvidia-smi column count"));
@@ -53,6 +65,43 @@ pub(super) fn physical_gpu() -> Result<GpuEvidence, ComputeCliError> {
         power: format!("{}W", cols[2]),
         temperature: format!("{}C", cols[3]),
     })
+}
+
+fn physical_vulkan_gpu(needles: &[&str]) -> Result<GpuEvidence, ComputeCliError> {
+    let output = Command::new("vulkaninfo")
+        .arg("--summary")
+        .output()
+        .map_err(|err| ComputeCliError::new(format!("run vulkaninfo: {err}")))?;
+    if !output.status.success() {
+        return Err(ComputeCliError::new(
+            "vulkaninfo did not report a physical GPU",
+        ));
+    }
+    let stdout = String::from_utf8(output.stdout)
+        .map_err(|_| ComputeCliError::new("vulkaninfo output was not utf-8"))?;
+    let mut name = "";
+    let mut driver = "";
+    for line in stdout.lines() {
+        let trimmed = line.trim();
+        if let Some(value) = trimmed.strip_prefix("deviceName") {
+            name = value.trim_start_matches([' ', '=']).trim();
+            driver = "";
+        } else if let Some(value) = trimmed.strip_prefix("driverName") {
+            driver = value.trim_start_matches([' ', '=']).trim();
+        }
+        if !name.to_ascii_lowercase().contains("llvmpipe")
+            && !driver.is_empty()
+            && needles.iter().any(|needle| name.contains(needle))
+        {
+            return Ok(GpuEvidence {
+                name: name.to_owned(),
+                driver: driver.to_owned(),
+                power: "unavailable".to_owned(),
+                temperature: "unavailable".to_owned(),
+            });
+        }
+    }
+    Err(ComputeCliError::new("requested Vulkan GPU was not found"))
 }
 
 pub(super) fn sanitize_adapter(value: &str) -> Result<String, ComputeCliError> {
@@ -80,6 +129,9 @@ pub(super) fn sanitize_token(value: &str, name: &str) -> Result<String, ComputeC
 }
 
 pub(super) fn sanitize_measurement(value: &str, name: &str) -> Result<String, ComputeCliError> {
+    if value == "unavailable" {
+        return Ok(value.to_owned());
+    }
     if value.is_empty()
         || value.len() > 24
         || !value

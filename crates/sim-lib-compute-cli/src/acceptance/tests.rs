@@ -1,6 +1,7 @@
 use super::*;
 
 const SOURCE: &str = "0123456789abcdef0123456789abcdef01234567";
+const TARGET_CLASS: &str = "gpu:nvidia/rtx-5080-laptop";
 
 fn artifact() -> Artifact {
     let cases = REQUIRED_CASES
@@ -13,7 +14,7 @@ fn artifact() -> Artifact {
     Artifact {
         source: SOURCE.to_owned(),
         harness_hash: stable_hash(HARNESS.as_bytes()),
-        manifest_hash: "hash".to_owned(),
+        manifest_hash: stable_hash(MANIFEST.as_bytes()),
         target: TARGET_CLASS.to_owned(),
         adapter: "NVIDIA GeForce RTX 5080 Laptop GPU".to_owned(),
         backend: "wgpu".to_owned(),
@@ -54,6 +55,24 @@ fn verifies_complete_sanitized_artifact() {
     let parsed = Artifact::parse(&artifact().render()).unwrap();
 
     parsed.verify(SOURCE, &manifest_cases_fixture()).unwrap();
+}
+
+#[test]
+fn verifies_each_registered_target_and_rejects_cross_target_adapter() {
+    let mut rtx5090 = artifact();
+    rtx5090.target = "gpu:nvidia/rtx-5090".to_owned();
+    rtx5090.adapter = "NVIDIA GeForce RTX 5090".to_owned();
+    rtx5090.verify(SOURCE, &manifest_cases_fixture()).unwrap();
+
+    let mut gfx1151 = artifact();
+    gfx1151.target = "gpu:amd/gfx1151".to_owned();
+    gfx1151.adapter = "AMD Radeon Graphics RADV STRIX_HALO".to_owned();
+    gfx1151.power = "unavailable".to_owned();
+    gfx1151.thermal = "unavailable".to_owned();
+    gfx1151.verify(SOURCE, &manifest_cases_fixture()).unwrap();
+
+    rtx5090.adapter = "NVIDIA GeForce RTX 5080 Laptop GPU".to_owned();
+    assert!(rtx5090.verify(SOURCE, &manifest_cases_fixture()).is_err());
 }
 
 #[test]
@@ -103,4 +122,12 @@ fn rejects_stale_schema_and_wrong_hashes() {
     let mut wrong = artifact();
     wrong.cases[0].case_hash = "bad".to_owned();
     assert!(wrong.verify(SOURCE, &manifest_cases_fixture()).is_err());
+
+    let mut wrong_manifest = artifact();
+    wrong_manifest.manifest_hash = "1".repeat(64);
+    assert!(
+        wrong_manifest
+            .verify(SOURCE, &manifest_cases_fixture())
+            .is_err()
+    );
 }
