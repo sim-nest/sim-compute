@@ -1,5 +1,5 @@
 {
-  "card_count": 7,
+  "card_count": 8,
   "cards": [
     {
       "id": "browse/catalog",
@@ -29,6 +29,12 @@
       "id": "cookbook/sim-lib-compute-cuda",
       "kind": "cookbook-recipe",
       "owner": "sim-lib-compute-cuda",
+      "summary": ""
+    },
+    {
+      "id": "cookbook/sim-lib-compute-femm",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-compute-femm",
       "summary": ""
     },
     {

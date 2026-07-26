@@ -14,6 +14,12 @@
 {"kind":"recipe","path":"crates/sim-lib-compute-cuda/recipes/01-basics/cuda-discovery/recipe.toml"}
 {"kind":"recipe","path":"crates/sim-lib-compute-cuda/recipes/01-basics/cuda-discovery/setup.siml"}
 {"kind":"recipe","path":"crates/sim-lib-compute-cuda/recipes/book.toml"}
+{"kind":"recipe","path":"crates/sim-lib-compute-femm/recipes/01-basics/chapter.toml"}
+{"kind":"recipe","path":"crates/sim-lib-compute-femm/recipes/01-basics/resident-csr-solve/expected.txt"}
+{"kind":"recipe","path":"crates/sim-lib-compute-femm/recipes/01-basics/resident-csr-solve/purpose.md"}
+{"kind":"recipe","path":"crates/sim-lib-compute-femm/recipes/01-basics/resident-csr-solve/recipe.toml"}
+{"kind":"recipe","path":"crates/sim-lib-compute-femm/recipes/01-basics/resident-csr-solve/setup.siml"}
+{"kind":"recipe","path":"crates/sim-lib-compute-femm/recipes/book.toml"}
 {"kind":"recipe","path":"crates/sim-lib-compute-model/recipes/01-basics/chapter.toml"}
 {"kind":"recipe","path":"crates/sim-lib-compute-model/recipes/01-basics/modeled-resident-matrix/expected.txt"}
 {"kind":"recipe","path":"crates/sim-lib-compute-model/recipes/01-basics/modeled-resident-matrix/purpose.md"}

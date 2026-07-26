@@ -104,3 +104,29 @@ steps = [
   { specimen = "recipe/sim-compute/crates/sim-lib-compute-cuda/01-basics/cuda-discovery", why = "The CUDA recipe shows runtime ABI validation and optional site export without a toolkit dependency." },
   { specimen = "recipe/sim-compute/crates/sim-lib-compute-rocm/01-basics/rocm-discovery", why = "The ROCm recipe shows HIP/rocBLAS ABI validation, observed gfx target evidence, and optional site export without a toolkit dependency." },
 ]
+
+[[feature]]
+id = "feature/sim-compute/femm-resident-solvers"
+title = "Resident FEMM sparse solvers"
+summary = "Export a provider-neutral FEMM LinearSolver that keeps CSR and Krylov work vectors resident while requiring f64 residual certification."
+owner = "crate/sim-lib-compute-femm"
+audiences = ["user", "code", "framework"]
+guidance = "Use this row when a FEMM steady solve should run through a compute provider without weakening solver acceptance. The resident solver uploads validated CSR matrices once, reuses factors by the published FEMM fingerprint, keeps f32 CG or BiCGSTAB work vectors resident, synchronizes convergence as scalar residual evidence at a documented cadence, recomputes the accepted residual on CPU in f64, applies bounded f64 iterative correction, and refuses nonconvergence, Krylov breakdown, stale factor payloads, transpose requests, non-finite data, and certification failure. The loadable library exports the existing femm/linear-solver value, so sim-lib-femm-solve remains responsible for the SolveCertificate."
+claims_anchors = [
+  "anchor/crate/sim-lib-compute-femm",
+  "anchor/runtime-lib/sim-lib-compute-femm/compute-femm-lib",
+  "anchor/rustdoc/sim-lib-compute-femm/resident-csr-solver",
+]
+claims_specimens = [
+  "recipe/sim-compute/crates/sim-lib-compute-femm/01-basics/resident-csr-solve",
+  "spec-test/sim-compute/crates/sim-lib-compute-femm/src/lib",
+]
+
+[[route]]
+id = "route/add-resident-femm-csr-solver"
+task = "Add a resident FEMM CSR solver"
+audiences = ["code", "framework"]
+steps = [
+  { feature = "feature/sim-compute/femm-resident-solvers", why = "The compute FEMM row owns resident CSR upload, Krylov execution, f64 refinement, and loadable solver export." },
+  { specimen = "recipe/sim-compute/crates/sim-lib-compute-femm/01-basics/resident-csr-solve", why = "The recipe shows upload reuse, resident work vectors, scalar synchronization, and f64 certificate acceptance." },
+]

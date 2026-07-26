@@ -845,6 +845,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "sim-lib-compute-femm"
+version = "0.1.0"
+dependencies = [
+ "sim-cookbook",
+ "sim-kernel",
+ "sim-lib-femm-core",
+ "sim-lib-femm-solve",
+]
+
+[[package]]
 name = "sim-lib-compute-model"
 version = "0.1.0"
 dependencies = [
@@ -891,10 +901,162 @@ dependencies = [
 ]
 
 [[package]]
+name = "sim-lib-femm-assembly"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b58d79a3a828070212da9caeebaca9cd70945e9c4e10a73d0cdcd6df56d86b41"
+dependencies = [
+ "sim-cookbook",
+ "sim-kernel",
+ "sim-lib-femm-core",
+ "sim-lib-femm-geometry",
+ "sim-lib-femm-material",
+ "sim-lib-femm-mesh",
+ "sim-lib-femm-space",
+ "sim-lib-numbers-ad",
+ "sim-value 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "sim-lib-femm-core"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ba2c922b36ea3557ea36c19dae2b07b8d4f0c379f274c75dd005072d8b953a5f"
+dependencies = [
+ "sim-cookbook",
+ "sim-kernel",
+ "sim-lib-numbers-numeric",
+ "thiserror 1.0.69",
+]
+
+[[package]]
+name = "sim-lib-femm-flow"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bd090a1d8e5425eb97dc4f94f9ed9d27d3dbc02c0699e48e0f7fe3e767de2e6f"
+dependencies = [
+ "sim-cookbook",
+ "sim-kernel",
+ "sim-lib-femm-core",
+ "sim-lib-numbers-func",
+ "sim-lib-numbers-numeric",
+]
+
+[[package]]
+name = "sim-lib-femm-geometry"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a773d601912f253508622ad7aeef90c035bbda22e47638c55e080cd37bd5b670"
+dependencies = [
+ "sim-cookbook",
+ "sim-kernel",
+ "sim-lib-femm-core",
+ "sim-value 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "sim-lib-femm-material"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7ba093e5ba6fe91a6072001e7d4f00976929249c563ea03bbf954e85d911c3fc"
+dependencies = [
+ "sim-cookbook",
+ "sim-kernel",
+ "sim-lib-femm-core",
+ "sim-value 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "sim-lib-femm-mesh"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "306497d0aacd2b328d918349f424043fa8b9096a214f37a6dab92c8aa74a4a45"
+dependencies = [
+ "sim-cookbook",
+ "sim-kernel",
+ "sim-lib-femm-core",
+ "sim-lib-femm-geometry",
+ "sim-lib-femm-material",
+ "sim-value 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "sim-lib-femm-physics"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c2ee6c1b9798a8e2d699ad5fd622fcff1d9bd12cb7622ebc98b5fbbfa55f471e"
+dependencies = [
+ "sim-cookbook",
+ "sim-kernel",
+ "sim-lib-femm-assembly",
+ "sim-lib-femm-core",
+ "sim-lib-femm-space",
+ "sim-lib-numbers-ad",
+ "sim-value 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "sim-lib-femm-post"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "928d96ecac9b4b1f576bda864d78e0669105af246d97b64a48e6c40a23e94472"
+dependencies = [
+ "sim-citizen",
+ "sim-cookbook",
+ "sim-kernel",
+ "sim-lib-femm-core",
+ "sim-lib-femm-flow",
+ "sim-lib-femm-mesh",
+ "sim-lib-femm-space",
+]
+
+[[package]]
+name = "sim-lib-femm-solve"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "208a29bd7efd4ec2babc27b1ddb36586e4210f3c109e1472fd5218834ad23815"
+dependencies = [
+ "sim-cookbook",
+ "sim-kernel",
+ "sim-lib-femm-assembly",
+ "sim-lib-femm-core",
+ "sim-lib-femm-flow",
+ "sim-lib-femm-geometry",
+ "sim-lib-femm-material",
+ "sim-lib-femm-mesh",
+ "sim-lib-femm-physics",
+ "sim-lib-femm-post",
+ "sim-lib-femm-space",
+ "sim-lib-numbers-ad",
+ "sim-value 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "sim-lib-femm-space"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0722aa1736b21de7309eca0d45c01a9384d4b30b936a188a4eb789d0fef4ef41"
+dependencies = [
+ "sim-cookbook",
+ "sim-kernel",
+ "sim-lib-femm-core",
+ "sim-lib-femm-mesh",
+]
+
+[[package]]
 name = "sim-lib-net-core"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b1fb070b7117bf45b42beda09993092de30d3f993fffc1622d8ae60b7d71fef5"
+dependencies = [
+ "sim-cookbook",
+]
+
+[[package]]
+name = "sim-lib-numbers-ad"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c8e11c089d222f95c1f859a7c61181296bd0f6033d24bb289b2e274344d2a628"
 dependencies = [
  "sim-cookbook",
 ]

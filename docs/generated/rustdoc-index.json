@@ -16,6 +16,13 @@
       "summary": "Optional runtime-loaded CUDA/cuBLAS tensor compute provider."
     },
     {
+      "crate_name": "sim_lib_compute_femm",
+      "group": "workspace",
+      "manifest": "crates/sim-lib-compute-femm/Cargo.toml",
+      "package": "sim-lib-compute-femm",
+      "summary": "Provider-neutral resident CSR FEMM linear solver."
+    },
+    {
       "crate_name": "sim_lib_compute_model",
       "group": "workspace",
       "manifest": "crates/sim-lib-compute-model/Cargo.toml",
