@@ -66,7 +66,7 @@ fn verifies_each_registered_target_and_rejects_cross_target_adapter() {
 
     let mut gfx1151 = artifact();
     gfx1151.target = "gpu:amd/gfx1151".to_owned();
-    gfx1151.adapter = "AMD Radeon Graphics RADV STRIX_HALO".to_owned();
+    gfx1151.adapter = "AMD Radeon Graphics (RADV STRIX_HALO)".to_owned();
     gfx1151.power = "unavailable".to_owned();
     gfx1151.thermal = "unavailable".to_owned();
     gfx1151.verify(SOURCE, &manifest_cases_fixture()).unwrap();

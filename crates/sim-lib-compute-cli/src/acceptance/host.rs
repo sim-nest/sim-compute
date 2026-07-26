@@ -116,10 +116,9 @@ pub(super) fn sanitize_token(value: &str, name: &str) -> Result<String, ComputeC
     if value.is_empty() || value.len() > 96 {
         return Err(ComputeCliError::new(format!("{name} is outside policy")));
     }
-    if !value
-        .chars()
-        .all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, ' ' | '-' | '_' | '.' | '/'))
-    {
+    if !value.chars().all(|ch| {
+        ch.is_ascii_alphanumeric() || matches!(ch, ' ' | '-' | '_' | '.' | '/' | '(' | ')')
+    }) {
         return Err(ComputeCliError::new(format!(
             "{name} contains unsupported characters"
         )));
