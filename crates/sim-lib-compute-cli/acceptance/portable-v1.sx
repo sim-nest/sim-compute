@@ -1,0 +1,8 @@
+(sim.compute-acceptance-manifest/v1
+  (case (id "probe-allocation-transfer") (category "probe/allocation/transfer"))
+  (case (id "pointwise-transcendental") (category "pointwise/transcendental"))
+  (case (id "reduction-linalg") (category "reduction/linalg"))
+  (case (id "cross-binding-segmentation") (category "cross-binding/segmentation"))
+  (case (id "fixed-adaptive-ode") (category "ode/fixed-adaptive"))
+  (case (id "certified-femm") (category "femm/certified"))
+)

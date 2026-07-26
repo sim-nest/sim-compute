@@ -3,10 +3,11 @@
 //! Loadable compute command surface.
 //!
 //! The crate exports `cli/main/compute` as a host-registered callable. It
-//! inspects installed compute sites and profile storage supplied as a Table/Dir
-//! value by the embedding host; it never opens filesystem paths or creates a
+//! inspects installed compute sites, profile storage supplied as a Table/Dir
+//! value by the embedding host, and physical acceptance artifacts; it creates no
 //! separate bootstrap.
 
+mod acceptance;
 mod args;
 mod envelope;
 mod evidence;
@@ -19,13 +20,17 @@ use sim_kernel::{
     Linker, LoadCx, Object, ObjectCompat, Result, Symbol, Value, Version,
 };
 
-pub use args::{ComputeCommand, OutputMode, ProfileAction, parse_compute_args};
+pub use args::{
+    AcceptanceAction, AcceptanceRequest, ComputeCommand, OutputMode, ProfileAction,
+    parse_compute_args,
+};
 pub use render::help;
 
 use crate::{
+    acceptance::acceptance_evidence,
     envelope::envelope_args,
     evidence::{profile_evidence, provider_rows, recipe_evidence},
-    render::{render_profile, render_providers, render_recipe},
+    render::{render_acceptance, render_profile, render_providers, render_recipe},
 };
 
 /// Capability required for device inspection and probe evidence.
@@ -41,6 +46,11 @@ pub fn compute_profile_read_capability() -> CapabilityName {
 /// Capability required for profile writes.
 pub fn compute_profile_write_capability() -> CapabilityName {
     CapabilityName::new("compute.profile.write")
+}
+
+/// Capability required for physical acceptance capture.
+pub fn compute_acceptance_capability() -> CapabilityName {
+    CapabilityName::new("compute.acceptance")
 }
 
 /// Runtime library symbol for the compute CLI.
@@ -197,6 +207,13 @@ pub fn run_command(
             cx.require(&compute_device_capability())
                 .map_err(ComputeCliError::from_kernel)?;
             Ok(render_recipe(command, &recipe_evidence()))
+        }
+        ComputeCommand::Acceptance(request) => {
+            if matches!(request.action, AcceptanceAction::Capture) {
+                cx.require(&compute_acceptance_capability())
+                    .map_err(ComputeCliError::from_kernel)?;
+            }
+            Ok(render_acceptance(&acceptance_evidence(request)?))
         }
     }
 }

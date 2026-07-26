@@ -1,13 +1,14 @@
 //! Rendering for compute command evidence.
 
 use crate::{
+    acceptance::AcceptanceEvidence,
     args::ComputeCommand,
     evidence::{ProfileEvidence, ProviderEvidence, RecipeEvidence},
 };
 
 /// Renders command help.
 pub fn help() -> &'static str {
-    "Usage: sim compute <devices|probe|profile|explain|recipe> [OPTIONS]\n"
+    "Usage: sim compute <devices|probe|profile|explain|recipe|acceptance> [OPTIONS]\n"
 }
 
 pub(crate) fn render_providers(command: &ComputeCommand, rows: &[ProviderEvidence]) -> String {
@@ -84,6 +85,13 @@ pub(crate) fn render_recipe(command: &ComputeCommand, evidence: &RecipeEvidence)
     }
 }
 
+pub(crate) fn render_acceptance(evidence: &AcceptanceEvidence) -> String {
+    format!(
+        "acceptance\t{}\tschema={}\tcases={}\tartifact={}\n",
+        evidence.status, evidence.schema, evidence.cases, evidence.artifact
+    )
+}
+
 fn json(command: &ComputeCommand) -> bool {
     match command {
         ComputeCommand::Help => false,
@@ -94,6 +102,7 @@ fn json(command: &ComputeCommand) -> bool {
             matches!(request.output, crate::args::OutputMode::Json)
         }
         ComputeCommand::Recipe(request) => matches!(request.output, crate::args::OutputMode::Json),
+        ComputeCommand::Acceptance(_) => false,
     }
 }
 

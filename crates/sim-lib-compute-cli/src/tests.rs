@@ -5,9 +5,9 @@ use sim_lib_compute_auto::ComputeAutoLib;
 use sim_lib_compute_model::{ComputeModelLib, ModeledComputeProfile};
 
 use crate::{
-    ComputeCliLib, compute_device_capability, compute_entrypoint_symbol,
-    compute_profile_read_capability, compute_profile_write_capability, parse_compute_args,
-    run_command,
+    ComputeCliLib, compute_acceptance_capability, compute_device_capability,
+    compute_entrypoint_symbol, compute_profile_read_capability, compute_profile_write_capability,
+    parse_compute_args, run_command,
 };
 
 // conformance: compute CLI exports bounded devices, probe, profile, explain, and recipe evidence through a loadable command.
@@ -20,6 +20,7 @@ fn grant(cx: &mut sim_kernel::Cx, seat: &sim_kernel::GrantSeat) {
     seat.grant(cx, compute_device_capability()).unwrap();
     seat.grant(cx, compute_profile_read_capability()).unwrap();
     seat.grant(cx, compute_profile_write_capability()).unwrap();
+    seat.grant(cx, compute_acceptance_capability()).unwrap();
 }
 
 #[test]
@@ -29,7 +30,7 @@ fn help_parses_without_capabilities() {
 
     let output = run_command(&mut cx, None, &command).unwrap();
 
-    assert!(output.contains("devices|probe|profile|explain|recipe"));
+    assert!(output.contains("devices|probe|profile|explain|recipe|acceptance"));
 }
 
 #[test]
@@ -170,6 +171,37 @@ fn parser_rejects_unknown_and_unbounded_input() {
         .is_err()
     );
     assert!(parse_compute_args(&["recipe".to_owned(), "unknown".to_owned()]).is_err());
+    assert!(
+        parse_compute_args(&[
+            "acceptance".to_owned(),
+            "verify".to_owned(),
+            "--source".to_owned(),
+            "not-a-hash".to_owned(),
+            "artifact.sx".to_owned(),
+        ])
+        .is_err()
+    );
+}
+
+#[test]
+fn acceptance_verify_is_read_only_and_capture_requires_capability() {
+    let command = parse_compute_args(&[
+        "acceptance".to_owned(),
+        "capture".to_owned(),
+        "--manifest".to_owned(),
+        "crates/sim-lib-compute-cli/acceptance/portable-v1.sx".to_owned(),
+        "--source".to_owned(),
+        "0123456789abcdef0123456789abcdef01234567".to_owned(),
+        "--output".to_owned(),
+        "/tmp/sim-compute-acceptance-test.sx".to_owned(),
+    ])
+    .unwrap();
+    let (mut cx, seat) = test_cx();
+    seat.grant(&mut cx, compute_device_capability()).unwrap();
+
+    let err = run_command(&mut cx, None, &command).unwrap_err();
+
+    assert!(err.to_string().contains("compute.acceptance"));
 }
 
 #[test]

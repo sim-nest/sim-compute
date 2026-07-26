@@ -41,6 +41,8 @@ pub enum ComputeCommand {
     Explain(ProfileRequest),
     /// Render a checked recipe descriptor.
     Recipe(RecipeRequest),
+    /// Capture, verify, or import a physical acceptance artifact.
+    Acceptance(AcceptanceRequest),
 }
 
 /// Provider selection and common output options.
@@ -84,6 +86,32 @@ pub struct RecipeRequest {
     pub output: OutputMode,
 }
 
+/// Acceptance artifact action.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum AcceptanceAction {
+    /// Capture one exact physical artifact.
+    Capture,
+    /// Verify an existing artifact.
+    Verify,
+    /// Import an existing artifact after verification.
+    Import,
+}
+
+/// Acceptance command options.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AcceptanceRequest {
+    /// Requested action.
+    pub action: AcceptanceAction,
+    /// Case manifest path for capture.
+    pub manifest: Option<String>,
+    /// Exact sim-compute source commit expected by the artifact.
+    pub source: String,
+    /// Output artifact path for capture.
+    pub output: Option<String>,
+    /// Input artifact path for verify/import.
+    pub input: Option<String>,
+}
+
 /// Parses a `sim compute` payload argument list.
 pub fn parse_compute_args(args: &[String]) -> Result<ComputeCommand, ComputeCliError> {
     let args = strip_verb(args);
@@ -105,6 +133,7 @@ pub fn parse_compute_args(args: &[String]) -> Result<ComputeCommand, ComputeCliE
             Ok(ComputeCommand::Explain(request))
         }
         "recipe" => Ok(ComputeCommand::Recipe(parse_recipe(&args[1..])?)),
+        "acceptance" => Ok(ComputeCommand::Acceptance(parse_acceptance(&args[1..])?)),
         other => Err(ComputeCliError::new(format!(
             "unknown compute verb: {other}"
         ))),
@@ -202,6 +231,74 @@ fn parse_profile(args: &[String]) -> Result<ProfileRequest, ComputeCliError> {
     Ok(request)
 }
 
+fn parse_acceptance(args: &[String]) -> Result<AcceptanceRequest, ComputeCliError> {
+    let Some(action) = args.first() else {
+        return Err(ComputeCliError::new("acceptance requires an action"));
+    };
+    let mut request = AcceptanceRequest {
+        action: match action.as_str() {
+            "capture" => AcceptanceAction::Capture,
+            "verify" => AcceptanceAction::Verify,
+            "import" => AcceptanceAction::Import,
+            other => {
+                return Err(ComputeCliError::new(format!(
+                    "unknown acceptance action: {other}"
+                )));
+            }
+        },
+        manifest: None,
+        source: String::new(),
+        output: None,
+        input: None,
+    };
+    let mut i = 1;
+    while i < args.len() {
+        match args[i].as_str() {
+            "--manifest" => {
+                request.manifest = Some(checked_path(take_value(args, &mut i, "--manifest")?)?)
+            }
+            "--source" => request.source = checked_hash(take_value(args, &mut i, "--source")?)?,
+            "--output" => {
+                request.output = Some(checked_path(take_value(args, &mut i, "--output")?)?)
+            }
+            value if value.starts_with('-') => {
+                return Err(ComputeCliError::new(format!(
+                    "unknown acceptance option: {value}"
+                )));
+            }
+            value => {
+                let path = checked_path(value.to_owned())?;
+                if request.input.replace(path).is_some() {
+                    return Err(ComputeCliError::new(
+                        "acceptance accepts at most one input artifact",
+                    ));
+                }
+            }
+        }
+        i += 1;
+    }
+    if request.source.is_empty() {
+        return Err(ComputeCliError::new("acceptance requires --source"));
+    }
+    match request.action {
+        AcceptanceAction::Capture => {
+            if request.manifest.is_none() || request.output.is_none() || request.input.is_some() {
+                return Err(ComputeCliError::new(
+                    "acceptance capture requires --manifest and --output only",
+                ));
+            }
+        }
+        AcceptanceAction::Verify | AcceptanceAction::Import => {
+            if request.input.is_none() || request.manifest.is_some() || request.output.is_some() {
+                return Err(ComputeCliError::new(
+                    "acceptance verify/import requires one input artifact",
+                ));
+            }
+        }
+    }
+    Ok(request)
+}
+
 fn parse_recipe(args: &[String]) -> Result<RecipeRequest, ComputeCliError> {
     let mut output = OutputMode::Text;
     let mut id = "inspect-compute-device".to_owned();
@@ -250,6 +347,25 @@ fn checked_selector(value: &str) -> Result<(), ComputeCliError> {
         ));
     }
     Ok(())
+}
+
+fn checked_path(value: String) -> Result<String, ComputeCliError> {
+    if value.is_empty()
+        || value.len() > 240
+        || value.contains('\0')
+        || value.contains('\n')
+        || value.contains('\r')
+    {
+        return Err(ComputeCliError::new("path is outside acceptance policy"));
+    }
+    Ok(value)
+}
+
+fn checked_hash(value: String) -> Result<String, ComputeCliError> {
+    if value.len() != 40 || !value.chars().all(|ch| ch.is_ascii_hexdigit()) {
+        return Err(ComputeCliError::new("source must be a 40-hex commit"));
+    }
+    Ok(value.to_ascii_lowercase())
 }
 
 fn bounded_usize(value: String) -> Result<usize, ComputeCliError> {

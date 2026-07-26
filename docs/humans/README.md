@@ -19,7 +19,7 @@ This generated lane consumes `docs/generated/sim-index-fragment.sx`. Global inde
 | --- | --- | ---: | --- |
 | `feature/sim-compute/generated-docs` | `crate/xtask` | 0 | Publish generated package, card, rustdoc, recipe, and Index facts for compute providers. |
 | `feature/sim-compute/tensor-providers` | `crate/sim-lib-compute-model` | 10 | Run canonical Tensor requests through modeled, automatic, probe-backed wgpu, optional CUDA/cuBLAS, and optional ROCm/rocBLAS compute sites. |
-| `feature/sim-compute/compute-cli` | `crate/sim-lib-compute-cli` | 1 | Export a bounded loadable `cli/main/compute` command for inspecting compute devices, probes, profiles, explanations, and recipes. |
+| `feature/sim-compute/compute-cli` | `crate/sim-lib-compute-cli` | 1 | Export a bounded loadable `cli/main/compute` command for inspecting compute devices, probes, profiles, explanations, recipes, and physical acceptance artifacts. |
 | `feature/sim-compute/femm-resident-solvers` | `crate/sim-lib-compute-femm` | 2 | Export a provider-neutral FEMM LinearSolver that keeps CSR and Krylov work vectors resident while requiring f64 residual certification. |
 
 ## Surfaces
