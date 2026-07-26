@@ -7,7 +7,7 @@ repository.workspace = true
 homepage.workspace = true
 description = "Evidence-based wgpu tensor compute site discovery for SIM."
 readme = "README.md"
-publish = false
+publish = true
 
 [dependencies]
 half = "2"

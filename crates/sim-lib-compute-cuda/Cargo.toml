@@ -7,7 +7,7 @@ repository.workspace = true
 homepage.workspace = true
 description = "Runtime-loaded CUDA/cuBLAS tensor compute site for SIM."
 readme = "README.md"
-publish = false
+publish = true
 
 [dependencies]
 libloading = "0.8"

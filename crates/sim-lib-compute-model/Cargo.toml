@@ -5,7 +5,7 @@ edition = "2024"
 license = "MPL-2.0"
 description = "Modeled resident tensor compute site for SIM."
 readme = "README.md"
-publish = false
+publish = true
 repository = "https://github.com/sim-nest/sim-compute"
 homepage = "https://github.com/sim-nest/sim-compute"
 
@@ -13,7 +13,7 @@ homepage = "https://github.com/sim-nest/sim-compute"
 sim-cookbook = { version = "0.1.3" }
 sim-kernel = { version = "0.1.4" }
 sim-lib-numbers-tensor = { version = "0.1.5" }
-sim-table-core = { version = "0.1.2", git = "https://github.com/sim-nest/sim-foundation", rev = "3ac9fb759bf4b13ddee76145b7e5809f080e8efa" }
+sim-table-core = { version = "0.1.2" }
 
 [build-dependencies]
 sim-cookbook = { version = "0.1.3" }

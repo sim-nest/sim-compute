@@ -95,7 +95,7 @@
       "group": "workspace",
       "manifest": "crates/sim-lib-compute-auto/Cargo.toml",
       "name": "sim-lib-compute-auto",
-      "publish": "false",
+      "publish": "true",
       "root": "crates/sim-lib-compute-auto",
       "rustdoc_summary": "Automatic tensor compute-site selection.",
       "target_kinds": [
@@ -148,7 +148,7 @@
       "group": "workspace",
       "manifest": "crates/sim-lib-compute-cli/Cargo.toml",
       "name": "sim-lib-compute-cli",
-      "publish": "false",
+      "publish": "true",
       "root": "crates/sim-lib-compute-cli",
       "rustdoc_summary": "Loadable compute command surface.",
       "target_kinds": [
@@ -186,7 +186,7 @@
       "group": "workspace",
       "manifest": "crates/sim-lib-compute-cuda/Cargo.toml",
       "name": "sim-lib-compute-cuda",
-      "publish": "false",
+      "publish": "true",
       "root": "crates/sim-lib-compute-cuda",
       "rustdoc_summary": "Optional runtime-loaded CUDA/cuBLAS tensor compute provider.",
       "target_kinds": [
@@ -224,7 +224,7 @@
       "group": "workspace",
       "manifest": "crates/sim-lib-compute-femm/Cargo.toml",
       "name": "sim-lib-compute-femm",
-      "publish": "false",
+      "publish": "true",
       "root": "crates/sim-lib-compute-femm",
       "rustdoc_summary": "Provider-neutral resident CSR FEMM linear solver.",
       "target_kinds": [
@@ -262,7 +262,7 @@
       "group": "workspace",
       "manifest": "crates/sim-lib-compute-model/Cargo.toml",
       "name": "sim-lib-compute-model",
-      "publish": "false",
+      "publish": "true",
       "root": "crates/sim-lib-compute-model",
       "rustdoc_summary": "Modeled resident tensor compute provider.",
       "target_kinds": [
@@ -300,7 +300,7 @@
       "group": "workspace",
       "manifest": "crates/sim-lib-compute-rocm/Cargo.toml",
       "name": "sim-lib-compute-rocm",
-      "publish": "false",
+      "publish": "true",
       "root": "crates/sim-lib-compute-rocm",
       "rustdoc_summary": "Optional runtime-loaded ROCm/rocBLAS tensor compute provider.",
       "target_kinds": [
@@ -338,7 +338,7 @@
       "group": "workspace",
       "manifest": "crates/sim-lib-compute-wgpu/Cargo.toml",
       "name": "sim-lib-compute-wgpu",
-      "publish": "false",
+      "publish": "true",
       "root": "crates/sim-lib-compute-wgpu",
       "rustdoc_summary": "Evidence-based wgpu tensor compute site discovery.",
       "target_kinds": [
@@ -401,10 +401,10 @@
     "generated_by": "cargo run -p xtask -- simdoc",
     "generation_timestamp": "2026-07-24T22:54:42+02:00",
     "generator": "xtask repo-contract v1",
-    "git_commit": "3dc09cdc5ccf9c07aafcaf958fe6e53bc5df880f",
+    "git_commit": "042f86e56bf0a40238b127f3129a60dcd1f5638e",
     "repo": "sim-compute",
     "schema": "sim.provenance.v1",
-    "source_commit": "3dc09cdc5ccf9c07aafcaf958fe6e53bc5df880f",
+    "source_commit": "042f86e56bf0a40238b127f3129a60dcd1f5638e",
     "source_remote": "https://github.com/sim-nest/sim-compute",
     "validation_commands": [
       "cargo fmt --all --check",
@@ -417,7 +417,7 @@
       "cargo run -p xtask -- validation-matrix --check --repo .",
       "cargo run -p xtask -- crate-catalog --check --repo ."
     ],
-    "workspace_hash": "b0fa414565c56611",
+    "workspace_hash": "773db3738110b706",
     "workspace_hash_algorithm": "fnv1a64",
     "workspace_hash_input_count": 82,
     "workspace_hash_inputs": [

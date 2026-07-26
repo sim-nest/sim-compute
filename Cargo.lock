@@ -756,7 +756,7 @@ checksum = "40b4b0594389d7eb1b007c220baecf910324ee46e107ed08d80be8523a8f9470"
 dependencies = [
  "inventory",
  "sim-kernel",
- "sim-value 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "sim-value",
 ]
 
 [[package]]
@@ -792,8 +792,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "32d67847f715dd2e63f2dc5c8e0b5056654c17b8a720791710889e8432a9bc9e"
 dependencies = [
  "sim-kernel",
- "sim-table-core 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "sim-value 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "sim-table-core",
+ "sim-value",
 ]
 
 [[package]]
@@ -804,7 +804,7 @@ checksum = "0331f4e9f43004e76bb4b9c17b86f0a37e08da6bac20065e259184169fa728e7"
 dependencies = [
  "sim-config",
  "sim-kernel",
- "sim-value 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "sim-value",
 ]
 
 [[package]]
@@ -879,7 +879,7 @@ dependencies = [
  "sim-lib-numbers-rk",
  "sim-lib-numbers-tensor",
  "sim-lib-numbers-tensor-bcast",
- "sim-table-core 0.1.2 (git+https://github.com/sim-nest/sim-foundation?rev=3ac9fb759bf4b13ddee76145b7e5809f080e8efa)",
+ "sim-table-core",
 ]
 
 [[package]]
@@ -924,7 +924,7 @@ dependencies = [
  "sim-lib-femm-mesh",
  "sim-lib-femm-space",
  "sim-lib-numbers-ad",
- "sim-value 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "sim-value",
 ]
 
 [[package]]
@@ -961,7 +961,7 @@ dependencies = [
  "sim-cookbook",
  "sim-kernel",
  "sim-lib-femm-core",
- "sim-value 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "sim-value",
 ]
 
 [[package]]
@@ -973,7 +973,7 @@ dependencies = [
  "sim-cookbook",
  "sim-kernel",
  "sim-lib-femm-core",
- "sim-value 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "sim-value",
 ]
 
 [[package]]
@@ -987,7 +987,7 @@ dependencies = [
  "sim-lib-femm-core",
  "sim-lib-femm-geometry",
  "sim-lib-femm-material",
- "sim-value 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "sim-value",
 ]
 
 [[package]]
@@ -1002,7 +1002,7 @@ dependencies = [
  "sim-lib-femm-core",
  "sim-lib-femm-space",
  "sim-lib-numbers-ad",
- "sim-value 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "sim-value",
 ]
 
 [[package]]
@@ -1038,7 +1038,7 @@ dependencies = [
  "sim-lib-femm-post",
  "sim-lib-femm-space",
  "sim-lib-numbers-ad",
- "sim-value 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "sim-value",
 ]
 
 [[package]]
@@ -1330,16 +1330,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a539511c9674c7aadde75e8ecc459f9ec4de3908748ceccae4b8c0def7385657"
 dependencies = [
  "sim-kernel",
- "sim-value 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "sim-table-core"
-version = "0.1.2"
-source = "git+https://github.com/sim-nest/sim-foundation?rev=3ac9fb759bf4b13ddee76145b7e5809f080e8efa#3ac9fb759bf4b13ddee76145b7e5809f080e8efa"
-dependencies = [
- "sim-kernel",
- "sim-value 0.1.2 (git+https://github.com/sim-nest/sim-foundation?rev=3ac9fb759bf4b13ddee76145b7e5809f080e8efa)",
+ "sim-value",
 ]
 
 [[package]]
@@ -1347,14 +1338,6 @@ name = "sim-value"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "36787dd245068c435cfdf11acad040b0c16b818e83167c3eec8c7d726ff61da0"
-dependencies = [
- "sim-kernel",
-]
-
-[[package]]
-name = "sim-value"
-version = "0.1.2"
-source = "git+https://github.com/sim-nest/sim-foundation?rev=3ac9fb759bf4b13ddee76145b7e5809f080e8efa#3ac9fb759bf4b13ddee76145b7e5809f080e8efa"
 dependencies = [
  "sim-kernel",
 ]

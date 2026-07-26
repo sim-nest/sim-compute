@@ -7,7 +7,7 @@ repository.workspace = true
 homepage.workspace = true
 description = "Provider-neutral resident CSR FEMM linear solver for SIM."
 readme = "README.md"
-publish = false
+publish = true
 
 [dependencies]
 sim-cookbook = { version = "0.1.3" }

@@ -5,7 +5,7 @@ edition = "2024"
 license = "MPL-2.0"
 description = "Automatic tensor compute site selection for SIM."
 readme = "README.md"
-publish = false
+publish = true
 repository = "https://github.com/sim-nest/sim-compute"
 homepage = "https://github.com/sim-nest/sim-compute"
 

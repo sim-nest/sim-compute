@@ -7,7 +7,7 @@ repository.workspace = true
 homepage.workspace = true
 description = "Loadable compute command surface for SIM."
 readme = "README.md"
-publish = false
+publish = true
 
 [dependencies]
 sim-cookbook = { version = "0.1.3" }
