@@ -1,0 +1,1 @@
+(compute auto-profile (table supplied) (synthetic bounded upload download launch element reduction matmul) (physical-device required) (else cpu) (ledger provider materialization-bytes synchronizations))

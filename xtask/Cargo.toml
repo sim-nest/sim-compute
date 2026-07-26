@@ -6,6 +6,9 @@ description = "Repository automation wrapper for generated documentation and pol
 readme = "README.md"
 publish = false
 
+[dependencies]
+sim-kernel = { version = "0.1.4" }
+sim-lib-compute-cli = { path = "../crates/sim-lib-compute-cli" }
+
 [lints]
 workspace = true
-

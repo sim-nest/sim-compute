@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use sim_citizen::Citizen;
 use sim_kernel::{DefaultFactory, EagerPolicy, Symbol};
 use sim_lib_compute_model::ModeledComputeProfile;
 use sim_lib_numbers_tensor::{
@@ -7,7 +8,13 @@ use sim_lib_numbers_tensor::{
     add_op_symbol, build_tensor_value, tensor_value_ref,
 };
 
-use crate::{AutoComputeProfile, AutoTensorExecutor, ComputeAutoLib, compute_auto_site_symbol};
+use crate::{
+    AutoComputeProfile, AutoRouteDecision, AutoTensorExecutor, BenchmarkBounds, ComputeAutoLib,
+    ComputeDeviceIdentity, ComputeEvidenceKind, ComputeThermalPowerContext, ProfileStore,
+    ProfileStorePolicy, compute_auto_site_symbol, measure_bounded_profile,
+    measured_compute_profile_citizen_symbol, measured_compute_profile_shape_symbol,
+    verify_physical,
+};
 
 // conformance: auto compute site selects modeled providers and falls back to CPU without a compatible profile.
 
@@ -73,6 +80,9 @@ fn auto_with_modeled_profile_returns_resident_storage() {
     let mut cx = test_cx();
     let executor = AutoTensorExecutor::new(AutoComputeProfile {
         modeled: Some(ModeledComputeProfile::default()),
+        measured: None,
+        expected: None,
+        now_tick: 0,
     });
     let op = TensorOp::without_attributes(&mut cx, add_op_symbol()).unwrap();
     let left = vector(&mut cx, &["1"]);
@@ -87,6 +97,192 @@ fn auto_with_modeled_profile_returns_resident_storage() {
         TensorExecution::Unsupported { reason } => panic!("{reason}"),
     };
     assert!(matches!(tensor.location(), TensorLocation::Resident { .. }));
+}
+
+#[test]
+fn measured_profile_round_trips_through_supplied_table() {
+    let mut cx = test_cx();
+    let identity = ComputeDeviceIdentity::new("adapter-a", "driver-1", "modeled");
+    let measured = measure_bounded_profile(
+        identity.clone(),
+        ModeledComputeProfile::default(),
+        ComputeThermalPowerContext {
+            thermal: "steady".to_owned(),
+            power: "plugged".to_owned(),
+        },
+        "unit-test",
+        7,
+        BenchmarkBounds::default(),
+    );
+    let table = cx.factory().table(Vec::new()).unwrap();
+    let store = ProfileStore::new(table, ProfileStorePolicy::default()).unwrap();
+    let key = Symbol::qualified("compute-profile", "adapter-a");
+
+    store.save(&mut cx, key.clone(), &measured).unwrap();
+    let loaded = store.load(&mut cx, key).unwrap().unwrap();
+
+    assert_eq!(loaded.identity, identity);
+    assert_eq!(
+        loaded.provenance.evidence_kind,
+        ComputeEvidenceKind::Modeled
+    );
+    assert_eq!(loaded.provenance.observed_identity, Some(identity));
+    assert!(loaded.is_conclusive());
+    assert_eq!(store.keys(&mut cx).unwrap().len(), 1);
+}
+
+#[test]
+fn physical_verifier_rejects_modeled_synthetic_and_renamed_profiles() {
+    let identity = ComputeDeviceIdentity::new("adapter-a", "driver-1", "modeled");
+    let modeled_profile = ModeledComputeProfile::default();
+    assert!(verify_physical(&modeled_profile).is_err());
+
+    let mut synthetic_profile = measure_bounded_profile(
+        identity.clone(),
+        ModeledComputeProfile::default(),
+        ComputeThermalPowerContext {
+            thermal: "steady".to_owned(),
+            power: "plugged".to_owned(),
+        },
+        "unit-test",
+        7,
+        BenchmarkBounds::default(),
+    );
+    assert!(verify_physical(&synthetic_profile).is_err());
+
+    synthetic_profile.provenance.evidence_kind = ComputeEvidenceKind::PhysicalDevice;
+    synthetic_profile.identity.adapter = "caller-renamed".to_owned();
+    assert!(verify_physical(&synthetic_profile).is_err());
+
+    synthetic_profile.identity = identity;
+    assert!(verify_physical(&synthetic_profile).is_ok());
+}
+
+#[test]
+fn measured_profile_exposes_citizen_and_shape_records() {
+    assert_eq!(
+        measured_compute_profile_citizen_symbol().to_string(),
+        "compute-profile/MeasuredProfile"
+    );
+    assert_eq!(
+        measured_compute_profile_shape_symbol().to_string(),
+        "compute-profile/MeasuredProfileShape"
+    );
+    assert_eq!(crate::MeasuredComputeProfile::citizen_version(), 0);
+    assert_eq!(crate::MeasuredComputeProfile::citizen_arity(), 9);
+}
+
+#[test]
+fn measured_profile_routes_device_only_when_fresh_compatible_and_conclusive() {
+    let mut cx = test_cx();
+    let identity = ComputeDeviceIdentity::new("adapter-a", "driver-1", "modeled");
+    let mut measured = measure_bounded_profile(
+        identity.clone(),
+        ModeledComputeProfile::default(),
+        ComputeThermalPowerContext {
+            thermal: "steady".to_owned(),
+            power: "plugged".to_owned(),
+        },
+        "unit-test",
+        7,
+        BenchmarkBounds::default(),
+    );
+    measured.provenance.evidence_kind = ComputeEvidenceKind::PhysicalDevice;
+    let executor = AutoTensorExecutor::new(AutoComputeProfile {
+        modeled: None,
+        measured: Some(measured),
+        expected: Some(identity),
+        now_tick: 8,
+    });
+    assert_eq!(executor.route_decision(), AutoRouteDecision::Device);
+
+    let op = TensorOp::without_attributes(&mut cx, add_op_symbol()).unwrap();
+    let left = vector(&mut cx, &["1"]);
+    let right = vector(&mut cx, &["2"]);
+    let request = TensorRequest::new(
+        op,
+        vec![left, right],
+        TensorMeta::new(vec![1], Symbol::qualified("numbers", "i64")),
+    );
+    let tensor = match executor.execute(&mut cx, request).unwrap() {
+        TensorExecution::Complete(tensor) => tensor,
+        TensorExecution::Unsupported { reason } => panic!("{reason}"),
+    };
+    assert!(matches!(tensor.location(), TensorLocation::Resident { .. }));
+    executor.flush().unwrap();
+    let events = executor.routing_events();
+    assert_eq!(events.len(), 2);
+    assert_eq!(events[0].decision, AutoRouteDecision::Device);
+    assert!(events[0].materialization_bytes > 0);
+    assert_eq!(events[1].synchronizations, 1);
+}
+
+#[test]
+fn synthetic_measured_profile_cannot_select_device_route() {
+    let identity = ComputeDeviceIdentity::new("adapter-a", "driver-1", "modeled");
+    let measured = measure_bounded_profile(
+        identity.clone(),
+        ModeledComputeProfile::default(),
+        ComputeThermalPowerContext {
+            thermal: "steady".to_owned(),
+            power: "plugged".to_owned(),
+        },
+        "unit-test",
+        7,
+        BenchmarkBounds::default(),
+    );
+    let executor = AutoTensorExecutor::new(AutoComputeProfile {
+        modeled: None,
+        measured: Some(measured),
+        expected: Some(identity),
+        now_tick: 8,
+    });
+
+    assert_eq!(executor.route_decision(), AutoRouteDecision::NonPhysical);
+    assert!(executor.uses_cpu_fallback());
+}
+
+#[test]
+fn stale_or_incompatible_measured_profile_uses_cpu() {
+    let mut cx = test_cx();
+    let identity = ComputeDeviceIdentity::new("adapter-a", "driver-1", "modeled");
+    let measured = measure_bounded_profile(
+        identity,
+        ModeledComputeProfile::default(),
+        ComputeThermalPowerContext {
+            thermal: "steady".to_owned(),
+            power: "plugged".to_owned(),
+        },
+        "unit-test",
+        7,
+        BenchmarkBounds::default(),
+    );
+    let executor = AutoTensorExecutor::new(AutoComputeProfile {
+        modeled: None,
+        measured: Some(measured),
+        expected: Some(ComputeDeviceIdentity::new(
+            "adapter-b",
+            "driver-1",
+            "modeled",
+        )),
+        now_tick: 8,
+    });
+    assert_eq!(executor.route_decision(), AutoRouteDecision::Incompatible);
+    assert!(executor.uses_cpu_fallback());
+
+    let op = TensorOp::without_attributes(&mut cx, add_op_symbol()).unwrap();
+    let left = vector(&mut cx, &["1"]);
+    let right = vector(&mut cx, &["2"]);
+    let request = TensorRequest::new(
+        op,
+        vec![left, right],
+        TensorMeta::new(vec![1], Symbol::qualified("numbers", "i64")),
+    );
+    let tensor = match executor.execute(&mut cx, request).unwrap() {
+        TensorExecution::Complete(tensor) => tensor,
+        TensorExecution::Unsupported { reason } => panic!("{reason}"),
+    };
+    assert_eq!(tensor.location(), TensorLocation::Host);
 }
 
 #[test]

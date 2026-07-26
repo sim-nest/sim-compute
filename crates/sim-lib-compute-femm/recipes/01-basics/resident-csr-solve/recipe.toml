@@ -1,0 +1,8 @@
+id = "resident-csr-solve"
+title = "Resident CSR solve"
+codec = "lisp"
+summary = "Shows a resident CSR Krylov solve accepted only after f64 residual certification."
+tags = ["compute", "femm", "csr", "krylov", "certificate"]
+requires = ["compute/femm", "femm/linear-solver"]
+setup = "setup.siml"
+expected = "expected.txt"

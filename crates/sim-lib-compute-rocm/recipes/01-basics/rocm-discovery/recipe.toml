@@ -1,0 +1,6 @@
+id = "rocm-discovery"
+title = "ROCm discovery"
+language = "lisp"
+setup = "setup.siml"
+expected = "expected.txt"
+purpose = "purpose.md"

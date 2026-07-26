@@ -1,0 +1,11 @@
+id = "inspect-compute-device"
+title = "Inspect compute device"
+description = "Show bounded compute CLI evidence for installed sites and injected profile storage."
+level = "basic"
+tags = ["compute", "cli", "device", "profile"]
+requires = ["compute/cli", "compute/provider", "storage/table"]
+capabilities = ["compute.device"]
+assert_capabilities = ["compute.device"]
+setup = "setup.siml"
+expected = "expected.txt"
+result = "(compute devices (model installed) (auto installed) (profiles table-supplied))"

@@ -40,29 +40,57 @@ claims_surfaces = [
 [[feature]]
 id = "feature/sim-compute/tensor-providers"
 title = "Tensor compute providers"
-summary = "Run canonical Tensor requests through modeled resident and automatic compute sites."
+summary = "Run canonical Tensor requests through modeled, automatic, probe-backed wgpu, optional CUDA/cuBLAS, and optional ROCm/rocBLAS compute sites."
 owner = "crate/sim-lib-compute-model"
 audiences = ["user", "code", "framework"]
-guidance = "Use this row when a tensor expression needs a loadable provider site. The modeled executor preserves canonical Tensor identity while returning resident storage, bounded submission evidence, counters, and injected OOM, device-loss, or readback faults. The auto site uses a compatible modeled profile when supplied and otherwise falls back to the sim-numbers CPU executor."
+guidance = "Use this row when a tensor expression needs a loadable provider site. The modeled executor preserves canonical Tensor identity while returning segmented modeled-resident storage, bounded queue byte/node/deadline evidence, bounded auto-flush batch evidence, eviction counters, cached materialization, and injected OOM, device-loss, eviction, or readback faults. Its resident ODE adapter composes the published tensor ODE pipeline through the modeled tensor site, batches fixed RK stages without stage readback, keeps adaptive candidates modeled-resident, and declines scalar, small, or nonlowerable RHS work before execution. The auto site records bounded synthetic adapter/driver/backend profiles with limits, transfer, allocation, tiles, sample distributions, thermal/power context, provenance, evidence kind, and observed identity; persists them only through caller-supplied Table/Dir values with bounded keys and bytes; chooses CPU for absent, stale, incompatible, inconclusive, modeled, host-emulated, or caller-renamed evidence; and ledgers provider choices, materialization bytes, and synchronizations. The wgpu provider enumerates adapters deterministically, records requested and granted limits/features plus transfer, mapping, bounded-allocation, and observed identity evidence, retains the selected Device and Queue for exported physical sites, dispatches f32 add/subtract/multiply/divide/negation/sqrt/exp/log/sin/cos, fixed-tree sum/min/max/norm reductions, transpose, dot, matrix-vector, vector-matrix, and tiled matmul through real compute passes, rejects unsupported dtype/shape/limit combinations before submission, keeps device-loss/readback errors explicit, uses native f16 labels only when granted, widens bf16 or unsupported half work to f32, and caches validated and compiled pipeline records by adapter/op/dtype/rank/tile profile. Synthetic wgpu fixtures remain host-emulated and cannot satisfy physical-device acceptance. The CUDA provider has no toolkit or link-time dependency: it dynamically loads versioned driver, cuBLAS, and cuBLASLt symbols, exports a site only after ABI validation, accepts dense f32 matmul plus cuBLASLt-supported half-family matmul, and declines every other operation before accepting a submission. The ROCm provider has no toolkit or link-time dependency: on Linux it dynamically loads compatible HIP and rocBLAS symbols, requires observed AMD gfx target evidence before exporting a site, accepts dense f32 matmul plus rocBLASLt-supported half-family matmul, and declines every other operation before accepting a submission. The FEMM compute solver routes CSR/work-vector storage and Krylov math through the selected provider, then uses CPU f64 residual certification for acceptance."
 claims_anchors = [
   "anchor/crate/sim-lib-compute-auto",
+  "anchor/crate/sim-lib-compute-cuda",
   "anchor/crate/sim-lib-compute-model",
+  "anchor/crate/sim-lib-compute-rocm",
+  "anchor/crate/sim-lib-compute-wgpu",
   "anchor/export/sim-lib-compute-auto/site/compute/auto",
+  "anchor/export/sim-lib-compute-cuda/site/compute/cuda",
   "anchor/export/sim-lib-compute-model/site/compute/model",
+  "anchor/export/sim-lib-compute-rocm/site/compute/rocm",
   "anchor/runtime-lib/sim-lib-compute-auto/compute-auto-lib",
+  "anchor/runtime-lib/sim-lib-compute-cuda/compute-cuda-lib",
   "anchor/runtime-lib/sim-lib-compute-model/compute-model-lib",
+  "anchor/runtime-lib/sim-lib-compute-rocm/compute-rocm-lib",
+  "anchor/runtime-lib/sim-lib-compute-wgpu/compute-wgpu-lib",
   "anchor/rustdoc/sim-lib-compute-auto/auto-tensor-executor",
+  "anchor/rustdoc/sim-lib-compute-cuda/cuda-runtime-loader",
+  "anchor/rustdoc/sim-lib-compute-cuda/cuda-tensor-executor",
+  "anchor/rustdoc/sim-lib-compute-cuda/cuda-resident-storage",
   "anchor/rustdoc/sim-lib-compute-model/modeled-tensor-executor",
   "anchor/rustdoc/sim-lib-compute-model/modeled-resident-storage",
+  "anchor/rustdoc/sim-lib-compute-rocm/rocm-runtime-loader",
+  "anchor/rustdoc/sim-lib-compute-rocm/rocm-tensor-executor",
+  "anchor/rustdoc/sim-lib-compute-rocm/rocm-resident-storage",
+  "anchor/rustdoc/sim-lib-compute-wgpu/compute-wgpu-lib",
+  "anchor/rustdoc/sim-lib-compute-wgpu/wgpu-pipeline-cache",
+  "anchor/rustdoc/sim-lib-compute-wgpu/wgpu-resident-storage",
+  "anchor/rustdoc/sim-lib-compute-wgpu/wgpu-discovery",
 ]
 claims_surfaces = [
   "site/sim-lib-compute-auto",
+  "site/sim-lib-compute-cuda",
   "site/sim-lib-compute-model",
+  "site/sim-lib-compute-rocm",
+  "site/sim-lib-compute-wgpu",
 ]
 claims_specimens = [
   "recipe/sim-compute/crates/sim-lib-compute-model/01-basics/modeled-resident-matrix",
+  "recipe/sim-compute/crates/sim-lib-compute-auto/01-basics/measured-profile-routing",
+  "recipe/sim-compute/crates/sim-lib-compute-cuda/01-basics/cuda-discovery",
+  "recipe/sim-compute/crates/sim-lib-compute-wgpu/01-basics/wgpu-discovery",
+  "recipe/sim-compute/crates/sim-lib-compute-rocm/01-basics/rocm-discovery",
   "spec-test/sim-compute/crates/sim-lib-compute-model/src/tests",
   "spec-test/sim-compute/crates/sim-lib-compute-auto/src/tests",
+  "spec-test/sim-compute/crates/sim-lib-compute-cuda/src/tests",
+  "spec-test/sim-compute/crates/sim-lib-compute-wgpu/src/tests",
+  "spec-test/sim-compute/crates/sim-lib-compute-rocm/src/tests",
 ]
 
 [[route]]
@@ -70,6 +98,70 @@ id = "route/run-tensor-on-compute-site"
 task = "Run tensor on a compute site"
 audiences = ["user", "code", "framework"]
 steps = [
-  { feature = "feature/sim-compute/tensor-providers", why = "The compute-provider row owns modeled resident and automatic site placement." },
+  { feature = "feature/sim-compute/tensor-providers", why = "The compute-provider row owns modeled resident, automatic, probe-backed wgpu, optional CUDA, and optional ROCm site placement." },
   { specimen = "recipe/sim-compute/crates/sim-lib-compute-model/01-basics/modeled-resident-matrix", why = "The modeled-resident recipe shows chained resident tensors with one materialization." },
+  { specimen = "recipe/sim-compute/crates/sim-lib-compute-auto/01-basics/measured-profile-routing", why = "The auto recipe shows measured Table-backed profile routing, conservative CPU fallback, and ledger evidence." },
+  { specimen = "recipe/sim-compute/crates/sim-lib-compute-cuda/01-basics/cuda-discovery", why = "The CUDA recipe shows runtime ABI validation and optional site export without a toolkit dependency." },
+  { specimen = "recipe/sim-compute/crates/sim-lib-compute-rocm/01-basics/rocm-discovery", why = "The ROCm recipe shows HIP/rocBLAS ABI validation, observed gfx target evidence, and optional site export without a toolkit dependency." },
+]
+
+[[feature]]
+id = "feature/sim-compute/compute-cli"
+title = "Compute command library"
+summary = "Export a bounded loadable `cli/main/compute` command for inspecting compute devices, probes, profiles, explanations, recipes, and physical acceptance artifacts."
+owner = "crate/sim-lib-compute-cli"
+audiences = ["user", "code", "framework"]
+guidance = "Use this row when a host needs a command surface for compute providers without adding a binary or bootstrap fork. The library exports `cli/main/compute` as a loadable function, accepts only checked selectors and bounded ceilings, requires `compute.device`, `compute.profile.read`, `compute.profile.write`, and `compute.acceptance` capabilities for privileged views, renders stable text or JSON machine evidence, reports modeled no-adapter and hardware no-adapter states, persists bounded synthetic profiles only through a caller-supplied Table/Dir value, and captures or verifies sanitized `sim.compute-acceptance/v1` artifacts for the portable physical case set. Capture requires one registered target capability and binds RTX 5080 Laptop, RTX 5090, or AMD gfx1151 evidence to a matching physical adapter; the committed portable-v1 evidence set records verifier-clean wgpu captures for all three targets against source 504255b534e69a37d7163ba06048bc23ebdb7cb4, including zero-intermediate-readback matrix, transcendental, ODE, cross-binding segmentation, and certified FEMM cases. Synthetic, host-emulated, caller-renamed, cross-target, wrong-source, duplicate, private, stale-schema, and impossible-counter artifacts fail verification and cannot satisfy physical-device acceptance."
+claims_anchors = [
+  "anchor/cli/compute",
+  "anchor/crate/sim-lib-compute-cli",
+  "anchor/export/sim-lib-compute-cli/cli/main/compute",
+  "anchor/export/sim-lib-compute-cli/model/no-adapter",
+  "anchor/runtime-lib/sim-lib-compute-cli/compute-cli-lib",
+  "anchor/rustdoc/sim-lib-compute-cli/compute-cli-lib",
+  "anchor/rustdoc/sim-lib-compute-cli/compute-command",
+  "anchor/rustdoc/sim-lib-compute-cli/parse_compute_args",
+  "anchor/rustdoc/sim-lib-compute-cli/run_command",
+]
+claims_surfaces = [
+  "cli/compute",
+]
+claims_specimens = [
+  "recipe/sim-compute/crates/sim-lib-compute-cli/01-basics/inspect-compute-device",
+]
+
+[[route]]
+id = "route/inspect-compute-device"
+task = "Inspect a compute device"
+audiences = ["user", "code", "framework"]
+steps = [
+  { feature = "feature/sim-compute/compute-cli", why = "The compute CLI row owns devices, probe, profile, explain, and recipe command behavior." },
+  { feature = "feature/sim-compute/tensor-providers", why = "Provider rows supply the modeled, automatic, retained-device wgpu, and optional hardware site symbols the command inspects." },
+  { specimen = "recipe/sim-compute/crates/sim-lib-compute-cli/01-basics/inspect-compute-device", why = "The recipe shows the loadable command inspecting installed sites and Table-backed profile storage." },
+]
+
+[[feature]]
+id = "feature/sim-compute/femm-resident-solvers"
+title = "Resident FEMM sparse solvers"
+summary = "Export a provider-neutral FEMM LinearSolver that keeps CSR and Krylov work vectors resident while requiring f64 residual certification."
+owner = "crate/sim-lib-compute-femm"
+audiences = ["user", "code", "framework"]
+guidance = "Use this row when a FEMM steady solve should run through a compute provider without weakening solver acceptance. The resident solver uploads validated CSR matrices once, reuses factors by the published FEMM fingerprint, keeps f32 CG or BiCGSTAB work vectors resident, routes sparse matvec, dot, norm, and vector updates through the selected provider, synchronizes convergence as scalar residual evidence at a documented cadence, recomputes the accepted residual on CPU in f64, applies bounded f64 iterative correction, and refuses provider loss, nonconvergence, Krylov breakdown, stale factor payloads, transpose requests, non-finite data, and certification failure. The loadable library exports the existing femm/linear-solver value, so sim-lib-femm-solve remains responsible for the SolveCertificate."
+claims_anchors = [
+  "anchor/crate/sim-lib-compute-femm",
+  "anchor/runtime-lib/sim-lib-compute-femm/compute-femm-lib",
+  "anchor/rustdoc/sim-lib-compute-femm/resident-csr-solver",
+]
+claims_specimens = [
+  "recipe/sim-compute/crates/sim-lib-compute-femm/01-basics/resident-csr-solve",
+  "spec-test/sim-compute/crates/sim-lib-compute-femm/src/lib",
+]
+
+[[route]]
+id = "route/add-resident-femm-csr-solver"
+task = "Add a resident FEMM CSR solver"
+audiences = ["code", "framework"]
+steps = [
+  { feature = "feature/sim-compute/femm-resident-solvers", why = "The compute FEMM row owns resident CSR upload, Krylov execution, f64 refinement, and loadable solver export." },
+  { specimen = "recipe/sim-compute/crates/sim-lib-compute-femm/01-basics/resident-csr-solve", why = "The recipe shows upload reuse, resident work vectors, scalar synchronization, and f64 certificate acceptance." },
 ]

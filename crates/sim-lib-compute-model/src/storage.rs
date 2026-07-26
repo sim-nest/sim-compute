@@ -6,7 +6,7 @@ use std::sync::{Arc, OnceLock};
 use sim_kernel::{DefaultFactory, Error, Factory, Result, Symbol, Value};
 use sim_lib_numbers_tensor::{Tensor, TensorLocation, TensorStorage};
 
-use crate::model::{ModeledComputeFault, ModeledTensorExecutor};
+use crate::model::{ModeledComputeFault, ModeledResidentSegment, ModeledTensorExecutor};
 
 /// Opaque resident allocation handle owned by the modeled site.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -27,10 +27,19 @@ impl ResidentHandle {
     }
 }
 
+pub(crate) struct ModeledResidentDescriptor {
+    pub(crate) site: Symbol,
+    pub(crate) allocation: ResidentHandle,
+    pub(crate) segments: Vec<ModeledResidentSegment>,
+    pub(crate) shape: Vec<usize>,
+    pub(crate) dtype: Symbol,
+}
+
 /// Resident storage that models readback into host tensor cells.
 pub struct ModeledResidentStorage {
     site: Symbol,
     allocation: ResidentHandle,
+    segments: Arc<[ModeledResidentSegment]>,
     shape: Arc<[usize]>,
     dtype: Symbol,
     cells: Arc<[Value]>,
@@ -41,19 +50,17 @@ pub struct ModeledResidentStorage {
 
 impl ModeledResidentStorage {
     pub(crate) fn new(
-        site: Symbol,
-        allocation: ResidentHandle,
-        shape: Vec<usize>,
-        dtype: Symbol,
+        descriptor: ModeledResidentDescriptor,
         cells: Arc<[Value]>,
         executor: ModeledTensorExecutor,
         fault: Option<ModeledComputeFault>,
     ) -> Self {
         Self {
-            site,
-            allocation,
-            shape: shape.into(),
-            dtype,
+            site: descriptor.site,
+            allocation: descriptor.allocation,
+            segments: descriptor.segments.into(),
+            shape: descriptor.shape.into(),
+            dtype: descriptor.dtype,
             cells,
             executor,
             fault,
@@ -64,6 +71,11 @@ impl ModeledResidentStorage {
     /// Returns the resident allocation handle.
     pub fn allocation(&self) -> &ResidentHandle {
         &self.allocation
+    }
+
+    /// Returns the segmented resident layout for this allocation.
+    pub fn segments(&self) -> &[ModeledResidentSegment] {
+        &self.segments
     }
 
     /// Rebuilds a canonical host tensor without counting a user readback.
@@ -105,7 +117,14 @@ impl TensorStorage for ModeledResidentStorage {
         self.materialized
             .get_or_init(|| {
                 self.executor.increment_readbacks();
+                if !self.executor.is_resident_active(&self.allocation) {
+                    self.executor.increment_materialization_failures();
+                    return Err(Error::Eval(
+                        "modeled compute resident allocation was evicted".to_owned(),
+                    ));
+                }
                 if self.fault == Some(ModeledComputeFault::ReadbackFailure) {
+                    self.executor.increment_materialization_failures();
                     return Err(Error::Eval("modeled compute readback failed".to_owned()));
                 }
                 Ok(Arc::new(BoxedTensorStorageForResident::new(

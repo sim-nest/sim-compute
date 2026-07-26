@@ -18,17 +18,23 @@ This generated lane consumes `docs/generated/sim-index-fragment.sx`. Global inde
 | Feature | Subject | Specimens | Summary |
 | --- | --- | ---: | --- |
 | `feature/sim-compute/generated-docs` | `crate/xtask` | 0 | Publish generated package, card, rustdoc, recipe, and Index facts for compute providers. |
-| `feature/sim-compute/tensor-providers` | `crate/sim-lib-compute-model` | 3 | Run canonical Tensor requests through modeled resident and automatic compute sites. |
+| `feature/sim-compute/tensor-providers` | `crate/sim-lib-compute-model` | 10 | Run canonical Tensor requests through modeled, automatic, probe-backed wgpu, optional CUDA/cuBLAS, and optional ROCm/rocBLAS compute sites. |
+| `feature/sim-compute/compute-cli` | `crate/sim-lib-compute-cli` | 1 | Export a bounded loadable `cli/main/compute` command for inspecting compute devices, probes, profiles, explanations, recipes, and physical acceptance artifacts. |
+| `feature/sim-compute/femm-resident-solvers` | `crate/sim-lib-compute-femm` | 2 | Export a provider-neutral FEMM LinearSolver that keeps CSR and Krylov work vectors resident while requiring f64 residual certification. |
 
 ## Surfaces
 
 | Surface | Kind | Subject |
 | --- | --- | --- |
+| `cli/compute` | `cli` | `crate/sim-lib-compute-cli` |
 | `cli/xtask` | `cli` | `crate/xtask` |
 | `docs/sim-compute/generated` | `docs` | `doc-set/sim-compute/generated` |
 | `model/sim-lib-compute-model` | `model-exchange` | `crate/sim-lib-compute-model` |
 | `site/sim-lib-compute-auto` | `site` | `crate/sim-lib-compute-auto` |
+| `site/sim-lib-compute-cuda` | `site` | `crate/sim-lib-compute-cuda` |
 | `site/sim-lib-compute-model` | `site` | `crate/sim-lib-compute-model` |
+| `site/sim-lib-compute-rocm` | `site` | `crate/sim-lib-compute-rocm` |
+| `site/sim-lib-compute-wgpu` | `site` | `crate/sim-lib-compute-wgpu` |
 
 ## Recipes
 
@@ -37,13 +43,47 @@ This generated lane consumes `docs/generated/sim-index-fragment.sx`. Global inde
 - `crates/sim-lib-compute-auto/recipes/01-basics/auto-compute-site/recipe.toml`
 - `crates/sim-lib-compute-auto/recipes/01-basics/auto-compute-site/setup.siml`
 - `crates/sim-lib-compute-auto/recipes/01-basics/chapter.toml`
+- `crates/sim-lib-compute-auto/recipes/01-basics/measured-profile-routing/expected.txt`
+- `crates/sim-lib-compute-auto/recipes/01-basics/measured-profile-routing/purpose.md`
+- `crates/sim-lib-compute-auto/recipes/01-basics/measured-profile-routing/recipe.toml`
+- `crates/sim-lib-compute-auto/recipes/01-basics/measured-profile-routing/setup.siml`
 - `crates/sim-lib-compute-auto/recipes/book.toml`
+- `crates/sim-lib-compute-cli/recipes/01-basics/chapter.toml`
+- `crates/sim-lib-compute-cli/recipes/01-basics/inspect-compute-device/expected.txt`
+- `crates/sim-lib-compute-cli/recipes/01-basics/inspect-compute-device/purpose.md`
+- `crates/sim-lib-compute-cli/recipes/01-basics/inspect-compute-device/recipe.toml`
+- `crates/sim-lib-compute-cli/recipes/01-basics/inspect-compute-device/setup.siml`
+- `crates/sim-lib-compute-cli/recipes/book.toml`
+- `crates/sim-lib-compute-cuda/recipes/01-basics/chapter.toml`
+- `crates/sim-lib-compute-cuda/recipes/01-basics/cuda-discovery/expected.txt`
+- `crates/sim-lib-compute-cuda/recipes/01-basics/cuda-discovery/purpose.md`
+- `crates/sim-lib-compute-cuda/recipes/01-basics/cuda-discovery/recipe.toml`
+- `crates/sim-lib-compute-cuda/recipes/01-basics/cuda-discovery/setup.siml`
+- `crates/sim-lib-compute-cuda/recipes/book.toml`
+- `crates/sim-lib-compute-femm/recipes/01-basics/chapter.toml`
+- `crates/sim-lib-compute-femm/recipes/01-basics/resident-csr-solve/expected.txt`
+- `crates/sim-lib-compute-femm/recipes/01-basics/resident-csr-solve/purpose.md`
+- `crates/sim-lib-compute-femm/recipes/01-basics/resident-csr-solve/recipe.toml`
+- `crates/sim-lib-compute-femm/recipes/01-basics/resident-csr-solve/setup.siml`
+- `crates/sim-lib-compute-femm/recipes/book.toml`
 - `crates/sim-lib-compute-model/recipes/01-basics/chapter.toml`
 - `crates/sim-lib-compute-model/recipes/01-basics/modeled-resident-matrix/expected.txt`
 - `crates/sim-lib-compute-model/recipes/01-basics/modeled-resident-matrix/purpose.md`
 - `crates/sim-lib-compute-model/recipes/01-basics/modeled-resident-matrix/recipe.toml`
 - `crates/sim-lib-compute-model/recipes/01-basics/modeled-resident-matrix/setup.siml`
 - `crates/sim-lib-compute-model/recipes/book.toml`
+- `crates/sim-lib-compute-rocm/recipes/01-basics/chapter.toml`
+- `crates/sim-lib-compute-rocm/recipes/01-basics/rocm-discovery/expected.txt`
+- `crates/sim-lib-compute-rocm/recipes/01-basics/rocm-discovery/purpose.md`
+- `crates/sim-lib-compute-rocm/recipes/01-basics/rocm-discovery/recipe.toml`
+- `crates/sim-lib-compute-rocm/recipes/01-basics/rocm-discovery/setup.siml`
+- `crates/sim-lib-compute-rocm/recipes/book.toml`
+- `crates/sim-lib-compute-wgpu/recipes/01-basics/chapter.toml`
+- `crates/sim-lib-compute-wgpu/recipes/01-basics/wgpu-discovery/expected.txt`
+- `crates/sim-lib-compute-wgpu/recipes/01-basics/wgpu-discovery/purpose.md`
+- `crates/sim-lib-compute-wgpu/recipes/01-basics/wgpu-discovery/recipe.toml`
+- `crates/sim-lib-compute-wgpu/recipes/01-basics/wgpu-discovery/setup.siml`
+- `crates/sim-lib-compute-wgpu/recipes/book.toml`
 
 ## Worked Examples
 
@@ -71,6 +111,72 @@ assert_setup_codec = "lisp"
 [[expect]]
 form = 0
 result = "(compute modeled-resident-matrix (site site/compute/model) (chain resident resident) (materializations 1) (readbacks 1))"
+```
+
+Specimen `recipe/sim-compute/crates/sim-lib-compute-auto/01-basics/measured-profile-routing` is checked by `xtask check-recipes`.
+
+Source `crates/sim-lib-compute-auto/recipes/01-basics/measured-profile-routing/recipe.toml`:
+
+```toml
+id = "measured-profile-routing"
+title = "Measured profile routing"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+expected = "expected.txt"
+order = 20
+tags = ["compute", "tensor", "auto", "profile", "routing"]
+requires = ["compute/auto", "compute/profile", "storage/table", "numbers/tensor", "standard"]
+
+[[expect]]
+form = 0
+result = "(compute auto-profile (table supplied) (synthetic bounded upload download launch element reduction matmul) (physical-device required) (else cpu) (ledger provider materialization-bytes synchronizations))"
+```
+
+Specimen `recipe/sim-compute/crates/sim-lib-compute-cuda/01-basics/cuda-discovery` is checked by `xtask check-recipes`.
+
+Source `crates/sim-lib-compute-cuda/recipes/01-basics/cuda-discovery/recipe.toml`:
+
+```toml
+id = "cuda-discovery"
+title = "CUDA discovery"
+language = "lisp"
+setup = "setup.siml"
+expected = "expected.txt"
+purpose = "purpose.md"
+```
+
+Specimen `recipe/sim-compute/crates/sim-lib-compute-wgpu/01-basics/wgpu-discovery` is checked by `xtask check-recipes`.
+
+Source `crates/sim-lib-compute-wgpu/recipes/01-basics/wgpu-discovery/recipe.toml`:
+
+```toml
+id = "wgpu-discovery"
+title = "WGPU discovery"
+summary = "A host-emulated wgpu site appears only after successful probe evidence."
+tags = ["compute", "tensor", "wgpu", "hardware", "evidence"]
+requires = ["compute/wgpu", "numbers/tensor"]
+capabilities = ["device.gpu.wgpu"]
+assert_tags = ["wgpu", "evidence"]
+assert_capabilities = ["device.gpu.wgpu"]
+
+[[steps]]
+name = "probe"
+command = "cat expected.txt"
+result = "(compute wgpu-discovery (site site/compute/wgpu/0) (evidence-kind host-emulated) (evidence transfer mapping allocation))"
+```
+
+Specimen `recipe/sim-compute/crates/sim-lib-compute-rocm/01-basics/rocm-discovery` is checked by `xtask check-recipes`.
+
+Source `crates/sim-lib-compute-rocm/recipes/01-basics/rocm-discovery/recipe.toml`:
+
+```toml
+id = "rocm-discovery"
+title = "ROCm discovery"
+language = "lisp"
+setup = "setup.siml"
+expected = "expected.txt"
+purpose = "purpose.md"
 ```
 
 Specimen `spec-test/sim-compute/crates/sim-lib-compute-model/src/tests` is checked by `cargo test`.
@@ -149,8 +255,11 @@ fn modeled_executor_returns_resident_tensor_and_flush_evidence() {
         TensorLocation::Resident { site, .. } if site == compute_model_site_symbol()
     ));
     assert_eq!(executor.snapshot().accepted, 1);
+    assert_eq!(executor.snapshot().queued, 1);
+    assert_eq!(executor.snapshot().queued_bytes, 48);
     assert_eq!(executor.flush().unwrap().accepted, 1);
     assert_eq!(executor.snapshot().queued, 0);
+    assert_eq!(executor.snapshot().queued_bytes, 0);
 
     let storage = tensor
         .storage()
@@ -164,6 +273,7 @@ fn modeled_executor_returns_resident_tensor_and_flush_evidence() {
             .to_string()
             .contains("compute.alloc")
     );
+    assert_eq!(storage.segments().len(), 1);
     let cells = tensor.cells().unwrap();
     assert_eq!(cells.len(), 2);
     assert_eq!(executor.snapshot().readbacks, 1);
@@ -235,6 +345,8 @@ fn modeled_faults_are_injected_at_submission_execution_and_readback() {
         Err(error) => error,
     };
     assert!(lost_error.to_string().contains("device lost"));
+    assert_eq!(lost.snapshot().queued, 0);
+    assert_eq!(lost.snapshot().queued_bytes, 0);
 
     let readback = ModeledTensorExecutor::new(ModeledComputeProfile {
         fault: Some(ModeledComputeFault::ReadbackFailure),
@@ -256,6 +368,170 @@ fn modeled_faults_are_injected_at_submission_execution_and_readback() {
             .to_string()
             .contains("readback failed")
     );
+    assert!(
+        tensor
+            .cells()
+            .unwrap_err()
+            .to_string()
+            .contains("readback failed")
+    );
+    assert_eq!(readback.snapshot().readbacks, 1);
+    assert_eq!(readback.snapshot().materialization_failures, 1);
+}
+
+#[test]
+fn segmented_storage_crosses_binding_boundaries() {
+    let mut cx = test_cx();
+    let executor = ModeledTensorExecutor::new(ModeledComputeProfile {
+        segment_tile_bytes: 16,
+        max_storage_binding_bytes: 16,
+        ..ModeledComputeProfile::default()
+    });
+    let op = TensorOp::without_attributes(&mut cx, add_op_symbol()).unwrap();
+    let request = TensorRequest::new(
+        op,
+        vec![
+            vector(&mut cx, &["1", "2", "3", "4"]),
+            vector(&mut cx, &["10", "20", "30", "40"]),
+        ],
+        TensorMeta::new(vec![4], Symbol::qualified("numbers", "i64")),
+    );
+
+    let tensor = match executor.execute(&mut cx, request).unwrap() {
+        TensorExecution::Complete(tensor) => tensor,
+        TensorExecution::Unsupported { reason } => panic!("{reason}"),
+    };
+    let storage = tensor
+        .storage()
+        .as_any()
+        .downcast_ref::<ModeledResidentStorage>()
+        .expect("modeled resident storage");
+    assert_eq!(storage.segments().len(), 2);
+    assert_eq!(storage.segments()[0].offset, 0);
+    assert_eq!(storage.segments()[0].bytes, 16);
+    assert_eq!(storage.segments()[1].offset, 16);
+    assert_eq!(storage.segments()[1].bytes, 16);
+    assert_eq!(executor.snapshot().segments, 2);
+}
+
+#[test]
+fn queue_limits_cover_nodes_bytes_and_deadlines() {
+    let mut cx = test_cx();
+    let op = TensorOp::without_attributes(&mut cx, add_op_symbol()).unwrap();
+    let depth_limited = ModeledTensorExecutor::new(ModeledComputeProfile {
+        max_queue_depth: 1,
+        ..ModeledComputeProfile::default()
+    });
+    let first = TensorRequest::new(
+        op.clone(),
+        vec![vector(&mut cx, &["1"]), vector(&mut cx, &["2"])],
+        TensorMeta::new(vec![1], Symbol::qualified("numbers", "i64")),
+    );
+    depth_limited.execute(&mut cx, first).unwrap();
+    let second = TensorRequest::new(
+        op.clone(),
+        vec![vector(&mut cx, &["3"]), vector(&mut cx, &["4"])],
+        TensorMeta::new(vec![1], Symbol::qualified("numbers", "i64")),
+    );
+    let error = match depth_limited.execute(&mut cx, second) {
+        Ok(_) => panic!("depth limit must reject a second queued submission"),
+        Err(error) => error,
+    };
+    assert!(error.to_string().contains("queue is full"));
+
+    let byte_limited = ModeledTensorExecutor::new(ModeledComputeProfile {
+        max_queue_bytes: 16,
+        ..ModeledComputeProfile::default()
+    });
+    let oversized = TensorRequest::new(
+        op.clone(),
+        vec![vector(&mut cx, &["1"]), vector(&mut cx, &["2"])],
+        TensorMeta::new(vec![1], Symbol::qualified("numbers", "i64")),
+    );
+    let error = match byte_limited.execute(&mut cx, oversized) {
+        Ok(_) => panic!("byte limit must reject an oversized submission"),
+        Err(error) => error,
+    };
+    assert!(error.to_string().contains("byte budget"));
+
+    let deadline_limited = ModeledTensorExecutor::new(ModeledComputeProfile {
+        submission_deadline_ticks: 0,
+        ..ModeledComputeProfile::default()
+    });
+    let expired = TensorRequest::new(
+        op,
+        vec![vector(&mut cx, &["1"]), vector(&mut cx, &["2"])],
+        TensorMeta::new(vec![1], Symbol::qualified("numbers", "i64")),
+    );
+    let error = match deadline_limited.execute(&mut cx, expired) {
+        Ok(_) => panic!("deadline limit must reject expired submission"),
+        Err(error) => error,
+    };
+    assert!(error.to_string().contains("deadline"));
+}
+
+#[test]
+fn bounded_resident_pool_evicts_uncached_allocations() {
+    let mut cx = test_cx();
+    let executor = ModeledTensorExecutor::new(ModeledComputeProfile {
+        max_resident_bytes: 8,
+        ..ModeledComputeProfile::default()
+    });
+    let op = TensorOp::without_attributes(&mut cx, add_op_symbol()).unwrap();
+    let first_request = TensorRequest::new(
+        op.clone(),
+        vec![vector(&mut cx, &["1"]), vector(&mut cx, &["2"])],
+        TensorMeta::new(vec![1], Symbol::qualified("numbers", "i64")),
+    );
+    let first = match executor.execute(&mut cx, first_request).unwrap() {
+        TensorExecution::Complete(tensor) => tensor,
+        TensorExecution::Unsupported { reason } => panic!("{reason}"),
+    };
+    let second_request = TensorRequest::new(
+        op,
+        vec![vector(&mut cx, &["3"]), vector(&mut cx, &["4"])],
+        TensorMeta::new(vec![1], Symbol::qualified("numbers", "i64")),
+    );
+    let second = match executor.execute(&mut cx, second_request).unwrap() {
+        TensorExecution::Complete(tensor) => tensor,
+        TensorExecution::Unsupported { reason } => panic!("{reason}"),
+    };
+
+    assert_eq!(executor.snapshot().evictions, 1);
+    assert_eq!(executor.snapshot().live_allocations, 1);
+    assert!(first.cells().unwrap_err().to_string().contains("evicted"));
+    assert_eq!(executor.snapshot().materialization_failures, 1);
+    assert_eq!(second.cells().unwrap().len(), 1);
+}
+
+#[test]
+fn cached_materialization_survives_later_eviction() {
+    let mut cx = test_cx();
+    let executor = ModeledTensorExecutor::new(ModeledComputeProfile {
+        max_resident_bytes: 8,
+        ..ModeledComputeProfile::default()
+    });
+    let op = TensorOp::without_attributes(&mut cx, add_op_symbol()).unwrap();
+    let first_request = TensorRequest::new(
+        op.clone(),
+        vec![vector(&mut cx, &["1"]), vector(&mut cx, &["2"])],
+        TensorMeta::new(vec![1], Symbol::qualified("numbers", "i64")),
+    );
+    let first = match executor.execute(&mut cx, first_request).unwrap() {
+        TensorExecution::Complete(tensor) => tensor,
+        TensorExecution::Unsupported { reason } => panic!("{reason}"),
+    };
+    assert_eq!(first.cells().unwrap().len(), 1);
+    let second_request = TensorRequest::new(
+        op,
+        vec![vector(&mut cx, &["3"]), vector(&mut cx, &["4"])],
+        TensorMeta::new(vec![1], Symbol::qualified("numbers", "i64")),
+    );
+    executor.execute(&mut cx, second_request).unwrap();
+
+    assert_eq!(executor.snapshot().evictions, 1);
+    assert_eq!(first.cells().unwrap().len(), 1);
+    assert_eq!(executor.snapshot().readbacks, 1);
 }
 
 #[test]
@@ -277,6 +553,7 @@ Source `crates/sim-lib-compute-auto/src/tests.rs`:
 ```rust
 use std::sync::Arc;
 
+use sim_citizen::Citizen;
 use sim_kernel::{DefaultFactory, EagerPolicy, Symbol};
 use sim_lib_compute_model::ModeledComputeProfile;
 use sim_lib_numbers_tensor::{
@@ -284,7 +561,13 @@ use sim_lib_numbers_tensor::{
     add_op_symbol, build_tensor_value, tensor_value_ref,
 };
 
-use crate::{AutoComputeProfile, AutoTensorExecutor, ComputeAutoLib, compute_auto_site_symbol};
+use crate::{
+    AutoComputeProfile, AutoRouteDecision, AutoTensorExecutor, BenchmarkBounds, ComputeAutoLib,
+    ComputeDeviceIdentity, ComputeEvidenceKind, ComputeThermalPowerContext, ProfileStore,
+    ProfileStorePolicy, compute_auto_site_symbol, measure_bounded_profile,
+    measured_compute_profile_citizen_symbol, measured_compute_profile_shape_symbol,
+    verify_physical,
+};
 
 // conformance: auto compute site selects modeled providers and falls back to CPU without a compatible profile.
 
@@ -350,6 +633,9 @@ fn auto_with_modeled_profile_returns_resident_storage() {
     let mut cx = test_cx();
     let executor = AutoTensorExecutor::new(AutoComputeProfile {
         modeled: Some(ModeledComputeProfile::default()),
+        measured: None,
+        expected: None,
+        now_tick: 0,
     });
     let op = TensorOp::without_attributes(&mut cx, add_op_symbol()).unwrap();
     let left = vector(&mut cx, &["1"]);
@@ -367,6 +653,192 @@ fn auto_with_modeled_profile_returns_resident_storage() {
 }
 
 #[test]
+fn measured_profile_round_trips_through_supplied_table() {
+    let mut cx = test_cx();
+    let identity = ComputeDeviceIdentity::new("adapter-a", "driver-1", "modeled");
+    let measured = measure_bounded_profile(
+        identity.clone(),
+        ModeledComputeProfile::default(),
+        ComputeThermalPowerContext {
+            thermal: "steady".to_owned(),
+            power: "plugged".to_owned(),
+        },
+        "unit-test",
+        7,
+        BenchmarkBounds::default(),
+    );
+    let table = cx.factory().table(Vec::new()).unwrap();
+    let store = ProfileStore::new(table, ProfileStorePolicy::default()).unwrap();
+    let key = Symbol::qualified("compute-profile", "adapter-a");
+
+    store.save(&mut cx, key.clone(), &measured).unwrap();
+    let loaded = store.load(&mut cx, key).unwrap().unwrap();
+
+    assert_eq!(loaded.identity, identity);
+    assert_eq!(
+        loaded.provenance.evidence_kind,
+        ComputeEvidenceKind::Modeled
+    );
+    assert_eq!(loaded.provenance.observed_identity, Some(identity));
+    assert!(loaded.is_conclusive());
+    assert_eq!(store.keys(&mut cx).unwrap().len(), 1);
+}
+
+#[test]
+fn physical_verifier_rejects_modeled_synthetic_and_renamed_profiles() {
+    let identity = ComputeDeviceIdentity::new("adapter-a", "driver-1", "modeled");
+    let modeled_profile = ModeledComputeProfile::default();
+    assert!(verify_physical(&modeled_profile).is_err());
+
+    let mut synthetic_profile = measure_bounded_profile(
+        identity.clone(),
+        ModeledComputeProfile::default(),
+        ComputeThermalPowerContext {
+            thermal: "steady".to_owned(),
+            power: "plugged".to_owned(),
+        },
+        "unit-test",
+        7,
+        BenchmarkBounds::default(),
+    );
+    assert!(verify_physical(&synthetic_profile).is_err());
+
+    synthetic_profile.provenance.evidence_kind = ComputeEvidenceKind::PhysicalDevice;
+    synthetic_profile.identity.adapter = "caller-renamed".to_owned();
+    assert!(verify_physical(&synthetic_profile).is_err());
+
+    synthetic_profile.identity = identity;
+    assert!(verify_physical(&synthetic_profile).is_ok());
+}
+
+#[test]
+fn measured_profile_exposes_citizen_and_shape_records() {
+    assert_eq!(
+        measured_compute_profile_citizen_symbol().to_string(),
+        "compute-profile/MeasuredProfile"
+    );
+    assert_eq!(
+        measured_compute_profile_shape_symbol().to_string(),
+        "compute-profile/MeasuredProfileShape"
+    );
+    assert_eq!(crate::MeasuredComputeProfile::citizen_version(), 0);
+    assert_eq!(crate::MeasuredComputeProfile::citizen_arity(), 9);
+}
+
+#[test]
+fn measured_profile_routes_device_only_when_fresh_compatible_and_conclusive() {
+    let mut cx = test_cx();
+    let identity = ComputeDeviceIdentity::new("adapter-a", "driver-1", "modeled");
+    let mut measured = measure_bounded_profile(
+        identity.clone(),
+        ModeledComputeProfile::default(),
+        ComputeThermalPowerContext {
+            thermal: "steady".to_owned(),
+            power: "plugged".to_owned(),
+        },
+        "unit-test",
+        7,
+        BenchmarkBounds::default(),
+    );
+    measured.provenance.evidence_kind = ComputeEvidenceKind::PhysicalDevice;
+    let executor = AutoTensorExecutor::new(AutoComputeProfile {
+        modeled: None,
+        measured: Some(measured),
+        expected: Some(identity),
+        now_tick: 8,
+    });
+    assert_eq!(executor.route_decision(), AutoRouteDecision::Device);
+
+    let op = TensorOp::without_attributes(&mut cx, add_op_symbol()).unwrap();
+    let left = vector(&mut cx, &["1"]);
+    let right = vector(&mut cx, &["2"]);
+    let request = TensorRequest::new(
+        op,
+        vec![left, right],
+        TensorMeta::new(vec![1], Symbol::qualified("numbers", "i64")),
+    );
+    let tensor = match executor.execute(&mut cx, request).unwrap() {
+        TensorExecution::Complete(tensor) => tensor,
+        TensorExecution::Unsupported { reason } => panic!("{reason}"),
+    };
+    assert!(matches!(tensor.location(), TensorLocation::Resident { .. }));
+    executor.flush().unwrap();
+    let events = executor.routing_events();
+    assert_eq!(events.len(), 2);
+    assert_eq!(events[0].decision, AutoRouteDecision::Device);
+    assert!(events[0].materialization_bytes > 0);
+    assert_eq!(events[1].synchronizations, 1);
+}
+
+#[test]
+fn synthetic_measured_profile_cannot_select_device_route() {
+    let identity = ComputeDeviceIdentity::new("adapter-a", "driver-1", "modeled");
+    let measured = measure_bounded_profile(
+        identity.clone(),
+        ModeledComputeProfile::default(),
+        ComputeThermalPowerContext {
+            thermal: "steady".to_owned(),
+            power: "plugged".to_owned(),
+        },
+        "unit-test",
+        7,
+        BenchmarkBounds::default(),
+    );
+    let executor = AutoTensorExecutor::new(AutoComputeProfile {
+        modeled: None,
+        measured: Some(measured),
+        expected: Some(identity),
+        now_tick: 8,
+    });
+
+    assert_eq!(executor.route_decision(), AutoRouteDecision::NonPhysical);
+    assert!(executor.uses_cpu_fallback());
+}
+
+#[test]
+fn stale_or_incompatible_measured_profile_uses_cpu() {
+    let mut cx = test_cx();
+    let identity = ComputeDeviceIdentity::new("adapter-a", "driver-1", "modeled");
+    let measured = measure_bounded_profile(
+        identity,
+        ModeledComputeProfile::default(),
+        ComputeThermalPowerContext {
+            thermal: "steady".to_owned(),
+            power: "plugged".to_owned(),
+        },
+        "unit-test",
+        7,
+        BenchmarkBounds::default(),
+    );
+    let executor = AutoTensorExecutor::new(AutoComputeProfile {
+        modeled: None,
+        measured: Some(measured),
+        expected: Some(ComputeDeviceIdentity::new(
+            "adapter-b",
+            "driver-1",
+            "modeled",
+        )),
+        now_tick: 8,
+    });
+    assert_eq!(executor.route_decision(), AutoRouteDecision::Incompatible);
+    assert!(executor.uses_cpu_fallback());
+
+    let op = TensorOp::without_attributes(&mut cx, add_op_symbol()).unwrap();
+    let left = vector(&mut cx, &["1"]);
+    let right = vector(&mut cx, &["2"]);
+    let request = TensorRequest::new(
+        op,
+        vec![left, right],
+        TensorMeta::new(vec![1], Symbol::qualified("numbers", "i64")),
+    );
+    let tensor = match executor.execute(&mut cx, request).unwrap() {
+        TensorExecution::Complete(tensor) => tensor,
+        TensorExecution::Unsupported { reason } => panic!("{reason}"),
+    };
+    assert_eq!(tensor.location(), TensorLocation::Host);
+}
+
+#[test]
 fn auto_lib_exports_site() {
     let mut cx = test_cx();
     cx.load_lib(&ComputeAutoLib::default()).unwrap();
@@ -376,4 +848,957 @@ fn auto_lib_exports_site() {
         .expect("auto compute site");
     assert!(site.object().as_eval_fabric().is_some());
 }
+```
+
+Specimen `spec-test/sim-compute/crates/sim-lib-compute-cuda/src/tests` is checked by `cargo test`.
+
+Source `crates/sim-lib-compute-cuda/src/tests.rs`:
+
+```rust
+use std::sync::Arc;
+
+use sim_kernel::{DefaultFactory, EagerPolicy, Lib, Symbol};
+use sim_lib_numbers_tensor::{
+    Tensor, TensorExecution, TensorExecutor, TensorLocation, TensorMeta, TensorOp, TensorRequest,
+    TensorStorage, add_op_symbol, build_tensor_value, domains, matmul_exec_op_symbol,
+    parse_f32_literal_cell, tensor_value_ref,
+};
+
+use crate::{
+    ComputeCudaLib, CudaResidentStorage, CudaTensorExecutor, FakeCudaLoader,
+    compute_cuda_capability, compute_cuda_site_symbol,
+};
+
+// conformance: CUDA discovery records ABI evidence, exports only validated sites, and accepts dense matmul while declining unsupported requests before acceptance.
+
+fn test_cx() -> sim_kernel::Cx {
+    let mut cx = sim_kernel::Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    cx.load_lib(&sim_lib_numbers_arith::NumbersArithmeticLib::new())
+        .unwrap();
+    cx.load_lib(&sim_lib_numbers_f64::F64NumbersLib::new())
+        .unwrap();
+    cx.load_lib(&sim_lib_numbers_float::F32NumbersLib::new())
+        .unwrap();
+    cx.load_lib(&sim_lib_numbers_tensor::TensorNumbersLib::new())
+        .unwrap();
+    cx
+}
+
+fn f32_value(cx: &mut sim_kernel::Cx, canonical: &str) -> sim_kernel::Value {
+    cx.factory()
+        .number_literal(domains::f32(), canonical.to_owned())
+        .unwrap()
+}
+
+fn tensor(cx: &mut sim_kernel::Cx, shape: Vec<usize>, cells: &[&str]) -> Tensor {
+    let values = cells.iter().map(|cell| f32_value(cx, cell)).collect();
+    tensor_value_ref(&build_tensor_value(cx, shape, Some(domains::f32()), values).unwrap())
+        .unwrap()
+        .clone()
+}
+
+fn f32_cells(tensor: &Tensor) -> Vec<f32> {
+    tensor
+        .cells()
+        .unwrap()
+        .iter()
+        .map(|cell| parse_f32_literal_cell(cell).expect("f32 tensor cell"))
+        .collect()
+}
+
+fn execute_cuda(
+    cx: &mut sim_kernel::Cx,
+    executor: &CudaTensorExecutor,
+    symbol: Symbol,
+    inputs: Vec<Tensor>,
+    shape: Vec<usize>,
+    dtype: Symbol,
+) -> TensorExecution {
+    let op = TensorOp::without_attributes(cx, symbol).unwrap();
+    executor
+        .execute(
+            cx,
+            TensorRequest::new(op, inputs, TensorMeta::new(shape, dtype)),
+        )
+        .unwrap()
+}
+
+#[test]
+fn fake_loader_controls_site_exports_without_cuda_installed() {
+    let available = ComputeCudaLib::from_loader(&FakeCudaLoader::available()).unwrap();
+    let manifest = available.manifest();
+    assert_eq!(manifest.exports.len(), 1);
+    assert_eq!(manifest.capabilities, vec![compute_cuda_capability()]);
+
+    let incomplete = ComputeCudaLib::from_loader(&FakeCudaLoader::incomplete()).unwrap();
+    assert!(incomplete.manifest().exports.is_empty());
+
+    assert!(ComputeCudaLib::from_loader(&FakeCudaLoader::absent()).is_err());
+}
+
+#[test]
+fn cuda_lib_registers_site_only_after_abi_validation() {
+    let lib = ComputeCudaLib::from_loader(&FakeCudaLoader::available()).unwrap();
+    let mut cx = sim_kernel::Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    cx.grant(compute_cuda_capability());
+    cx.load_lib(&lib).unwrap();
+    let site = cx
+        .registry()
+        .site_by_symbol(&compute_cuda_site_symbol())
+        .expect("cuda compute site");
+    assert!(site.object().as_eval_fabric().is_some());
+}
+
+#[test]
+fn dense_f32_matmul_returns_cuda_resident_storage() {
+    let mut cx = test_cx();
+    let evidence = ComputeCudaLib::from_loader(&FakeCudaLoader::available())
+        .unwrap()
+        .probe_evidence()
+        .and_then(|probe| probe.evidence.clone())
+        .unwrap();
+    let executor = CudaTensorExecutor::new(evidence);
+    let left = tensor(&mut cx, vec![2, 3], &["1", "2", "3", "4", "5", "6"]);
+    let right = tensor(&mut cx, vec![3, 2], &["7", "8", "9", "10", "11", "12"]);
+    let TensorExecution::Complete(result) = execute_cuda(
+        &mut cx,
+        &executor,
+        matmul_exec_op_symbol(),
+        vec![left, right],
+        vec![2, 2],
+        domains::f32(),
+    ) else {
+        panic!("cuda matmul should complete");
+    };
+
+    assert_eq!(f32_cells(&result), vec![58.0, 64.0, 139.0, 154.0]);
+    let storage = result
+        .storage()
+        .as_any()
+        .downcast_ref::<CudaResidentStorage>()
+        .expect("cuda resident storage");
+    assert_eq!(
+        storage.location(),
+        TensorLocation::Resident {
+            site: compute_cuda_site_symbol(),
+            allocation: Symbol::qualified("compute.alloc.cuda", "1"),
+        }
+    );
+    assert_eq!(executor.flush().unwrap().accepted, 1);
+}
+
+#[test]
+fn unsupported_operations_are_declined_before_acceptance() {
+    let mut cx = test_cx();
+    let evidence = ComputeCudaLib::from_loader(&FakeCudaLoader::available())
+        .unwrap()
+        .probe_evidence()
+        .and_then(|probe| probe.evidence.clone())
+        .unwrap();
+    let executor = CudaTensorExecutor::new(evidence);
+    let left = tensor(&mut cx, vec![2], &["1", "2"]);
+    let right = tensor(&mut cx, vec![2], &["3", "4"]);
+    let TensorExecution::Unsupported { reason } = execute_cuda(
+        &mut cx,
+        &executor,
+        add_op_symbol(),
+        vec![left, right],
+        vec![2],
+        domains::f32(),
+    ) else {
+        panic!("cuda provider must decline non-matmul operations");
+    };
+    assert!(reason.contains("dense matmul only"));
+    assert_eq!(executor.flush().unwrap().accepted, 0);
+}
+
+#[test]
+fn half_matmul_requires_validated_cublaslt_path() {
+    let mut cx = test_cx();
+    let evidence = ComputeCudaLib::from_loader(&FakeCudaLoader::incomplete())
+        .unwrap()
+        .probe_evidence()
+        .and_then(|probe| probe.evidence.clone())
+        .unwrap();
+    let executor = CudaTensorExecutor::new(evidence);
+    let left = tensor(&mut cx, vec![1, 1], &["1"]);
+    let right = tensor(&mut cx, vec![1, 1], &["2"]);
+    let TensorExecution::Unsupported { reason } = execute_cuda(
+        &mut cx,
+        &executor,
+        matmul_exec_op_symbol(),
+        vec![left, right],
+        vec![1, 1],
+        domains::f16(),
+    ) else {
+        panic!("half matmul must require cuBLASLt ABI evidence");
+    };
+    assert!(reason.contains("cuBLASLt-supported half"));
+    assert_eq!(executor.flush().unwrap().accepted, 0);
+}
+```
+
+Specimen `spec-test/sim-compute/crates/sim-lib-compute-wgpu/src/tests` is checked by `cargo test`.
+
+Source `crates/sim-lib-compute-wgpu/src/tests.rs`:
+
+```rust
+use std::sync::Arc;
+
+use sim_kernel::{DefaultFactory, EagerPolicy, Symbol};
+use sim_lib_compute_auto::{ComputeEvidenceKind, verify_physical};
+use sim_lib_numbers_tensor::{
+    CpuTensorExecutor, Tensor, TensorExecution, TensorExecutor, TensorLocation, TensorMeta,
+    TensorOp, TensorRequest, add_op_symbol, build_tensor_value, cos_op_symbol, dot_op_symbol,
+    exp_op_symbol, matmul_exec_op_symbol, max_op_symbol, min_op_symbol, neg_op_symbol,
+    norm_op_symbol, parse_f16_literal_cell, parse_f32_literal_cell, sin_op_symbol, sqrt_op_symbol,
+    sub_op_symbol, sum_op_symbol, tensor_value_ref, transpose_exec_op_symbol,
+};
+
+use crate::{
+    AllocationAttempt, ComputeWgpuLib, ProbeEvidence, RequestedWgpuProfile, TransferEvidence,
+    WgpuAdapterEvidence, WgpuAdapterProbe, WgpuCapabilityEvidence, WgpuDiscovery, WgpuKernelDType,
+    WgpuKernelOp, WgpuLimitEvidence, WgpuMaterializationCache, WgpuPipelineCache, WgpuQueueLimits,
+    WgpuResidentArena, WgpuResidentStorage, WgpuSegmentPlan, WgpuSubmissionQueue,
+    WgpuTensorExecutor, WgpuTransferPlan, compute_wgpu_capability, compute_wgpu_site_symbol,
+    kernels::execute_portable_kernel, probe::discover_wgpu_adapter_runtimes,
+    site::WgpuExecutionContext,
+};
+
+// conformance: wgpu discovery records evidence, exports only successful adapter sites, and plans bounded resident submissions.
+
+mod primitive_tests;
+mod residency_tests;
+
+fn limits(buffer_size: u64) -> WgpuLimitEvidence {
+    WgpuLimitEvidence {
+        max_buffer_size: buffer_size,
+        max_storage_buffer_binding_size: 1 << 20,
+        max_uniform_buffer_binding_size: 64 << 10,
+        min_storage_buffer_offset_alignment: 256,
+        min_uniform_buffer_offset_alignment: 256,
+        max_compute_workgroups_per_dimension: 65_535,
+        max_compute_invocations_per_workgroup: 256,
+        max_compute_workgroup_size_x: 256,
+        max_compute_workgroup_size_y: 1,
+        max_compute_workgroup_size_z: 1,
+    }
+}
+
+fn adapter(name: &str, backend: &str, success: bool) -> WgpuAdapterProbe {
+    adapter_with_limits(name, backend, success, limits(1 << 24))
+}
+
+fn adapter_with_limits(
+    name: &str,
+    backend: &str,
+    success: bool,
+    granted_limits: WgpuLimitEvidence,
+) -> WgpuAdapterProbe {
+    WgpuAdapterProbe {
+        evidence_kind: ComputeEvidenceKind::HostEmulated,
+        claimed_identity: None,
+        observed_identity: None,
+        adapter: WgpuAdapterEvidence {
+            ordinal: 99,
+            name: name.to_owned(),
+            backend: backend.to_owned(),
+            adapter_type: "DiscreteGpu".to_owned(),
+            vendor: 100,
+            device: 200,
+            requested: RequestedWgpuProfile {
+                limits: limits(4096),
+                timestamp_query: true,
+                shader_f16: true,
+            },
+            granted_limits,
+            granted_features: WgpuCapabilityEvidence {
+                timestamp_query: true,
+                shader_f16: true,
+                mappable_primary_buffers: false,
+            },
+        },
+        probe: ProbeEvidence {
+            transfer: TransferEvidence {
+                bytes: 16,
+                transfer_ok: success,
+                mapping_ok: success,
+            },
+            allocation_attempts: vec![AllocationAttempt {
+                bytes: 4096,
+                success,
+            }],
+        },
+    }
+}
+
+fn test_cx() -> sim_kernel::Cx {
+    let mut cx = sim_kernel::Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    cx.load_lib(&sim_lib_numbers_arith::NumbersArithmeticLib::new())
+        .unwrap();
+    cx.load_lib(&sim_lib_numbers_f64::F64NumbersLib::new())
+        .unwrap();
+    cx.load_lib(&sim_lib_numbers_float::F32NumbersLib::new())
+        .unwrap();
+    cx.load_lib(&sim_lib_numbers_tensor::TensorNumbersLib::new())
+        .unwrap();
+    cx
+}
+
+fn f32_value(cx: &mut sim_kernel::Cx, canonical: &str) -> sim_kernel::Value {
+    cx.factory()
+        .number_literal(Symbol::qualified("numbers", "f32"), canonical.to_owned())
+        .unwrap()
+}
+
+fn tensor(
+    cx: &mut sim_kernel::Cx,
+    shape: Vec<usize>,
+    cells: &[&str],
+) -> sim_lib_numbers_tensor::Tensor {
+    let values = cells.iter().map(|cell| f32_value(cx, cell)).collect();
+    tensor_value_ref(
+        &build_tensor_value(cx, shape, Some(Symbol::qualified("numbers", "f32")), values).unwrap(),
+    )
+    .unwrap()
+    .clone()
+}
+
+fn f32_cells(tensor: &sim_lib_numbers_tensor::Tensor) -> Vec<f32> {
+    tensor
+        .cells()
+        .unwrap()
+        .iter()
+        .map(|cell| parse_f32_literal_cell(cell).expect("f32 tensor cell"))
+        .collect()
+}
+
+fn execute_wgpu(
+    cx: &mut sim_kernel::Cx,
+    executor: &WgpuTensorExecutor,
+    symbol: Symbol,
+    inputs: Vec<Tensor>,
+    shape: Vec<usize>,
+    dtype: Symbol,
+) -> Tensor {
+    let op = TensorOp::without_attributes(cx, symbol).unwrap();
+    match executor
+        .execute(
+            cx,
+            TensorRequest::new(op, inputs, TensorMeta::new(shape, dtype)),
+        )
+        .unwrap()
+    {
+        TensorExecution::Complete(tensor) => tensor,
+        TensorExecution::Unsupported { reason } => panic!("{reason}"),
+    }
+}
+
+fn execute_cpu(
+    cx: &mut sim_kernel::Cx,
+    symbol: Symbol,
+    inputs: Vec<Tensor>,
+    shape: Vec<usize>,
+    dtype: Symbol,
+) -> Tensor {
+    let op = TensorOp::without_attributes(cx, symbol).unwrap();
+    match CpuTensorExecutor::new()
+        .execute(
+            cx,
+            TensorRequest::new(op, inputs, TensorMeta::new(shape, dtype)),
+        )
+        .unwrap()
+    {
+        TensorExecution::Complete(tensor) => tensor,
+        TensorExecution::Unsupported { reason } => panic!("{reason}"),
+    }
+}
+
+fn execute_portable(
+    cx: &mut sim_kernel::Cx,
+    symbol: Symbol,
+    inputs: Vec<Tensor>,
+    shape: Vec<usize>,
+    dtype: Symbol,
+) -> Tensor {
+    let op = TensorOp::without_attributes(cx, symbol).unwrap();
+    execute_portable_kernel(
+        cx,
+        &TensorRequest::new(op, inputs, TensorMeta::new(shape, dtype)),
+        WgpuKernelDType::F32,
+    )
+    .unwrap()
+}
+
+fn assert_same_f32_cells(left: &Tensor, right: &Tensor) {
+    assert_eq!(left.shape(), right.shape());
+    let left_cells = f32_cells(left);
+    let right_cells = f32_cells(right);
+    assert_eq!(left_cells.len(), right_cells.len());
+    for (left, right) in left_cells.iter().zip(right_cells.iter()) {
+        assert!(same_f32_cell(*left, *right), "{left} != {right}");
+    }
+}
+
+fn same_f32_cell(left: f32, right: f32) -> bool {
+    if left.is_nan() || right.is_nan() {
+        return left.is_nan() && right.is_nan();
+    }
+    if left.is_infinite() || right.is_infinite() {
+        return left == right;
+    }
+    (left - right).abs() <= 1.0e-5
+}
+
+fn resident_storage(tensor: &Tensor) -> &WgpuResidentStorage {
+    tensor
+        .storage()
+        .as_any()
+        .downcast_ref::<WgpuResidentStorage>()
+        .expect("wgpu resident storage")
+}
+
+#[test]
+fn discovery_keeps_only_successful_probe_backed_adapters() {
+    let discovery = WgpuDiscovery::from_probes(
+        vec![
+            adapter("zeta", "Vulkan", true),
+            adapter("alpha", "Vulkan", true),
+            adapter("placeholder", "Noop", false),
+        ],
+        Vec::new(),
+    );
+
+    assert_eq!(discovery.adapters.len(), 2);
+    assert_eq!(discovery.adapters[0].adapter.name, "alpha");
+    assert_eq!(discovery.adapters[0].adapter.ordinal, 0);
+    assert_eq!(discovery.adapters[1].adapter.name, "zeta");
+    assert_eq!(discovery.adapters[1].adapter.ordinal, 1);
+    assert!(
+        discovery
+            .diagnostics
+            .iter()
+            .any(|diagnostic| diagnostic.contains("did not pass required probes"))
+    );
+}
+
+#[test]
+fn host_emulated_wgpu_probe_cannot_satisfy_physical_acceptance() {
+    let host_emulated_wgpu = adapter("alpha", "Vulkan", true);
+
+    assert!(verify_physical(&host_emulated_wgpu).is_err());
+}
+
+#[test]
+fn wgpu_lib_exports_sites_only_for_successful_discovery() {
+    let discovery = WgpuDiscovery::from_probes(vec![adapter("alpha", "Vulkan", true)], Vec::new());
+    let executor = WgpuTensorExecutor::new(discovery.adapters[0].clone());
+    let card = sim_lib_numbers_tensor::TensorExecutor::card(&executor);
+    assert_eq!(card.device_capability, Some(compute_wgpu_capability()));
+
+    let lib = ComputeWgpuLib::from_discovery(discovery);
+    let manifest = sim_kernel::Lib::manifest(&lib);
+    assert_eq!(manifest.exports.len(), 1);
+    assert_eq!(manifest.capabilities, vec![compute_wgpu_capability()]);
+
+    let mut cx = sim_kernel::Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    cx.grant(compute_wgpu_capability());
+    cx.load_lib(&lib).unwrap();
+    let site = cx
+        .registry()
+        .site_by_symbol(&compute_wgpu_site_symbol(0))
+        .expect("wgpu compute site");
+    assert!(site.object().as_eval_fabric().is_some());
+}
+
+#[test]
+fn segment_and_transfer_plans_cross_binding_boundaries() {
+    let segments = WgpuSegmentPlan::new(40, 16, 24);
+    assert_eq!(segments.total_bytes(), 40);
+    assert_eq!(segments.segments.len(), 3);
+    assert_eq!(segments.segments[0].offset, 0);
+    assert_eq!(segments.segments[0].bytes, 16);
+    assert_eq!(segments.segments[1].offset, 16);
+    assert_eq!(segments.segments[1].bytes, 16);
+    assert_eq!(segments.segments[2].offset, 32);
+    assert_eq!(segments.segments[2].bytes, 8);
+
+    let transfer = WgpuTransferPlan::from_segments(&segments);
+    assert_eq!(transfer.spans.len(), 3);
+    assert_eq!(transfer.spans[2].offset, 32);
+    assert_eq!(transfer.spans[2].bytes, 8);
+}
+
+#[test]
+fn resident_arena_evicts_oldest_allocation_under_byte_bound() {
+    let mut arena = WgpuResidentArena::new(24);
+    let first = arena.allocate(16).unwrap();
+    let second = arena.allocate(16).unwrap();
+
+    assert!(!arena.contains(first.id));
+    assert!(arena.contains(second.id));
+    assert_eq!(arena.snapshot().resident_bytes, 16);
+    assert_eq!(arena.snapshot().live_allocations, 1);
+    assert_eq!(arena.snapshot().evictions, 1);
+    assert!(arena.allocate(32).unwrap_err().contains("exceeds arena"));
+}
+
+#[test]
+fn submission_queue_bounds_nodes_bytes_and_deadlines() {
+    let mut queue = WgpuSubmissionQueue::new(WgpuQueueLimits {
+        max_nodes: 1,
+        max_bytes: 32,
+        deadline_tick: 10,
+    });
+    queue.push(16, 10).unwrap();
+    assert!(queue.push(8, 10).unwrap_err().contains("node limit"));
+    assert_eq!(queue.flush().nodes, 1);
+    assert!(queue.push(40, 10).unwrap_err().contains("byte limit"));
+    assert!(queue.push(8, 11).unwrap_err().contains("deadline"));
+}
+
+#[test]
+fn materialization_cache_records_one_success_or_failure() {
+    let success = WgpuMaterializationCache::default();
+    let first = success
+        .get_or_try_init(|| Ok(Arc::<[u8]>::from([1, 2, 3])))
+        .unwrap();
+    let second = success
+        .get_or_try_init(|| Ok(Arc::<[u8]>::from([9])))
+        .unwrap();
+    assert_eq!(&*first, &[1, 2, 3]);
+    assert_eq!(&*second, &[1, 2, 3]);
+
+    let failure = WgpuMaterializationCache::default();
+    assert!(
+        failure
+            .get_or_try_init(|| Err("device lost".to_owned()))
+            .unwrap_err()
+            .contains("device lost")
+    );
+    assert!(
+        failure
+            .get_or_try_init(|| Ok(Arc::<[u8]>::from([1])))
+            .unwrap_err()
+            .contains("device lost")
+    );
+}
+
+#[test]
+fn pointwise_dispatch_requires_retained_device_context() {
+    let mut cx = test_cx();
+    let discovery = WgpuDiscovery::from_probes(vec![adapter("alpha", "Vulkan", true)], Vec::new());
+    let executor = WgpuTensorExecutor::new(discovery.adapters[0].clone());
+    let left = tensor(&mut cx, vec![2, 1], &["1", "2"]);
+    let right = tensor(&mut cx, vec![1, 3], &["10", "20", "30"]);
+    let op = TensorOp::without_attributes(&mut cx, add_op_symbol()).unwrap();
+
+    let error = match executor.execute(
+        &mut cx,
+        TensorRequest::new(
+            op,
+            vec![left, right],
+            TensorMeta::new(vec![2, 3], Symbol::qualified("numbers", "f32")),
+        ),
+    ) {
+        Ok(_) => panic!("synthetic wgpu evidence must not dispatch pointwise work"),
+        Err(error) => error,
+    };
+    assert!(error.to_string().contains("device context is unavailable"));
+}
+
+#[test]
+fn physical_pointwise_dispatch_matches_cpu_when_opted_in() {
+    if std::env::var_os("SIM_COMPUTE_WGPU_PHYSICAL").is_none() {
+        return;
+    }
+    let mut cx = test_cx();
+    let mut runtimes = discover_wgpu_adapter_runtimes(&Default::default()).unwrap();
+    let runtime = runtimes
+        .pop()
+        .expect("SIM_COMPUTE_WGPU_PHYSICAL requires a probe-backed adapter");
+    assert!(verify_physical(&runtime.probe).is_ok());
+    let executor = WgpuTensorExecutor::from_parts(
+        runtime.probe,
+        Some(WgpuExecutionContext {
+            device: Arc::new(runtime.device),
+            queue: Arc::new(runtime.queue),
+        }),
+    );
+    let left = tensor(&mut cx, vec![2, 1], &["1", "-2"]);
+    let right = tensor(&mut cx, vec![1, 3], &["10", "-20", "0"]);
+    let source = tensor(&mut cx, vec![4], &["0.5", "1", "inf", "NaN"]);
+
+    for (symbol, inputs, shape) in [
+        (
+            add_op_symbol(),
+            vec![left.clone(), right.clone()],
+            vec![2, 3],
+        ),
+        (
+            sub_op_symbol(),
+            vec![left.clone(), right.clone()],
+            vec![2, 3],
+        ),
+        (
+            sim_lib_numbers_tensor::mul_op_symbol(),
+            vec![left.clone(), right.clone()],
+            vec![2, 3],
+        ),
+        (
+            sim_lib_numbers_tensor::div_op_symbol(),
+            vec![left.clone(), right.clone()],
+            vec![2, 3],
+        ),
+        (neg_op_symbol(), vec![source.clone()], vec![4]),
+        (sqrt_op_symbol(), vec![source.clone()], vec![4]),
+        (exp_op_symbol(), vec![source.clone()], vec![4]),
+        (sin_op_symbol(), vec![source.clone()], vec![4]),
+        (cos_op_symbol(), vec![source.clone()], vec![4]),
+    ] {
+        let gpu = execute_wgpu(
+            &mut cx,
+            &executor,
+            symbol.clone(),
+            inputs.clone(),
+            shape.clone(),
+            Symbol::qualified("numbers", "f32"),
+        );
+        let cpu = execute_cpu(
+            &mut cx,
+            symbol,
+            inputs,
+            shape,
+            Symbol::qualified("numbers", "f32"),
+        );
+        assert_same_f32_cells(&gpu, &cpu);
+        assert!(matches!(
+            gpu.location(),
+            TensorLocation::Resident { site, .. } if site == compute_wgpu_site_symbol(0)
+        ));
+    }
+    let log = execute_wgpu(
+        &mut cx,
+        &executor,
+        Symbol::qualified("tensor", "op/log"),
+        vec![source],
+        vec![4],
+        Symbol::qualified("numbers", "f32"),
+    );
+    let expected_log = tensor(&mut cx, vec![4], &["-0.6931472", "0", "inf", "NaN"]);
+    assert_same_f32_cells(&log, &expected_log);
+    assert_eq!(executor.flush().unwrap().accepted, 10);
+}
+
+#[test]
+fn pipeline_cache_is_bounded_by_adapter_op_dtype_and_rank() {
+    let mut cache = WgpuPipelineCache::new(2);
+    let probe = adapter("alpha", "Vulkan", true);
+    cache.get_or_insert(&probe, WgpuKernelOp::Add, WgpuKernelDType::F32, 1);
+    cache.get_or_insert(&probe, WgpuKernelOp::Add, WgpuKernelDType::F32, 1);
+    cache.get_or_insert(&probe, WgpuKernelOp::Exp, WgpuKernelDType::F32, 1);
+    cache.get_or_insert(&probe, WgpuKernelOp::Sin, WgpuKernelDType::F32, 2);
+
+    let snapshot = cache.snapshot();
+    assert_eq!(snapshot.entries, 2);
+    assert_eq!(snapshot.hits, 1);
+    assert_eq!(snapshot.misses, 3);
+    assert_eq!(snapshot.evictions, 1);
+}
+
+#[test]
+fn dtype_policy_uses_native_f16_only_when_granted_and_widens_bf16() {
+    let mut cx = test_cx();
+    let no_f16 = WgpuDiscovery::from_probes(
+        vec![{
+            let mut probe = adapter("alpha", "Vulkan", true);
+            probe.adapter.granted_features.shader_f16 = false;
+            probe
+        }],
+        Vec::new(),
+    );
+    let executor = WgpuTensorExecutor::new(no_f16.adapters[0].clone());
+    let source = tensor(&mut cx, vec![1], &["1"]);
+    let op = TensorOp::without_attributes(&mut cx, exp_op_symbol()).unwrap();
+    let error = match executor.execute(
+        &mut cx,
+        TensorRequest::new(
+            op,
+            vec![source],
+            TensorMeta::new(vec![1], Symbol::qualified("numbers", "f32")),
+        ),
+    ) {
+        Ok(_) => panic!("synthetic wgpu evidence must not dispatch pointwise work"),
+        Err(error) => error,
+    };
+    assert!(error.to_string().contains("device context is unavailable"));
+}
+```
+
+Specimen `spec-test/sim-compute/crates/sim-lib-compute-rocm/src/tests` is checked by `cargo test`.
+
+Source `crates/sim-lib-compute-rocm/src/tests.rs`:
+
+```rust
+use std::sync::Arc;
+
+use sim_kernel::{DefaultFactory, EagerPolicy, Lib, Symbol};
+use sim_lib_numbers_tensor::{
+    Tensor, TensorExecution, TensorExecutor, TensorLocation, TensorMeta, TensorOp, TensorRequest,
+    TensorStorage, add_op_symbol, build_tensor_value, domains, matmul_exec_op_symbol,
+    parse_f32_literal_cell, tensor_value_ref,
+};
+
+use crate::{
+    ComputeRocmLib, FakeRocmLoader, RocmResidentStorage, RocmTensorExecutor,
+    compute_rocm_capability, compute_rocm_site_symbol,
+};
+
+// conformance: ROCm discovery records ABI evidence, exports only validated sites, and accepts dense matmul while declining unsupported requests before acceptance.
+
+fn test_cx() -> sim_kernel::Cx {
+    let mut cx = sim_kernel::Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    cx.load_lib(&sim_lib_numbers_arith::NumbersArithmeticLib::new())
+        .unwrap();
+    cx.load_lib(&sim_lib_numbers_f64::F64NumbersLib::new())
+        .unwrap();
+    cx.load_lib(&sim_lib_numbers_float::F32NumbersLib::new())
+        .unwrap();
+    cx.load_lib(&sim_lib_numbers_tensor::TensorNumbersLib::new())
+        .unwrap();
+    cx
+}
+
+fn f32_value(cx: &mut sim_kernel::Cx, canonical: &str) -> sim_kernel::Value {
+    cx.factory()
+        .number_literal(domains::f32(), canonical.to_owned())
+        .unwrap()
+}
+
+fn tensor(cx: &mut sim_kernel::Cx, shape: Vec<usize>, cells: &[&str]) -> Tensor {
+    let values = cells.iter().map(|cell| f32_value(cx, cell)).collect();
+    tensor_value_ref(&build_tensor_value(cx, shape, Some(domains::f32()), values).unwrap())
+        .unwrap()
+        .clone()
+}
+
+fn f32_cells(tensor: &Tensor) -> Vec<f32> {
+    tensor
+        .cells()
+        .unwrap()
+        .iter()
+        .map(|cell| parse_f32_literal_cell(cell).expect("f32 tensor cell"))
+        .collect()
+}
+
+fn execute_rocm(
+    cx: &mut sim_kernel::Cx,
+    executor: &RocmTensorExecutor,
+    symbol: Symbol,
+    inputs: Vec<Tensor>,
+    shape: Vec<usize>,
+    dtype: Symbol,
+) -> TensorExecution {
+    let op = TensorOp::without_attributes(cx, symbol).unwrap();
+    executor
+        .execute(
+            cx,
+            TensorRequest::new(op, inputs, TensorMeta::new(shape, dtype)),
+        )
+        .unwrap()
+}
+
+#[test]
+fn fake_loader_controls_site_exports_without_rocm_installed() {
+    let available = ComputeRocmLib::from_loader(&FakeRocmLoader::available()).unwrap();
+    let manifest = available.manifest();
+    assert_eq!(manifest.exports.len(), 1);
+    assert_eq!(manifest.capabilities, vec![compute_rocm_capability()]);
+
+    let incomplete = ComputeRocmLib::from_loader(&FakeRocmLoader::incomplete()).unwrap();
+    assert!(incomplete.manifest().exports.is_empty());
+
+    let without_rocblaslt =
+        ComputeRocmLib::from_loader(&FakeRocmLoader::without_rocblaslt()).unwrap();
+    assert_eq!(without_rocblaslt.manifest().exports.len(), 1);
+
+    assert!(ComputeRocmLib::from_loader(&FakeRocmLoader::absent()).is_err());
+}
+
+#[test]
+fn rocm_lib_registers_site_only_after_abi_validation() {
+    let lib = ComputeRocmLib::from_loader(&FakeRocmLoader::available()).unwrap();
+    let mut cx = sim_kernel::Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    cx.grant(compute_rocm_capability());
+    cx.load_lib(&lib).unwrap();
+    let site = cx
+        .registry()
+        .site_by_symbol(&compute_rocm_site_symbol())
+        .expect("rocm compute site");
+    assert!(site.object().as_eval_fabric().is_some());
+}
+
+#[test]
+fn dense_f32_matmul_returns_rocm_resident_storage() {
+    let mut cx = test_cx();
+    let evidence = ComputeRocmLib::from_loader(&FakeRocmLoader::available())
+        .unwrap()
+        .probe_evidence()
+        .and_then(|probe| probe.evidence.clone())
+        .unwrap();
+    let executor = RocmTensorExecutor::new(evidence);
+    let left = tensor(&mut cx, vec![2, 3], &["1", "2", "3", "4", "5", "6"]);
+    let right = tensor(&mut cx, vec![3, 2], &["7", "8", "9", "10", "11", "12"]);
+    let TensorExecution::Complete(result) = execute_rocm(
+        &mut cx,
+        &executor,
+        matmul_exec_op_symbol(),
+        vec![left, right],
+        vec![2, 2],
+        domains::f32(),
+    ) else {
+        panic!("rocm matmul should complete");
+    };
+
+    assert_eq!(f32_cells(&result), vec![58.0, 64.0, 139.0, 154.0]);
+    let storage = result
+        .storage()
+        .as_any()
+        .downcast_ref::<RocmResidentStorage>()
+        .expect("rocm resident storage");
+    assert_eq!(
+        storage.location(),
+        TensorLocation::Resident {
+            site: compute_rocm_site_symbol(),
+            allocation: Symbol::qualified("compute.alloc.rocm", "1"),
+        }
+    );
+    assert_eq!(executor.flush().unwrap().accepted, 1);
+}
+
+#[test]
+fn unsupported_operations_are_declined_before_acceptance() {
+    let mut cx = test_cx();
+    let evidence = ComputeRocmLib::from_loader(&FakeRocmLoader::available())
+        .unwrap()
+        .probe_evidence()
+        .and_then(|probe| probe.evidence.clone())
+        .unwrap();
+    let executor = RocmTensorExecutor::new(evidence);
+    let left = tensor(&mut cx, vec![2], &["1", "2"]);
+    let right = tensor(&mut cx, vec![2], &["3", "4"]);
+    let TensorExecution::Unsupported { reason } = execute_rocm(
+        &mut cx,
+        &executor,
+        add_op_symbol(),
+        vec![left, right],
+        vec![2],
+        domains::f32(),
+    ) else {
+        panic!("rocm provider must decline non-matmul operations");
+    };
+    assert!(reason.contains("dense matmul only"));
+    assert_eq!(executor.flush().unwrap().accepted, 0);
+}
+
+#[test]
+fn half_matmul_requires_validated_rocblaslt_path() {
+    let mut cx = test_cx();
+    let evidence = ComputeRocmLib::from_loader(&FakeRocmLoader::without_rocblaslt())
+        .unwrap()
+        .probe_evidence()
+        .and_then(|probe| probe.evidence.clone())
+        .unwrap();
+    let executor = RocmTensorExecutor::new(evidence);
+    let left = tensor(&mut cx, vec![1, 1], &["1"]);
+    let right = tensor(&mut cx, vec![1, 1], &["2"]);
+    let TensorExecution::Unsupported { reason } = execute_rocm(
+        &mut cx,
+        &executor,
+        matmul_exec_op_symbol(),
+        vec![left, right],
+        vec![1, 1],
+        domains::f16(),
+    ) else {
+        panic!("half matmul must require rocBLASLt ABI evidence");
+    };
+    assert!(reason.contains("rocBLASLt-supported half"));
+    assert_eq!(executor.flush().unwrap().accepted, 0);
+}
+```
+
+### `feature/sim-compute/compute-cli`
+
+Specimen `recipe/sim-compute/crates/sim-lib-compute-cli/01-basics/inspect-compute-device` is checked by `xtask check-recipes`.
+
+Source `crates/sim-lib-compute-cli/recipes/01-basics/inspect-compute-device/recipe.toml`:
+
+```toml
+id = "inspect-compute-device"
+title = "Inspect compute device"
+description = "Show bounded compute CLI evidence for installed sites and injected profile storage."
+level = "basic"
+tags = ["compute", "cli", "device", "profile"]
+requires = ["compute/cli", "compute/provider", "storage/table"]
+capabilities = ["compute.device"]
+assert_capabilities = ["compute.device"]
+setup = "setup.siml"
+expected = "expected.txt"
+result = "(compute devices (model installed) (auto installed) (profiles table-supplied))"
+```
+
+### `feature/sim-compute/femm-resident-solvers`
+
+Specimen `recipe/sim-compute/crates/sim-lib-compute-femm/01-basics/resident-csr-solve` is checked by `xtask check-recipes`.
+
+Source `crates/sim-lib-compute-femm/recipes/01-basics/resident-csr-solve/recipe.toml`:
+
+```toml
+id = "resident-csr-solve"
+title = "Resident CSR solve"
+codec = "lisp"
+summary = "Shows a resident CSR Krylov solve accepted only after f64 residual certification."
+tags = ["compute", "femm", "csr", "krylov", "certificate"]
+requires = ["compute/femm", "femm/linear-solver"]
+setup = "setup.siml"
+expected = "expected.txt"
+```
+
+Specimen `spec-test/sim-compute/crates/sim-lib-compute-femm/src/lib` is checked by `cargo test`.
+
+Source `crates/sim-lib-compute-femm/src/lib.rs`:
+
+```rust
+#![forbid(unsafe_code)]
+#![deny(missing_docs)]
+//! Provider-neutral resident CSR FEMM linear solver.
+//!
+//! This crate composes the published `sim-lib-femm-solve` linear-solver seam.
+//! It keeps CSR data and Krylov work vectors in a modeled resident arena, uses
+//! f32 CG or BiCGSTAB for device-like iteration, synchronizes only scalar
+//! convergence evidence during the Krylov loop, and accepts a solve only after
+//! recomputing the residual on the CPU in f64.
+//!
+//! The existing FEMM steady solve remains the certificate authority: this crate
+//! exports a `femm/linear-solver` value, and `sim-lib-femm-solve` builds the
+//! `SolveCertificate` after its own f64 residual acceptance.
+
+mod kernels;
+mod provider_work;
+mod runtime;
+mod solver;
+
+pub use runtime::{ComputeFemmLib, compute_femm_lib_symbol};
+pub use solver::{
+    ResidentCsrConfig, ResidentCsrSnapshot, ResidentCsrSolver, ResidentKrylovMethod,
+    resident_csr_method_symbol,
+};
+
+/// Cookbook recipes for this lib, embedded at build time.
+pub static RECIPES: sim_cookbook::EmbeddedDir =
+    include!(concat!(env!("OUT_DIR"), "/cookbook_recipes.rs"));
+
+// conformance: resident FEMM CSR solves require f64 certificate acceptance.
+#[cfg(test)]
+mod tests;
 ```

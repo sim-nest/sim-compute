@@ -1,15 +1,54 @@
 {
   "generator": "xtask crate-catalog v1",
-  "package_count": 3,
+  "package_count": 8,
   "packages": [
     {
       "description": "Automatic tensor compute site selection for SIM.",
       "generated_readme": false,
       "manifest": "crates/sim-lib-compute-auto/Cargo.toml",
       "name": "sim-lib-compute-auto",
-      "publish": "false",
+      "publish": "true",
       "readme": "crates/sim-lib-compute-auto/README.md",
       "root": "crates/sim-lib-compute-auto",
+      "target_kinds": [
+        "custom-build",
+        "lib"
+      ]
+    },
+    {
+      "description": "Loadable compute command surface for SIM.",
+      "generated_readme": false,
+      "manifest": "crates/sim-lib-compute-cli/Cargo.toml",
+      "name": "sim-lib-compute-cli",
+      "publish": "true",
+      "readme": "crates/sim-lib-compute-cli/README.md",
+      "root": "crates/sim-lib-compute-cli",
+      "target_kinds": [
+        "custom-build",
+        "lib"
+      ]
+    },
+    {
+      "description": "Runtime-loaded CUDA/cuBLAS tensor compute site for SIM.",
+      "generated_readme": false,
+      "manifest": "crates/sim-lib-compute-cuda/Cargo.toml",
+      "name": "sim-lib-compute-cuda",
+      "publish": "true",
+      "readme": "crates/sim-lib-compute-cuda/README.md",
+      "root": "crates/sim-lib-compute-cuda",
+      "target_kinds": [
+        "custom-build",
+        "lib"
+      ]
+    },
+    {
+      "description": "Provider-neutral resident CSR FEMM linear solver for SIM.",
+      "generated_readme": false,
+      "manifest": "crates/sim-lib-compute-femm/Cargo.toml",
+      "name": "sim-lib-compute-femm",
+      "publish": "true",
+      "readme": "crates/sim-lib-compute-femm/README.md",
+      "root": "crates/sim-lib-compute-femm",
       "target_kinds": [
         "custom-build",
         "lib"
@@ -20,9 +59,35 @@
       "generated_readme": false,
       "manifest": "crates/sim-lib-compute-model/Cargo.toml",
       "name": "sim-lib-compute-model",
-      "publish": "false",
+      "publish": "true",
       "readme": "crates/sim-lib-compute-model/README.md",
       "root": "crates/sim-lib-compute-model",
+      "target_kinds": [
+        "custom-build",
+        "lib"
+      ]
+    },
+    {
+      "description": "Runtime-loaded ROCm/rocBLAS tensor compute site for SIM.",
+      "generated_readme": false,
+      "manifest": "crates/sim-lib-compute-rocm/Cargo.toml",
+      "name": "sim-lib-compute-rocm",
+      "publish": "true",
+      "readme": "crates/sim-lib-compute-rocm/README.md",
+      "root": "crates/sim-lib-compute-rocm",
+      "target_kinds": [
+        "custom-build",
+        "lib"
+      ]
+    },
+    {
+      "description": "Evidence-based wgpu tensor compute site discovery for SIM.",
+      "generated_readme": false,
+      "manifest": "crates/sim-lib-compute-wgpu/Cargo.toml",
+      "name": "sim-lib-compute-wgpu",
+      "publish": "true",
+      "readme": "crates/sim-lib-compute-wgpu/README.md",
+      "root": "crates/sim-lib-compute-wgpu",
       "target_kinds": [
         "custom-build",
         "lib"

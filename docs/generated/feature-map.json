@@ -9,7 +9,32 @@
     {
       "features": [],
       "group": "workspace",
+      "package": "sim-lib-compute-cli"
+    },
+    {
+      "features": [],
+      "group": "workspace",
+      "package": "sim-lib-compute-cuda"
+    },
+    {
+      "features": [],
+      "group": "workspace",
+      "package": "sim-lib-compute-femm"
+    },
+    {
+      "features": [],
+      "group": "workspace",
       "package": "sim-lib-compute-model"
+    },
+    {
+      "features": [],
+      "group": "workspace",
+      "package": "sim-lib-compute-rocm"
+    },
+    {
+      "features": [],
+      "group": "workspace",
+      "package": "sim-lib-compute-wgpu"
     },
     {
       "features": [],

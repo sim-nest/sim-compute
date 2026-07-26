@@ -1,5 +1,5 @@
 {
-  "card_count": 4,
+  "card_count": 9,
   "cards": [
     {
       "id": "browse/catalog",
@@ -20,6 +20,36 @@
       "summary": "Modeled resident tensor execution for provider and placement tests."
     },
     {
+      "id": "cookbook/compute-wgpu",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-compute-wgpu",
+      "summary": "Evidence-based portable GPU adapter discovery."
+    },
+    {
+      "id": "cookbook/sim-lib-compute-cli",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-compute-cli",
+      "summary": ""
+    },
+    {
+      "id": "cookbook/sim-lib-compute-cuda",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-compute-cuda",
+      "summary": ""
+    },
+    {
+      "id": "cookbook/sim-lib-compute-femm",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-compute-femm",
+      "summary": ""
+    },
+    {
+      "id": "cookbook/sim-lib-compute-rocm",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-compute-rocm",
+      "summary": ""
+    },
+    {
       "id": "registry/catalog",
       "kind": "browse-registry",
       "owner": "workspace",
@@ -36,13 +66,18 @@
   "groups": {
     "workspace": [
       "sim-lib-compute-auto",
+      "sim-lib-compute-cli",
+      "sim-lib-compute-cuda",
+      "sim-lib-compute-femm",
       "sim-lib-compute-model",
+      "sim-lib-compute-rocm",
+      "sim-lib-compute-wgpu",
       "xtask"
     ]
   },
   "non_citizen_exemption_count": 0,
   "non_citizen_exemptions": [],
-  "package_count": 3,
+  "package_count": 8,
   "packages": [
     {
       "crate_name": "sim_lib_compute_auto",
@@ -60,7 +95,7 @@
       "group": "workspace",
       "manifest": "crates/sim-lib-compute-auto/Cargo.toml",
       "name": "sim-lib-compute-auto",
-      "publish": "false",
+      "publish": "true",
       "root": "crates/sim-lib-compute-auto",
       "rustdoc_summary": "Automatic tensor compute-site selection.",
       "target_kinds": [
@@ -91,6 +126,135 @@
       ]
     },
     {
+      "crate_name": "sim_lib_compute_cli",
+      "dependencies": [
+        {
+          "kind": "normal",
+          "optional": false,
+          "package": "sim-lib-compute-auto",
+          "rename": null,
+          "target": null
+        },
+        {
+          "kind": "normal",
+          "optional": false,
+          "package": "sim-lib-compute-model",
+          "rename": null,
+          "target": null
+        }
+      ],
+      "description": "Loadable compute command surface for SIM.",
+      "features": [],
+      "group": "workspace",
+      "manifest": "crates/sim-lib-compute-cli/Cargo.toml",
+      "name": "sim-lib-compute-cli",
+      "publish": "true",
+      "root": "crates/sim-lib-compute-cli",
+      "rustdoc_summary": "Loadable compute command surface.",
+      "target_kinds": [
+        "custom-build",
+        "lib"
+      ],
+      "targets": [
+        {
+          "crate_types": [
+            "lib"
+          ],
+          "kind": [
+            "lib"
+          ],
+          "name": "sim_lib_compute_cli",
+          "src": "crates/sim-lib-compute-cli/src/lib.rs"
+        },
+        {
+          "crate_types": [
+            "bin"
+          ],
+          "kind": [
+            "custom-build"
+          ],
+          "name": "build-script-build",
+          "src": "crates/sim-lib-compute-cli/build.rs"
+        }
+      ]
+    },
+    {
+      "crate_name": "sim_lib_compute_cuda",
+      "dependencies": [],
+      "description": "Runtime-loaded CUDA/cuBLAS tensor compute site for SIM.",
+      "features": [],
+      "group": "workspace",
+      "manifest": "crates/sim-lib-compute-cuda/Cargo.toml",
+      "name": "sim-lib-compute-cuda",
+      "publish": "true",
+      "root": "crates/sim-lib-compute-cuda",
+      "rustdoc_summary": "Optional runtime-loaded CUDA/cuBLAS tensor compute provider.",
+      "target_kinds": [
+        "custom-build",
+        "lib"
+      ],
+      "targets": [
+        {
+          "crate_types": [
+            "lib"
+          ],
+          "kind": [
+            "lib"
+          ],
+          "name": "sim_lib_compute_cuda",
+          "src": "crates/sim-lib-compute-cuda/src/lib.rs"
+        },
+        {
+          "crate_types": [
+            "bin"
+          ],
+          "kind": [
+            "custom-build"
+          ],
+          "name": "build-script-build",
+          "src": "crates/sim-lib-compute-cuda/build.rs"
+        }
+      ]
+    },
+    {
+      "crate_name": "sim_lib_compute_femm",
+      "dependencies": [],
+      "description": "Provider-neutral resident CSR FEMM linear solver for SIM.",
+      "features": [],
+      "group": "workspace",
+      "manifest": "crates/sim-lib-compute-femm/Cargo.toml",
+      "name": "sim-lib-compute-femm",
+      "publish": "true",
+      "root": "crates/sim-lib-compute-femm",
+      "rustdoc_summary": "Provider-neutral resident CSR FEMM linear solver.",
+      "target_kinds": [
+        "custom-build",
+        "lib"
+      ],
+      "targets": [
+        {
+          "crate_types": [
+            "lib"
+          ],
+          "kind": [
+            "lib"
+          ],
+          "name": "sim_lib_compute_femm",
+          "src": "crates/sim-lib-compute-femm/src/lib.rs"
+        },
+        {
+          "crate_types": [
+            "bin"
+          ],
+          "kind": [
+            "custom-build"
+          ],
+          "name": "build-script-build",
+          "src": "crates/sim-lib-compute-femm/build.rs"
+        }
+      ]
+    },
+    {
       "crate_name": "sim_lib_compute_model",
       "dependencies": [],
       "description": "Modeled resident tensor compute site for SIM.",
@@ -98,7 +262,7 @@
       "group": "workspace",
       "manifest": "crates/sim-lib-compute-model/Cargo.toml",
       "name": "sim-lib-compute-model",
-      "publish": "false",
+      "publish": "true",
       "root": "crates/sim-lib-compute-model",
       "rustdoc_summary": "Modeled resident tensor compute provider.",
       "target_kinds": [
@@ -129,8 +293,100 @@
       ]
     },
     {
-      "crate_name": "xtask",
+      "crate_name": "sim_lib_compute_rocm",
       "dependencies": [],
+      "description": "Runtime-loaded ROCm/rocBLAS tensor compute site for SIM.",
+      "features": [],
+      "group": "workspace",
+      "manifest": "crates/sim-lib-compute-rocm/Cargo.toml",
+      "name": "sim-lib-compute-rocm",
+      "publish": "true",
+      "root": "crates/sim-lib-compute-rocm",
+      "rustdoc_summary": "Optional runtime-loaded ROCm/rocBLAS tensor compute provider.",
+      "target_kinds": [
+        "custom-build",
+        "lib"
+      ],
+      "targets": [
+        {
+          "crate_types": [
+            "lib"
+          ],
+          "kind": [
+            "lib"
+          ],
+          "name": "sim_lib_compute_rocm",
+          "src": "crates/sim-lib-compute-rocm/src/lib.rs"
+        },
+        {
+          "crate_types": [
+            "bin"
+          ],
+          "kind": [
+            "custom-build"
+          ],
+          "name": "build-script-build",
+          "src": "crates/sim-lib-compute-rocm/build.rs"
+        }
+      ]
+    },
+    {
+      "crate_name": "sim_lib_compute_wgpu",
+      "dependencies": [
+        {
+          "kind": "normal",
+          "optional": false,
+          "package": "sim-lib-compute-auto",
+          "rename": null,
+          "target": null
+        }
+      ],
+      "description": "Evidence-based wgpu tensor compute site discovery for SIM.",
+      "features": [],
+      "group": "workspace",
+      "manifest": "crates/sim-lib-compute-wgpu/Cargo.toml",
+      "name": "sim-lib-compute-wgpu",
+      "publish": "true",
+      "root": "crates/sim-lib-compute-wgpu",
+      "rustdoc_summary": "Evidence-based wgpu tensor compute site discovery.",
+      "target_kinds": [
+        "custom-build",
+        "lib"
+      ],
+      "targets": [
+        {
+          "crate_types": [
+            "lib"
+          ],
+          "kind": [
+            "lib"
+          ],
+          "name": "sim_lib_compute_wgpu",
+          "src": "crates/sim-lib-compute-wgpu/src/lib.rs"
+        },
+        {
+          "crate_types": [
+            "bin"
+          ],
+          "kind": [
+            "custom-build"
+          ],
+          "name": "build-script-build",
+          "src": "crates/sim-lib-compute-wgpu/build.rs"
+        }
+      ]
+    },
+    {
+      "crate_name": "xtask",
+      "dependencies": [
+        {
+          "kind": "normal",
+          "optional": false,
+          "package": "sim-lib-compute-cli",
+          "rename": null,
+          "target": null
+        }
+      ],
       "description": "Repository automation wrapper for generated documentation and policy checks.",
       "features": [],
       "group": "workspace",
@@ -161,10 +417,10 @@
     "generated_by": "cargo run -p xtask -- simdoc",
     "generation_timestamp": "2026-07-24T22:54:42+02:00",
     "generator": "xtask repo-contract v1",
-    "git_commit": "9ac7f3163db8527f9af0fdf16d09570a7eff1410",
+    "git_commit": "504255b534e69a37d7163ba06048bc23ebdb7cb4",
     "repo": "sim-compute",
     "schema": "sim.provenance.v1",
-    "source_commit": "9ac7f3163db8527f9af0fdf16d09570a7eff1410",
+    "source_commit": "504255b534e69a37d7163ba06048bc23ebdb7cb4",
     "source_remote": "https://github.com/sim-nest/sim-compute",
     "validation_commands": [
       "cargo fmt --all --check",
@@ -177,31 +433,105 @@
       "cargo run -p xtask -- validation-matrix --check --repo .",
       "cargo run -p xtask -- crate-catalog --check --repo ."
     ],
-    "workspace_hash": "ca4ddc8f80db701f",
+    "workspace_hash": "708167e04709e290",
     "workspace_hash_algorithm": "fnv1a64",
-    "workspace_hash_input_count": 18,
+    "workspace_hash_input_count": 92,
     "workspace_hash_inputs": [
       "Cargo.toml",
       "crates/sim-lib-compute-auto/Cargo.toml",
       "crates/sim-lib-compute-auto/build.rs",
       "crates/sim-lib-compute-auto/recipes/01-basics/auto-compute-site/recipe.toml",
+      "crates/sim-lib-compute-auto/recipes/01-basics/measured-profile-routing/recipe.toml",
       "crates/sim-lib-compute-auto/recipes/book.toml",
+      "crates/sim-lib-compute-auto/src/evidence.rs",
       "crates/sim-lib-compute-auto/src/lib.rs",
+      "crates/sim-lib-compute-auto/src/profile.rs",
+      "crates/sim-lib-compute-auto/src/store.rs",
       "crates/sim-lib-compute-auto/src/tests.rs",
+      "crates/sim-lib-compute-cli/Cargo.toml",
+      "crates/sim-lib-compute-cli/build.rs",
+      "crates/sim-lib-compute-cli/recipes/01-basics/inspect-compute-device/recipe.toml",
+      "crates/sim-lib-compute-cli/recipes/book.toml",
+      "crates/sim-lib-compute-cli/src/acceptance/host.rs",
+      "crates/sim-lib-compute-cli/src/acceptance/tests.rs",
+      "crates/sim-lib-compute-cli/src/acceptance.rs",
+      "crates/sim-lib-compute-cli/src/args.rs",
+      "crates/sim-lib-compute-cli/src/envelope.rs",
+      "crates/sim-lib-compute-cli/src/evidence.rs",
+      "crates/sim-lib-compute-cli/src/lib.rs",
+      "crates/sim-lib-compute-cli/src/render.rs",
+      "crates/sim-lib-compute-cli/src/tests.rs",
+      "crates/sim-lib-compute-cuda/Cargo.toml",
+      "crates/sim-lib-compute-cuda/build.rs",
+      "crates/sim-lib-compute-cuda/recipes/01-basics/cuda-discovery/recipe.toml",
+      "crates/sim-lib-compute-cuda/recipes/book.toml",
+      "crates/sim-lib-compute-cuda/src/lib.rs",
+      "crates/sim-lib-compute-cuda/src/loader.rs",
+      "crates/sim-lib-compute-cuda/src/site.rs",
+      "crates/sim-lib-compute-cuda/src/storage.rs",
+      "crates/sim-lib-compute-cuda/src/tests.rs",
+      "crates/sim-lib-compute-femm/Cargo.toml",
+      "crates/sim-lib-compute-femm/build.rs",
+      "crates/sim-lib-compute-femm/recipes/01-basics/resident-csr-solve/recipe.toml",
+      "crates/sim-lib-compute-femm/recipes/book.toml",
+      "crates/sim-lib-compute-femm/src/kernels.rs",
+      "crates/sim-lib-compute-femm/src/lib.rs",
+      "crates/sim-lib-compute-femm/src/provider_work.rs",
+      "crates/sim-lib-compute-femm/src/runtime.rs",
+      "crates/sim-lib-compute-femm/src/solver.rs",
+      "crates/sim-lib-compute-femm/src/tests.rs",
       "crates/sim-lib-compute-model/Cargo.toml",
       "crates/sim-lib-compute-model/build.rs",
       "crates/sim-lib-compute-model/recipes/01-basics/modeled-resident-matrix/recipe.toml",
       "crates/sim-lib-compute-model/recipes/book.toml",
       "crates/sim-lib-compute-model/src/lib.rs",
       "crates/sim-lib-compute-model/src/model.rs",
+      "crates/sim-lib-compute-model/src/ode.rs",
+      "crates/sim-lib-compute-model/src/ode_tests.rs",
       "crates/sim-lib-compute-model/src/site.rs",
       "crates/sim-lib-compute-model/src/storage.rs",
       "crates/sim-lib-compute-model/src/tests.rs",
+      "crates/sim-lib-compute-rocm/Cargo.toml",
+      "crates/sim-lib-compute-rocm/build.rs",
+      "crates/sim-lib-compute-rocm/recipes/01-basics/rocm-discovery/recipe.toml",
+      "crates/sim-lib-compute-rocm/recipes/book.toml",
+      "crates/sim-lib-compute-rocm/src/lib.rs",
+      "crates/sim-lib-compute-rocm/src/loader.rs",
+      "crates/sim-lib-compute-rocm/src/site.rs",
+      "crates/sim-lib-compute-rocm/src/storage.rs",
+      "crates/sim-lib-compute-rocm/src/tests.rs",
+      "crates/sim-lib-compute-wgpu/Cargo.toml",
+      "crates/sim-lib-compute-wgpu/build.rs",
+      "crates/sim-lib-compute-wgpu/recipes/01-basics/wgpu-discovery/recipe.toml",
+      "crates/sim-lib-compute-wgpu/recipes/book.toml",
+      "crates/sim-lib-compute-wgpu/src/arena.rs",
+      "crates/sim-lib-compute-wgpu/src/counters.rs",
+      "crates/sim-lib-compute-wgpu/src/dispatch.rs",
+      "crates/sim-lib-compute-wgpu/src/dispatch_linalg.rs",
+      "crates/sim-lib-compute-wgpu/src/dispatch_reductions.rs",
+      "crates/sim-lib-compute-wgpu/src/kernel_elementwise.rs",
+      "crates/sim-lib-compute-wgpu/src/kernel_linalg.rs",
+      "crates/sim-lib-compute-wgpu/src/kernel_reductions.rs",
+      "crates/sim-lib-compute-wgpu/src/kernel_support.rs",
+      "crates/sim-lib-compute-wgpu/src/kernel_wgsl.rs",
+      "crates/sim-lib-compute-wgpu/src/kernels.rs",
+      "crates/sim-lib-compute-wgpu/src/lib.rs",
+      "crates/sim-lib-compute-wgpu/src/materialization.rs",
+      "crates/sim-lib-compute-wgpu/src/pipeline.rs",
+      "crates/sim-lib-compute-wgpu/src/probe.rs",
+      "crates/sim-lib-compute-wgpu/src/queue.rs",
+      "crates/sim-lib-compute-wgpu/src/segments.rs",
+      "crates/sim-lib-compute-wgpu/src/site.rs",
+      "crates/sim-lib-compute-wgpu/src/storage.rs",
+      "crates/sim-lib-compute-wgpu/src/tests/primitive_tests.rs",
+      "crates/sim-lib-compute-wgpu/src/tests/residency_tests.rs",
+      "crates/sim-lib-compute-wgpu/src/tests.rs",
+      "crates/sim-lib-compute-wgpu/src/transfer.rs",
       "features.toml",
       "xtask/Cargo.toml"
     ]
   },
-  "recipe_book_count": 2,
+  "recipe_book_count": 7,
   "recipes": [
     {
       "book": "compute-auto",
@@ -209,7 +539,7 @@
       "card_id": "cookbook/compute-auto",
       "group": "workspace",
       "package": "sim-lib-compute-auto",
-      "recipe_count": 1,
+      "recipe_count": 2,
       "recipes": [
         {
           "card_id": "compute-auto/01-basics/auto-compute-site",
@@ -218,10 +548,78 @@
           "package": "sim-lib-compute-auto",
           "recipe_toml": "crates/sim-lib-compute-auto/recipes/01-basics/auto-compute-site/recipe.toml",
           "title": "Auto compute site"
+        },
+        {
+          "card_id": "compute-auto/01-basics/measured-profile-routing",
+          "codec": "lisp",
+          "id": "measured-profile-routing",
+          "package": "sim-lib-compute-auto",
+          "recipe_toml": "crates/sim-lib-compute-auto/recipes/01-basics/measured-profile-routing/recipe.toml",
+          "title": "Measured profile routing"
         }
       ],
       "summary": "Automatic tensor compute site selection with CPU fallback.",
       "title": "Auto Compute"
+    },
+    {
+      "book": "sim-lib-compute-cli",
+      "book_toml": "crates/sim-lib-compute-cli/recipes/book.toml",
+      "card_id": "cookbook/sim-lib-compute-cli",
+      "group": "workspace",
+      "package": "sim-lib-compute-cli",
+      "recipe_count": 1,
+      "recipes": [
+        {
+          "card_id": "sim-lib-compute-cli/01-basics/inspect-compute-device",
+          "codec": "",
+          "id": "inspect-compute-device",
+          "package": "sim-lib-compute-cli",
+          "recipe_toml": "crates/sim-lib-compute-cli/recipes/01-basics/inspect-compute-device/recipe.toml",
+          "title": "Inspect compute device"
+        }
+      ],
+      "summary": "",
+      "title": "Compute command recipes"
+    },
+    {
+      "book": "sim-lib-compute-cuda",
+      "book_toml": "crates/sim-lib-compute-cuda/recipes/book.toml",
+      "card_id": "cookbook/sim-lib-compute-cuda",
+      "group": "workspace",
+      "package": "sim-lib-compute-cuda",
+      "recipe_count": 1,
+      "recipes": [
+        {
+          "card_id": "sim-lib-compute-cuda/01-basics/cuda-discovery",
+          "codec": "",
+          "id": "cuda-discovery",
+          "package": "sim-lib-compute-cuda",
+          "recipe_toml": "crates/sim-lib-compute-cuda/recipes/01-basics/cuda-discovery/recipe.toml",
+          "title": "CUDA discovery"
+        }
+      ],
+      "summary": "",
+      "title": "sim-lib-compute-cuda recipes"
+    },
+    {
+      "book": "sim-lib-compute-femm",
+      "book_toml": "crates/sim-lib-compute-femm/recipes/book.toml",
+      "card_id": "cookbook/sim-lib-compute-femm",
+      "group": "workspace",
+      "package": "sim-lib-compute-femm",
+      "recipe_count": 1,
+      "recipes": [
+        {
+          "card_id": "sim-lib-compute-femm/01-basics/resident-csr-solve",
+          "codec": "lisp",
+          "id": "resident-csr-solve",
+          "package": "sim-lib-compute-femm",
+          "recipe_toml": "crates/sim-lib-compute-femm/recipes/01-basics/resident-csr-solve/recipe.toml",
+          "title": "Resident CSR solve"
+        }
+      ],
+      "summary": "",
+      "title": "sim-lib-compute-femm recipes"
     },
     {
       "book": "compute-model",
@@ -242,6 +640,46 @@
       ],
       "summary": "Modeled resident tensor execution for provider and placement tests.",
       "title": "Modeled Compute"
+    },
+    {
+      "book": "sim-lib-compute-rocm",
+      "book_toml": "crates/sim-lib-compute-rocm/recipes/book.toml",
+      "card_id": "cookbook/sim-lib-compute-rocm",
+      "group": "workspace",
+      "package": "sim-lib-compute-rocm",
+      "recipe_count": 1,
+      "recipes": [
+        {
+          "card_id": "sim-lib-compute-rocm/01-basics/rocm-discovery",
+          "codec": "",
+          "id": "rocm-discovery",
+          "package": "sim-lib-compute-rocm",
+          "recipe_toml": "crates/sim-lib-compute-rocm/recipes/01-basics/rocm-discovery/recipe.toml",
+          "title": "ROCm discovery"
+        }
+      ],
+      "summary": "",
+      "title": "sim-lib-compute-rocm recipes"
+    },
+    {
+      "book": "compute-wgpu",
+      "book_toml": "crates/sim-lib-compute-wgpu/recipes/book.toml",
+      "card_id": "cookbook/compute-wgpu",
+      "group": "workspace",
+      "package": "sim-lib-compute-wgpu",
+      "recipe_count": 1,
+      "recipes": [
+        {
+          "card_id": "compute-wgpu/01-basics/wgpu-discovery",
+          "codec": "",
+          "id": "wgpu-discovery",
+          "package": "sim-lib-compute-wgpu",
+          "recipe_toml": "crates/sim-lib-compute-wgpu/recipes/01-basics/wgpu-discovery/recipe.toml",
+          "title": "WGPU discovery"
+        }
+      ],
+      "summary": "Evidence-based portable GPU adapter discovery.",
+      "title": "WGPU Compute"
     }
   ]
 }

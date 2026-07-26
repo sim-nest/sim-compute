@@ -1,0 +1,3 @@
+book = "compute-wgpu"
+title = "WGPU Compute"
+summary = "Evidence-based portable GPU adapter discovery."

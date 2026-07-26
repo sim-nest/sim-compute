@@ -9,11 +9,46 @@
       "summary": "Automatic tensor compute-site selection."
     },
     {
+      "crate_name": "sim_lib_compute_cli",
+      "group": "workspace",
+      "manifest": "crates/sim-lib-compute-cli/Cargo.toml",
+      "package": "sim-lib-compute-cli",
+      "summary": "Loadable compute command surface."
+    },
+    {
+      "crate_name": "sim_lib_compute_cuda",
+      "group": "workspace",
+      "manifest": "crates/sim-lib-compute-cuda/Cargo.toml",
+      "package": "sim-lib-compute-cuda",
+      "summary": "Optional runtime-loaded CUDA/cuBLAS tensor compute provider."
+    },
+    {
+      "crate_name": "sim_lib_compute_femm",
+      "group": "workspace",
+      "manifest": "crates/sim-lib-compute-femm/Cargo.toml",
+      "package": "sim-lib-compute-femm",
+      "summary": "Provider-neutral resident CSR FEMM linear solver."
+    },
+    {
       "crate_name": "sim_lib_compute_model",
       "group": "workspace",
       "manifest": "crates/sim-lib-compute-model/Cargo.toml",
       "package": "sim-lib-compute-model",
       "summary": "Modeled resident tensor compute provider."
+    },
+    {
+      "crate_name": "sim_lib_compute_rocm",
+      "group": "workspace",
+      "manifest": "crates/sim-lib-compute-rocm/Cargo.toml",
+      "package": "sim-lib-compute-rocm",
+      "summary": "Optional runtime-loaded ROCm/rocBLAS tensor compute provider."
+    },
+    {
+      "crate_name": "sim_lib_compute_wgpu",
+      "group": "workspace",
+      "manifest": "crates/sim-lib-compute-wgpu/Cargo.toml",
+      "package": "sim-lib-compute-wgpu",
+      "summary": "Evidence-based wgpu tensor compute site discovery."
     },
     {
       "crate_name": "xtask",

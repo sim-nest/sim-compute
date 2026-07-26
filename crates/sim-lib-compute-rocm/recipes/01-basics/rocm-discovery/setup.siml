@@ -1,0 +1,1 @@
+(compute rocm-discovery (site site/compute/rocm) (evidence hip rocblas gfx-target rocblaslt-optional))

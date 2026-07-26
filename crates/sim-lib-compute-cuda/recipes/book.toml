@@ -1,0 +1,2 @@
+title = "sim-lib-compute-cuda recipes"
+chapters = ["01-basics/chapter.toml"]

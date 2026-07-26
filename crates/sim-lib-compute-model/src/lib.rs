@@ -8,12 +8,17 @@
 //! results in resident storage owned by `site/compute/model`.
 
 mod model;
+mod ode;
 mod site;
 mod storage;
 
 pub use model::{
-    ModeledComputeFault, ModeledComputeProfile, ModeledComputeSnapshot, ModeledTensorExecutor,
-    modeled_executor_symbol,
+    ModeledComputeFault, ModeledComputeProfile, ModeledComputeSnapshot, ModeledResidentSegment,
+    ModeledTensorExecutor, modeled_executor_symbol,
+};
+pub use ode::{
+    ResidentOdeExecution, ResidentOdeExecutor, ResidentOdeKind, ResidentOdePlan,
+    ResidentRhsLowering,
 };
 pub use site::{ComputeModelLib, compute_model_lib_symbol, compute_model_site_symbol};
 pub use storage::{ModeledResidentStorage, ResidentHandle};
@@ -22,5 +27,7 @@ pub use storage::{ModeledResidentStorage, ResidentHandle};
 pub static RECIPES: sim_cookbook::EmbeddedDir =
     include!(concat!(env!("OUT_DIR"), "/cookbook_recipes.rs"));
 
+#[cfg(test)]
+mod ode_tests;
 #[cfg(test)]
 mod tests;

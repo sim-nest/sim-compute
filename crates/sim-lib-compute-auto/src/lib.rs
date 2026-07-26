@@ -2,6 +2,10 @@
 #![deny(missing_docs)]
 //! Automatic tensor compute-site selection.
 
+mod evidence;
+mod profile;
+mod store;
+
 use std::sync::Arc;
 
 use sim_kernel::{
@@ -13,6 +17,17 @@ use sim_lib_numbers_tensor::{
     CpuTensorExecutor, SubmissionEvidence, TensorExecError, TensorExecution, TensorExecutor,
     TensorExecutorCard, TensorRequest, TensorSite,
 };
+
+pub use evidence::{
+    ComputeEvidenceKind, ComputePhysicalEvidence, PhysicalEvidenceError, verify_physical,
+};
+pub use profile::{
+    AutoComputeRouter, AutoRouteDecision, AutoRoutingEvent, AutoRoutingLedger, BenchmarkBounds,
+    ComputeDeviceIdentity, ComputeProfileLimits, ComputeProfileProvenance, ComputeProfileSamples,
+    ComputeThermalPowerContext, MeasuredComputeProfile, measure_bounded_profile,
+    measured_compute_profile_citizen_symbol, measured_compute_profile_shape_symbol,
+};
+pub use store::{ProfileStore, ProfileStorePolicy};
 
 /// Stable symbol for the automatic tensor executor.
 pub fn auto_executor_symbol() -> Symbol {
@@ -32,27 +47,56 @@ pub fn compute_auto_lib_symbol() -> Symbol {
 /// Automatic executor profile.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct AutoComputeProfile {
-    /// Optional compatible modeled profile. When absent, auto uses CPU.
+    /// Optional legacy modeled profile. When absent, auto uses CPU unless
+    /// measured evidence below proves a compatible device route.
     pub modeled: Option<ModeledComputeProfile>,
+    /// Optional measured profile used by the conservative router.
+    pub measured: Option<MeasuredComputeProfile>,
+    /// Expected adapter/driver/backend identity for measured routing.
+    pub expected: Option<ComputeDeviceIdentity>,
+    /// Current logical tick used for staleness checks.
+    pub now_tick: u64,
 }
 
 /// Tensor executor that picks the best compatible provider and falls back to CPU.
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct AutoTensorExecutor {
     modeled: Option<ModeledTensorExecutor>,
+    decision: AutoRouteDecision,
+    ledger: AutoRoutingLedger,
 }
 
 impl AutoTensorExecutor {
     /// Builds an automatic executor from a profile.
     pub fn new(profile: AutoComputeProfile) -> Self {
+        let (decision, measured_modeled) = match profile.expected.clone() {
+            Some(expected) => {
+                AutoComputeRouter::new(expected, profile.now_tick).choose(profile.measured.as_ref())
+            }
+            None if profile.measured.is_some() => (AutoRouteDecision::Incompatible, None),
+            None => (AutoRouteDecision::Absent, None),
+        };
+        let modeled = measured_modeled.or(profile.modeled);
         Self {
-            modeled: profile.modeled.map(ModeledTensorExecutor::new),
+            modeled: modeled.map(ModeledTensorExecutor::new),
+            decision,
+            ledger: AutoRoutingLedger::default(),
         }
     }
 
     /// Returns true when the selector is using the CPU fallback.
     pub fn uses_cpu_fallback(&self) -> bool {
         self.modeled.is_none()
+    }
+
+    /// Returns the router decision that produced this executor.
+    pub fn route_decision(&self) -> AutoRouteDecision {
+        self.decision.clone()
+    }
+
+    /// Returns routing ledger events recorded by execute and flush calls.
+    pub fn routing_events(&self) -> Vec<AutoRoutingEvent> {
+        self.ledger.events()
     }
 
     fn selected(&self) -> Arc<dyn TensorExecutor> {
@@ -84,11 +128,39 @@ impl TensorExecutor for AutoTensorExecutor {
         cx: &mut sim_kernel::Cx,
         request: TensorRequest,
     ) -> std::result::Result<TensorExecution, TensorExecError> {
+        let materialization_bytes = profile::request_materialization_bytes(&request);
+        self.ledger.record(AutoRoutingEvent {
+            provider: if self.uses_cpu_fallback() {
+                "auto/cpu".to_owned()
+            } else {
+                "auto/modeled".to_owned()
+            },
+            decision: self.decision.clone(),
+            materialization_bytes,
+            synchronizations: 0,
+        });
         self.selected().execute(cx, request)
     }
 
     fn flush(&self) -> std::result::Result<SubmissionEvidence, TensorExecError> {
-        self.selected().flush()
+        let evidence = self.selected().flush()?;
+        self.ledger.record(AutoRoutingEvent {
+            provider: if self.uses_cpu_fallback() {
+                "auto/cpu".to_owned()
+            } else {
+                "auto/modeled".to_owned()
+            },
+            decision: self.decision.clone(),
+            materialization_bytes: 0,
+            synchronizations: 1,
+        });
+        Ok(evidence)
+    }
+}
+
+impl Default for AutoTensorExecutor {
+    fn default() -> Self {
+        Self::new(AutoComputeProfile::default())
     }
 }
 

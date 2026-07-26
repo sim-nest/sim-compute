@@ -1,0 +1,1 @@
+(compute cuda-discovery (site site/compute/cuda) (evidence driver cublas cublasLt))
