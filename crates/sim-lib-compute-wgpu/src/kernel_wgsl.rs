@@ -26,30 +26,6 @@ fn main(@builtin(global_invocation_id) id: vec3<u32>) {
 }
 "#;
 
-/// Portable WGSL source used by validated element-wise pipelines.
-pub const PORTABLE_ELEMENTWISE_WGSL: &str = r#"
-struct KernelParams { op: u32, len: u32 }
-@group(0) @binding(0) var<storage, read> left: array<f32>;
-@group(0) @binding(1) var<storage, read> right: array<f32>;
-@group(0) @binding(2) var<storage, read_write> out: array<f32>;
-@group(0) @binding(3) var<uniform> params: KernelParams;
-@compute @workgroup_size(64)
-fn main(@builtin(global_invocation_id) id: vec3<u32>) {
-    let i = id.x;
-    if (i >= params.len) { return; }
-    let x = left[i];
-    let y = right[i];
-    if (params.op == 0u) { out[i] = x + y; }
-    else if (params.op == 1u) { out[i] = x - y; }
-    else if (params.op == 2u) { out[i] = x * y; }
-    else if (params.op == 3u) { out[i] = x / y; }
-    else if (params.op == 4u) { out[i] = sqrt(x); }
-    else if (params.op == 5u) { out[i] = exp(x); }
-    else if (params.op == 6u) { out[i] = sin(x); }
-    else { out[i] = cos(x); }
-}
-"#;
-
 /// Portable WGSL source used by fixed-tree reduction pipelines.
 pub const PORTABLE_REDUCTION_WGSL: &str = r#"
 struct KernelParams { op: u32, len: u32 }
@@ -136,8 +112,16 @@ fn main(@builtin(local_invocation_id) lid: vec3<u32>, @builtin(global_invocation
         let local_index = lid.y * 16u + lid.x;
         let left_k = base + lid.x;
         let right_k = base + lid.y;
-        tile_left[local_index] = select(0.0, left[gid.y * params.inner + left_k], left_k < params.inner);
-        tile_right[local_index] = select(0.0, right[right_k * params.cols + gid.x], right_k < params.inner);
+        if (left_k < params.inner) {
+            tile_left[local_index] = left[gid.y * params.inner + left_k];
+        } else {
+            tile_left[local_index] = 0.0;
+        }
+        if (right_k < params.inner) {
+            tile_right[local_index] = right[right_k * params.cols + gid.x];
+        } else {
+            tile_right[local_index] = 0.0;
+        }
         workgroupBarrier();
         for (var k = 0u; k < 16u; k = k + 1u) {
             acc = acc + tile_left[lid.y * 16u + k] * tile_right[k * 16u + lid.x];

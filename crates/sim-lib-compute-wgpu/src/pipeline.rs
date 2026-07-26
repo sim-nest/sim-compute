@@ -5,10 +5,7 @@ use std::sync::Arc;
 
 use sim_kernel::Symbol;
 
-use crate::{
-    WgpuAdapterProbe,
-    kernels::{PORTABLE_ELEMENTWISE_WGSL, PORTABLE_LINALG_WGSL, PORTABLE_REDUCTION_WGSL},
-};
+use crate::{WgpuAdapterProbe, kernels::kernel_wgsl_for_op};
 
 /// Portable operation implemented by a wgpu tensor kernel.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -106,13 +103,7 @@ impl WgpuKernelOp {
     }
 
     fn wgsl_bytes(self) -> usize {
-        if self.is_reduction() {
-            PORTABLE_REDUCTION_WGSL.len()
-        } else if self.is_linalg() {
-            PORTABLE_LINALG_WGSL.len()
-        } else {
-            PORTABLE_ELEMENTWISE_WGSL.len()
-        }
+        kernel_wgsl_for_op(self).len()
     }
 }
 
@@ -306,12 +297,19 @@ impl WgpuPipelineCache {
                 pipeline: pipeline.clone(),
             };
         }
+        let label = if op.is_reduction() {
+            "sim-compute-wgpu-reduction"
+        } else if op.is_linalg() {
+            "sim-compute-wgpu-linalg"
+        } else {
+            "sim-compute-wgpu-pointwise"
+        };
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-            label: Some("sim-compute-wgpu-pointwise"),
-            source: wgpu::ShaderSource::Wgsl(crate::kernels::POINTWISE_DISPATCH_WGSL.into()),
+            label: Some(label),
+            source: wgpu::ShaderSource::Wgsl(kernel_wgsl_for_op(op).into()),
         });
         let pipeline = device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
-            label: Some("sim-compute-wgpu-pointwise"),
+            label: Some(label),
             layout: None,
             module: &shader,
             entry_point: Some("main"),

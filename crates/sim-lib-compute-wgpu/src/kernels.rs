@@ -16,10 +16,18 @@ use crate::{
     pipeline::{WgpuKernelDType, WgpuKernelOp},
 };
 
-pub use crate::kernel_wgsl::{
-    POINTWISE_DISPATCH_WGSL, PORTABLE_ELEMENTWISE_WGSL, PORTABLE_LINALG_WGSL,
-    PORTABLE_REDUCTION_WGSL,
-};
+pub use crate::kernel_wgsl::{PORTABLE_LINALG_WGSL, PORTABLE_REDUCTION_WGSL};
+
+/// Returns the WGSL source for a real-device dispatch operation.
+pub(crate) fn kernel_wgsl_for_op(op: WgpuKernelOp) -> &'static str {
+    if op.is_reduction() {
+        PORTABLE_REDUCTION_WGSL
+    } else if op.is_linalg() {
+        PORTABLE_LINALG_WGSL
+    } else {
+        crate::kernel_wgsl::POINTWISE_DISPATCH_WGSL
+    }
+}
 
 /// Returns the portable kernel operation for a tensor request.
 pub fn kernel_op(symbol: &Symbol) -> Option<WgpuKernelOp> {

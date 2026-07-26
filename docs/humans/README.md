@@ -1061,7 +1061,8 @@ use crate::{
     WgpuKernelOp, WgpuLimitEvidence, WgpuMaterializationCache, WgpuPipelineCache, WgpuQueueLimits,
     WgpuResidentArena, WgpuResidentStorage, WgpuSegmentPlan, WgpuSubmissionQueue,
     WgpuTensorExecutor, WgpuTransferPlan, compute_wgpu_capability, compute_wgpu_site_symbol,
-    probe::discover_wgpu_adapter_runtimes, site::WgpuExecutionContext,
+    kernels::execute_portable_kernel, probe::discover_wgpu_adapter_runtimes,
+    site::WgpuExecutionContext,
 };
 
 // conformance: wgpu discovery records evidence, exports only successful adapter sites, and plans bounded resident submissions.
@@ -1210,6 +1211,22 @@ fn execute_cpu(
         TensorExecution::Complete(tensor) => tensor,
         TensorExecution::Unsupported { reason } => panic!("{reason}"),
     }
+}
+
+fn execute_portable(
+    cx: &mut sim_kernel::Cx,
+    symbol: Symbol,
+    inputs: Vec<Tensor>,
+    shape: Vec<usize>,
+    dtype: Symbol,
+) -> Tensor {
+    let op = TensorOp::without_attributes(cx, symbol).unwrap();
+    execute_portable_kernel(
+        cx,
+        &TensorRequest::new(op, inputs, TensorMeta::new(shape, dtype)),
+        WgpuKernelDType::F32,
+    )
+    .unwrap()
 }
 
 fn assert_same_f32_cells(left: &Tensor, right: &Tensor) {

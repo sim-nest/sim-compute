@@ -15,6 +15,8 @@ use crate::{
     WgpuAdapterProbe, WgpuDiscovery, WgpuKernelDType, WgpuPipelineCache, WgpuQueueLimits,
     WgpuResidentArena, WgpuResidentStorage, WgpuSegmentPlan, WgpuTileProfile,
     dispatch::{execute_pointwise_dispatch, is_pointwise_dispatch},
+    dispatch_linalg::execute_linalg_dispatch,
+    dispatch_reductions::execute_reduction_dispatch,
     kernels::{execute_portable_kernel, kernel_op},
     probe::discover_wgpu_adapter_runtimes,
 };
@@ -207,6 +209,10 @@ impl TensorExecutor for WgpuTensorExecutor {
             Some(execute_pointwise_dispatch(
                 self, cx, &request, op, dtype, bytes,
             )?)
+        } else if op.is_reduction() {
+            Some(execute_reduction_dispatch(self, cx, &request, op, dtype)?)
+        } else if op.is_linalg() {
+            Some(execute_linalg_dispatch(self, cx, &request, op, dtype)?)
         } else {
             None
         };

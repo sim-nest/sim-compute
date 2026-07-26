@@ -1,4 +1,4 @@
-//! Real wgpu pointwise dispatch for retained device contexts.
+//! Real wgpu dispatch for retained device contexts.
 
 use std::sync::Arc;
 
@@ -291,11 +291,141 @@ fn select_cell(
         .map_err(TensorExecError::from)
 }
 
-fn f32_bytes(values: &[f32]) -> Vec<u8> {
+pub(crate) fn f32_bytes(values: &[f32]) -> Vec<u8> {
     values
         .iter()
         .flat_map(|value| value.to_ne_bytes())
         .collect()
+}
+
+pub(crate) fn tensor_f32_values(
+    cx: &mut sim_kernel::Cx,
+    tensor: &Tensor,
+    dtype: WgpuKernelDType,
+) -> std::result::Result<Vec<f32>, TensorExecError> {
+    tensor
+        .cells()
+        .map_err(TensorExecError::from)?
+        .iter()
+        .map(|cell| numeric_cell(cx, cell).map(|value| round(dtype, value)))
+        .collect::<std::result::Result<Vec<_>, _>>()
+}
+
+pub(crate) fn scalar_tensor(
+    cx: &mut sim_kernel::Cx,
+    request: &TensorRequest,
+    value: f32,
+) -> std::result::Result<Tensor, TensorExecError> {
+    let cell = number_value(cx, request.output.dtype(), value)?;
+    sim_lib_numbers_tensor::build_tensor_value(
+        cx,
+        Vec::new(),
+        Some(request.output.dtype().clone()),
+        vec![cell],
+    )
+    .map_err(TensorExecError::from)?
+    .object()
+    .downcast_ref::<Tensor>()
+    .cloned()
+    .ok_or_else(|| invalid("wgpu dispatch produced a non-tensor value"))
+}
+
+pub(crate) fn compiled_pipeline(
+    executor: &WgpuTensorExecutor,
+    context: &crate::site::WgpuExecutionContext,
+    op: crate::WgpuKernelOp,
+    dtype: WgpuKernelDType,
+    rank: usize,
+) -> crate::pipeline::WgpuCompiledPipeline {
+    let mut state = executor.state.lock().expect("wgpu executor state poisoned");
+    state
+        .pipelines
+        .get_or_insert_compiled(&context.device, &executor.probe, op, dtype, rank)
+}
+
+pub(crate) fn pipeline_symbol(
+    executor: &WgpuTensorExecutor,
+    context: &crate::site::WgpuExecutionContext,
+    op: crate::WgpuKernelOp,
+    dtype: WgpuKernelDType,
+    rank: usize,
+) -> Symbol {
+    compiled_pipeline(executor, context, op, dtype, rank)
+        .record
+        .symbol
+}
+
+pub(crate) fn readback_buffer(device: &wgpu::Device, size: u64, family: &str) -> wgpu::Buffer {
+    device.create_buffer(&wgpu::BufferDescriptor {
+        label: Some(&format!("sim-compute-wgpu-{family}-readback")),
+        size,
+        usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
+        mapped_at_creation: false,
+    })
+}
+
+pub(crate) fn read_f32s(
+    context: &crate::site::WgpuExecutionContext,
+    readback: &wgpu::Buffer,
+    len: usize,
+) -> std::result::Result<Vec<f32>, TensorExecError> {
+    let (sender, receiver) = std::sync::mpsc::channel();
+    readback
+        .slice(..)
+        .map_async(wgpu::MapMode::Read, move |result| {
+            let _ = sender.send(result);
+        });
+    context
+        .device
+        .poll(wgpu::PollType::wait_indefinitely())
+        .map_err(|err| invalid(format!("wgpu device poll failed: {err}")))?;
+    receiver
+        .recv()
+        .map_err(|err| invalid(format!("wgpu readback callback failed: {err}")))?
+        .map_err(|err| invalid(format!("wgpu readback map failed: {err}")))?;
+    let mapped = readback
+        .slice(..)
+        .get_mapped_range()
+        .map_err(|err| invalid(format!("wgpu readback range failed: {err}")))?
+        .to_vec();
+    readback.unmap();
+    Ok(mapped
+        .chunks_exact(4)
+        .take(len)
+        .map(|bytes| f32::from_ne_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]))
+        .collect())
+}
+
+pub(crate) fn buffer_size(len: usize) -> std::result::Result<u64, TensorExecError> {
+    u64::try_from(len)
+        .ok()
+        .and_then(|cells| cells.checked_mul(4))
+        .map(|bytes| bytes.max(4))
+        .ok_or_else(|| invalid("wgpu buffer byte count overflowed"))
+}
+
+pub(crate) fn check_storage_buffer_limit(
+    executor: &WgpuTensorExecutor,
+    cells: usize,
+    label: &str,
+) -> std::result::Result<(), TensorExecError> {
+    let bytes = buffer_size(cells)?;
+    let limit = executor
+        .probe
+        .adapter
+        .granted_limits
+        .max_storage_buffer_binding_size
+        .max(4);
+    if bytes > limit {
+        return Err(invalid(format!(
+            "{label} requires {bytes} bytes, exceeding storage buffer binding limit {limit}"
+        )));
+    }
+    Ok(())
+}
+
+pub(crate) fn u32_count(value: usize, label: &str) -> std::result::Result<u32, TensorExecError> {
+    u32::try_from(value).map_err(|_| invalid(format!("{label} exceeds u32")))
 }
 
 fn pointwise_params_bytes(

@@ -8,6 +8,8 @@
 
 mod arena;
 mod dispatch;
+mod dispatch_linalg;
+mod dispatch_reductions;
 mod kernel_elementwise;
 mod kernel_linalg;
 mod kernel_reductions;
