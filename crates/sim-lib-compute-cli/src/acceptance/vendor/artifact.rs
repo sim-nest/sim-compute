@@ -341,4 +341,16 @@ mod tests {
         wrong.crossover = "n16".to_owned();
         assert!(wrong.verify(&source).is_err());
     }
+
+    #[test]
+    fn committed_vendor_matrix_is_verifier_clean() {
+        const SOURCE: &str = "12cb08ae6572946d5c11d06635ad079eecf8533c";
+        for text in [
+            include_str!("../../../acceptance/rtx5080-vendor-v1.sx"),
+            include_str!("../../../acceptance/rtx5090-vendor-v1.sx"),
+            include_str!("../../../acceptance/gfx1151-vendor-v1.sx"),
+        ] {
+            Artifact::parse(text).unwrap().verify(SOURCE).unwrap();
+        }
+    }
 }

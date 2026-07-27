@@ -29,8 +29,12 @@ keeps raw evidence. This repository gives SIM stable offline fixtures for
 modeled residency, readback, flush evidence, counters, injected failures,
 successful wgpu adapter probes with retained pointwise dispatch, CUDA ABI
 validation, ROCm HIP/rocBLAS/gfx validation, and CPU-matched portable matrix
-primitives. The reusable wgpu arena, queue, segment, transfer, materialization,
-and CUDA/ROCm resident-storage planning types keep provider kernels on the same
+primitives. Sanitized vendor artifacts preserve per-machine differential and
+three-sample crossover measurements without generalizing them into universal
+speed claims, and prove that removing vendor discovery leaves explicit sites
+unavailable, automatic placement on explained CPU fallback, and wgpu probes
+green. The reusable wgpu arena, queue, segment, transfer, materialization, and
+CUDA/ROCm resident-storage planning types keep provider kernels on the same
 bounded contract.
 
 ## Where it fits
