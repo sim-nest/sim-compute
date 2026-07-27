@@ -1,13 +1,15 @@
 id = "wgpu-discovery"
 title = "WGPU discovery"
-summary = "A host-emulated wgpu site appears only after successful probe evidence."
-tags = ["compute", "tensor", "wgpu", "hardware", "evidence"]
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+expected = "expected.txt"
+order = 10
+tags = ["compute", "tensor", "wgpu", "hardware", "evidence", "sandbox-descriptor"]
 requires = ["compute/wgpu", "numbers/tensor"]
-capabilities = ["device.gpu.wgpu"]
 assert_tags = ["wgpu", "evidence"]
-assert_capabilities = ["device.gpu.wgpu"]
+assert_setup_codec = "lisp"
 
-[[steps]]
-name = "probe"
-command = "cat expected.txt"
+[[expect]]
+form = 0
 result = "(compute wgpu-discovery (site site/compute/wgpu/0) (evidence-kind host-emulated) (evidence transfer mapping allocation))"

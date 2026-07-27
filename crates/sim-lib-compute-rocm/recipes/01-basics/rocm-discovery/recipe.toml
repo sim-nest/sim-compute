@@ -1,6 +1,13 @@
 id = "rocm-discovery"
 title = "ROCm discovery"
-language = "lisp"
+codec = "lisp"
 setup = "setup.siml"
-expected = "expected.txt"
 purpose = "purpose.md"
+expected = "expected.txt"
+order = 10
+tags = ["compute", "tensor", "rocm", "hardware", "evidence", "sandbox-descriptor"]
+requires = ["compute/rocm", "numbers/tensor"]
+
+[[expect]]
+form = 0
+result = "(compute rocm-discovery (site site/compute/rocm) (evidence hip rocblas gfx-target rocblaslt-optional))"

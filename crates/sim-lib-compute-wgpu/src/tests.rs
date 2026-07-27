@@ -267,6 +267,18 @@ fn wgpu_lib_exports_sites_only_for_successful_discovery() {
 }
 
 #[test]
+fn empty_wgpu_discovery_loads_without_device_authority() {
+    let lib = ComputeWgpuLib::from_discovery(WgpuDiscovery::from_probes(Vec::new(), Vec::new()));
+    let manifest = sim_kernel::Lib::manifest(&lib);
+
+    assert!(manifest.exports.is_empty());
+    assert!(manifest.capabilities.is_empty());
+
+    let mut cx = sim_kernel::Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    cx.load_lib(&lib).unwrap();
+}
+
+#[test]
 fn segment_and_transfer_plans_cross_binding_boundaries() {
     let segments = WgpuSegmentPlan::new(40, 16, 24);
     assert_eq!(segments.total_bytes(), 40);

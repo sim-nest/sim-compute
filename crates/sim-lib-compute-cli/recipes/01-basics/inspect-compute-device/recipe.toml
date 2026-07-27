@@ -1,11 +1,16 @@
 id = "inspect-compute-device"
 title = "Inspect compute device"
-description = "Show bounded compute CLI evidence for installed sites and injected profile storage."
-level = "basic"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+expected = "expected.txt"
+order = 10
 tags = ["compute", "cli", "device", "profile"]
-requires = ["compute/cli", "compute/provider", "storage/table"]
+requires = ["compute/model", "compute/auto", "compute/cli", "table/hash"]
 capabilities = ["compute.device"]
 assert_capabilities = ["compute.device"]
-setup = "setup.siml"
-expected = "expected.txt"
-result = "(compute devices (model installed) (auto installed) (profiles table-supplied))"
+assert_setup_codec = "lisp"
+
+[[expect]]
+form = 0
+result = "(expr:call compute devices (expr:call model installed) (expr:call auto installed) (expr:call profiles table-supplied))"

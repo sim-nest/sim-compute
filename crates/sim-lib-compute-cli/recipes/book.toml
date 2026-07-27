@@ -1,3 +1,5 @@
-title = "Compute command recipes"
-description = "Loadable CLI recipes for inspecting compute providers."
+book = "compute-cli"
+title = "Compute Command"
+summary = "Loadable CLI recipes for inspecting compute providers."
+order = 120
 chapters = ["01-basics"]

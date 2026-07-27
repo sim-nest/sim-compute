@@ -6,8 +6,8 @@ purpose = "purpose.md"
 expected = "expected.txt"
 order = 20
 tags = ["compute", "tensor", "auto", "profile", "routing"]
-requires = ["compute/auto", "compute/profile", "storage/table", "numbers/tensor", "standard"]
+requires = ["compute/model", "compute/auto", "table/hash", "numbers/tensor"]
 
 [[expect]]
 form = 0
-result = "(compute auto-profile (table supplied) (synthetic bounded upload download launch element reduction matmul) (physical-device required) (else cpu) (ledger provider materialization-bytes synchronizations))"
+result = "(expr:call compute auto-profile (expr:call table supplied) (expr:call synthetic bounded upload download launch element reduction matmul) (expr:call physical-device required) (expr:call else cpu) (expr:call ledger provider materialization-bytes synchronizations))"

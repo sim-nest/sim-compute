@@ -1,2 +1,1 @@
-(compute auto-site (site site/compute/auto) (without-compatible-profile cpu))
-
+(expr:call compute auto-site (expr:call site site/compute/auto) (expr:call without-compatible-profile cpu))

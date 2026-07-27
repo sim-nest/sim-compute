@@ -1,2 +1,5 @@
-title = "sim-lib-compute-cuda recipes"
-chapters = ["01-basics/chapter.toml"]
+book = "compute-cuda"
+title = "CUDA Compute"
+summary = "CUDA device discovery and resident tensor execution."
+order = 122
+chapters = ["01-basics"]

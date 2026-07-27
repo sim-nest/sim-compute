@@ -1,2 +1,5 @@
-title = "sim-lib-compute-rocm recipes"
-chapters = ["01-basics/chapter.toml"]
+book = "compute-rocm"
+title = "ROCm Compute"
+summary = "ROCm device discovery and resident tensor execution."
+order = 123
+chapters = ["01-basics"]
