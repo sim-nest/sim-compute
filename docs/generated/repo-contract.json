@@ -14,40 +14,40 @@
       "summary": "Automatic tensor compute site selection with CPU fallback."
     },
     {
+      "id": "cookbook/compute-cli",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-compute-cli",
+      "summary": "Loadable CLI recipes for inspecting compute providers."
+    },
+    {
+      "id": "cookbook/compute-cuda",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-compute-cuda",
+      "summary": "CUDA device discovery and resident tensor execution."
+    },
+    {
+      "id": "cookbook/compute-femm",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-compute-femm",
+      "summary": "Provider-neutral resident CSR FEMM solver execution."
+    },
+    {
       "id": "cookbook/compute-model",
       "kind": "cookbook-recipe",
       "owner": "sim-lib-compute-model",
       "summary": "Modeled resident tensor execution for provider and placement tests."
     },
     {
+      "id": "cookbook/compute-rocm",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-compute-rocm",
+      "summary": "ROCm device discovery and resident tensor execution."
+    },
+    {
       "id": "cookbook/compute-wgpu",
       "kind": "cookbook-recipe",
       "owner": "sim-lib-compute-wgpu",
       "summary": "Evidence-based portable GPU adapter discovery."
-    },
-    {
-      "id": "cookbook/sim-lib-compute-cli",
-      "kind": "cookbook-recipe",
-      "owner": "sim-lib-compute-cli",
-      "summary": ""
-    },
-    {
-      "id": "cookbook/sim-lib-compute-cuda",
-      "kind": "cookbook-recipe",
-      "owner": "sim-lib-compute-cuda",
-      "summary": ""
-    },
-    {
-      "id": "cookbook/sim-lib-compute-femm",
-      "kind": "cookbook-recipe",
-      "owner": "sim-lib-compute-femm",
-      "summary": ""
-    },
-    {
-      "id": "cookbook/sim-lib-compute-rocm",
-      "kind": "cookbook-recipe",
-      "owner": "sim-lib-compute-rocm",
-      "summary": ""
     },
     {
       "id": "registry/catalog",
@@ -438,10 +438,10 @@
     "generated_by": "cargo run -p xtask -- simdoc",
     "generation_timestamp": "2026-07-24T22:54:42+02:00",
     "generator": "xtask repo-contract v1",
-    "git_commit": "12cb08ae6572946d5c11d06635ad079eecf8533c",
+    "git_commit": "f816c2f94546dfd38e8f329e7dab2b28f6b67966",
     "repo": "sim-compute",
     "schema": "sim.provenance.v1",
-    "source_commit": "12cb08ae6572946d5c11d06635ad079eecf8533c",
+    "source_commit": "f816c2f94546dfd38e8f329e7dab2b28f6b67966",
     "source_remote": "https://github.com/sim-nest/sim-compute",
     "validation_commands": [
       "cargo fmt --all --check",
@@ -454,9 +454,9 @@
       "cargo run -p xtask -- validation-matrix --check --repo .",
       "cargo run -p xtask -- crate-catalog --check --repo ."
     ],
-    "workspace_hash": "e01569eb7aa0f8d8",
+    "workspace_hash": "2fd4655575f1d259",
     "workspace_hash_algorithm": "fnv1a64",
-    "workspace_hash_input_count": 96,
+    "workspace_hash_input_count": 97,
     "workspace_hash_inputs": [
       "Cargo.toml",
       "crates/sim-lib-compute-auto/Cargo.toml",
@@ -548,6 +548,7 @@
       "crates/sim-lib-compute-wgpu/src/segments.rs",
       "crates/sim-lib-compute-wgpu/src/site.rs",
       "crates/sim-lib-compute-wgpu/src/storage.rs",
+      "crates/sim-lib-compute-wgpu/src/tests/discovery_tests.rs",
       "crates/sim-lib-compute-wgpu/src/tests/primitive_tests.rs",
       "crates/sim-lib-compute-wgpu/src/tests/residency_tests.rs",
       "crates/sim-lib-compute-wgpu/src/tests.rs",
@@ -587,55 +588,55 @@
       "title": "Auto Compute"
     },
     {
-      "book": "sim-lib-compute-cli",
+      "book": "compute-cli",
       "book_toml": "crates/sim-lib-compute-cli/recipes/book.toml",
-      "card_id": "cookbook/sim-lib-compute-cli",
+      "card_id": "cookbook/compute-cli",
       "group": "workspace",
       "package": "sim-lib-compute-cli",
       "recipe_count": 1,
       "recipes": [
         {
-          "card_id": "sim-lib-compute-cli/01-basics/inspect-compute-device",
-          "codec": "",
+          "card_id": "compute-cli/01-basics/inspect-compute-device",
+          "codec": "lisp",
           "id": "inspect-compute-device",
           "package": "sim-lib-compute-cli",
           "recipe_toml": "crates/sim-lib-compute-cli/recipes/01-basics/inspect-compute-device/recipe.toml",
           "title": "Inspect compute device"
         }
       ],
-      "summary": "",
-      "title": "Compute command recipes"
+      "summary": "Loadable CLI recipes for inspecting compute providers.",
+      "title": "Compute Command"
     },
     {
-      "book": "sim-lib-compute-cuda",
+      "book": "compute-cuda",
       "book_toml": "crates/sim-lib-compute-cuda/recipes/book.toml",
-      "card_id": "cookbook/sim-lib-compute-cuda",
+      "card_id": "cookbook/compute-cuda",
       "group": "workspace",
       "package": "sim-lib-compute-cuda",
       "recipe_count": 1,
       "recipes": [
         {
-          "card_id": "sim-lib-compute-cuda/01-basics/cuda-discovery",
-          "codec": "",
+          "card_id": "compute-cuda/01-basics/cuda-discovery",
+          "codec": "lisp",
           "id": "cuda-discovery",
           "package": "sim-lib-compute-cuda",
           "recipe_toml": "crates/sim-lib-compute-cuda/recipes/01-basics/cuda-discovery/recipe.toml",
           "title": "CUDA discovery"
         }
       ],
-      "summary": "",
-      "title": "sim-lib-compute-cuda recipes"
+      "summary": "CUDA device discovery and resident tensor execution.",
+      "title": "CUDA Compute"
     },
     {
-      "book": "sim-lib-compute-femm",
+      "book": "compute-femm",
       "book_toml": "crates/sim-lib-compute-femm/recipes/book.toml",
-      "card_id": "cookbook/sim-lib-compute-femm",
+      "card_id": "cookbook/compute-femm",
       "group": "workspace",
       "package": "sim-lib-compute-femm",
       "recipe_count": 1,
       "recipes": [
         {
-          "card_id": "sim-lib-compute-femm/01-basics/resident-csr-solve",
+          "card_id": "compute-femm/01-basics/resident-csr-solve",
           "codec": "lisp",
           "id": "resident-csr-solve",
           "package": "sim-lib-compute-femm",
@@ -643,8 +644,8 @@
           "title": "Resident CSR solve"
         }
       ],
-      "summary": "",
-      "title": "sim-lib-compute-femm recipes"
+      "summary": "Provider-neutral resident CSR FEMM solver execution.",
+      "title": "FEMM Compute"
     },
     {
       "book": "compute-model",
@@ -667,24 +668,24 @@
       "title": "Modeled Compute"
     },
     {
-      "book": "sim-lib-compute-rocm",
+      "book": "compute-rocm",
       "book_toml": "crates/sim-lib-compute-rocm/recipes/book.toml",
-      "card_id": "cookbook/sim-lib-compute-rocm",
+      "card_id": "cookbook/compute-rocm",
       "group": "workspace",
       "package": "sim-lib-compute-rocm",
       "recipe_count": 1,
       "recipes": [
         {
-          "card_id": "sim-lib-compute-rocm/01-basics/rocm-discovery",
-          "codec": "",
+          "card_id": "compute-rocm/01-basics/rocm-discovery",
+          "codec": "lisp",
           "id": "rocm-discovery",
           "package": "sim-lib-compute-rocm",
           "recipe_toml": "crates/sim-lib-compute-rocm/recipes/01-basics/rocm-discovery/recipe.toml",
           "title": "ROCm discovery"
         }
       ],
-      "summary": "",
-      "title": "sim-lib-compute-rocm recipes"
+      "summary": "ROCm device discovery and resident tensor execution.",
+      "title": "ROCm Compute"
     },
     {
       "book": "compute-wgpu",
@@ -696,7 +697,7 @@
       "recipes": [
         {
           "card_id": "compute-wgpu/01-basics/wgpu-discovery",
-          "codec": "",
+          "codec": "lisp",
           "id": "wgpu-discovery",
           "package": "sim-lib-compute-wgpu",
           "recipe_toml": "crates/sim-lib-compute-wgpu/recipes/01-basics/wgpu-discovery/recipe.toml",

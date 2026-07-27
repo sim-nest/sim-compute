@@ -1,1 +1,1 @@
-(expr:call compute devices (expr:call model installed) (expr:call auto installed) (expr:call profiles table-supplied))
+(compute devices (model installed) (auto installed) (profiles table-supplied))
