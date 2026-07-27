@@ -838,7 +838,10 @@ dependencies = [
  "sim-cookbook",
  "sim-kernel",
  "sim-lib-compute-auto",
+ "sim-lib-compute-cuda",
  "sim-lib-compute-model 0.2.0",
+ "sim-lib-compute-rocm",
+ "sim-lib-compute-wgpu",
 ]
 
 [[package]]

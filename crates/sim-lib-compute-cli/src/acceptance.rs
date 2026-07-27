@@ -11,6 +11,7 @@ use crate::{
 };
 
 mod host;
+mod vendor;
 
 use host::{
     physical_gpu, reject_private_text, reject_private_value, sanitize_adapter,
@@ -78,6 +79,9 @@ fn capture(request: &AcceptanceRequest) -> Result<AcceptanceEvidence, ComputeCli
     target_spec(target)?;
     let manifest = fs::read_to_string(manifest_path)
         .map_err(|err| ComputeCliError::new(format!("read acceptance manifest: {err}")))?;
+    if manifest.starts_with("(sim.compute-vendor-acceptance-manifest/v1\n") {
+        return vendor::capture(request, &manifest, output_path, target);
+    }
     let cases = manifest_cases(&manifest)?;
     let gpu = physical_gpu(target)?;
     let artifact = Artifact {
@@ -126,6 +130,9 @@ fn verify(request: &AcceptanceRequest) -> Result<AcceptanceEvidence, ComputeCliE
         .ok_or_else(|| ComputeCliError::new("verify requires an input artifact"))?;
     let text = fs::read_to_string(input)
         .map_err(|err| ComputeCliError::new(format!("read acceptance artifact: {err}")))?;
+    if text.starts_with("(sim.compute-vendor-acceptance/v1\n") {
+        return vendor::verify(request, input, &text);
+    }
     let artifact = Artifact::parse(&text)?;
     let cases = REQUIRED_CASES
         .iter()

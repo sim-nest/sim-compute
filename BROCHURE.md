@@ -14,10 +14,12 @@ host-emulated, or caller-renamed, and a wgpu provider that records adapter
 limits, features, transfer, mapping, and bounded-allocation evidence before
 exporting retained-device pointwise dispatch plus portable reduction,
 transpose, dot, and matmul kernels, plus an optional
-CUDA provider that runtime-loads the NVIDIA driver and cuBLAS/cuBLASLt symbols
-before accepting dense `f32` and supported half-family matmul, plus a ROCm
+CUDA provider that runtime-loads the NVIDIA driver, runtime, and cuBLAS symbols
+before executing dense `f32` matmul into device-resident storage, plus a ROCm
 provider that runtime-loads HIP and rocBLAS, records observed AMD `gfx*` target
-evidence, and accepts dense `f32` and rocBLASLt-supported half-family matmul.
+evidence, and executes dense `f32` matmul into device-resident storage. Both
+vendor sites fail closed for half-family requests until their Lt execution
+paths exist.
 
 ## Why you will be glad
 

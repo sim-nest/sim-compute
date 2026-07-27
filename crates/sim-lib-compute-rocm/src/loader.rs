@@ -10,11 +10,24 @@ use std::{
 
 use libloading::Library;
 
-const HIP_NAMES: &[&str] = &["libamdhip64.so.6", "libamdhip64.so"];
-const ROCBLAS_NAMES: &[&str] = &["librocblas.so.4", "librocblas.so.0", "librocblas.so"];
+const HIP_NAMES: &[&str] = &["libamdhip64.so.7", "libamdhip64.so.6", "libamdhip64.so"];
+const ROCBLAS_NAMES: &[&str] = &[
+    "librocblas.so.5",
+    "librocblas.so.4",
+    "librocblas.so.0",
+    "librocblas.so",
+];
 const ROCBLASLT_NAMES: &[&str] = &["librocblaslt.so.0", "librocblaslt.so"];
 
-const HIP_SYMBOLS: &[&str] = &["hipInit", "hipRuntimeGetVersion", "hipGetDeviceCount"];
+const HIP_SYMBOLS: &[&str] = &[
+    "hipInit",
+    "hipRuntimeGetVersion",
+    "hipGetDeviceCount",
+    "hipMalloc",
+    "hipFree",
+    "hipMemcpy",
+    "hipDeviceSynchronize",
+];
 const ROCBLAS_SYMBOLS: &[&str] = &[
     "rocblas_create_handle",
     "rocblas_destroy_handle",
@@ -104,6 +117,10 @@ impl RocmLibrarySet {
     pub fn handles(&self) -> (&Library, &Library, Option<&Library>) {
         (&self.hip, &self.rocblas, self.rocblaslt.as_ref())
     }
+
+    pub(crate) fn execution_handles(&self) -> (&Library, &Library) {
+        (&self.hip, &self.rocblas)
+    }
 }
 
 impl fmt::Debug for RocmLibrarySet {
@@ -167,9 +184,19 @@ pub trait DynamicRocmLoader {
 }
 
 /// Real dynamic loader using platform ROCm shared libraries.
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 pub struct RocmRuntimeLoader {
     search_dirs: Vec<PathBuf>,
+    search_system: bool,
+}
+
+impl Default for RocmRuntimeLoader {
+    fn default() -> Self {
+        Self {
+            search_dirs: Vec::new(),
+            search_system: true,
+        }
+    }
 }
 
 impl RocmRuntimeLoader {
@@ -180,7 +207,19 @@ impl RocmRuntimeLoader {
 
     /// Builds a loader that first searches explicit directories.
     pub fn with_search_dirs(search_dirs: Vec<PathBuf>) -> Self {
-        Self { search_dirs }
+        Self {
+            search_dirs,
+            search_system: true,
+        }
+    }
+
+    /// Builds a loader restricted to explicit directories. This is used to
+    /// prove fail-closed behavior when vendor libraries are unavailable.
+    pub fn with_search_dirs_only(search_dirs: Vec<PathBuf>) -> Self {
+        Self {
+            search_dirs,
+            search_system: false,
+        }
     }
 }
 
@@ -241,7 +280,7 @@ impl RocmRuntimeLoader {
         names: &[&str],
         diagnostics: &mut Vec<String>,
     ) -> Result<(String, Library), RocmLoadError> {
-        for name in candidate_paths(&self.search_dirs, names) {
+        for name in candidate_paths(&self.search_dirs, names, self.search_system) {
             match open_library(&name) {
                 Ok(library) => return Ok((name.display().to_string(), library)),
                 Err(error) => diagnostics.push(format!("{}: {error}", name.display())),
@@ -357,14 +396,16 @@ fn complete_fake_evidence() -> RocmAbiEvidence {
     }
 }
 
-fn candidate_paths(search_dirs: &[PathBuf], names: &[&str]) -> Vec<PathBuf> {
+fn candidate_paths(search_dirs: &[PathBuf], names: &[&str], search_system: bool) -> Vec<PathBuf> {
     let mut candidates = Vec::new();
     for directory in search_dirs {
         for name in names {
             candidates.push(directory.join(name));
         }
     }
-    candidates.extend(names.iter().map(PathBuf::from));
+    if search_system {
+        candidates.extend(names.iter().map(PathBuf::from));
+    }
     candidates
 }
 
@@ -379,9 +420,7 @@ fn symbol_evidence(library: &Library, names: &[&str]) -> Vec<RocmSymbolEvidence>
 }
 
 fn open_library(path: &Path) -> Result<Library, libloading::Error> {
-    // SAFETY: Loading a ROCm shared library is the intended boundary of this
-    // crate. The handle is stored in RocmLibrarySet for at least as long as any
-    // validated symbol evidence derived from it is used.
+    // SAFETY: The handle remains owned by RocmLibrarySet while symbols are used.
     unsafe { Library::new(path) }
 }
 
@@ -397,9 +436,8 @@ fn hip_runtime_version(library: &Library) -> Result<i32, RocmLoadError> {
     type HipInit = unsafe extern "C" fn(u32) -> i32;
     type HipRuntimeGetVersion = unsafe extern "C" fn(*mut i32) -> i32;
     type HipGetDeviceCount = unsafe extern "C" fn(*mut i32) -> i32;
-    // SAFETY: Symbols were loaded from the HIP runtime library by their
-    // official C ABI names. The calls use documented signatures, pass initialized
-    // pointers, and only accept status 0.
+    // SAFETY: These are the documented HIP signatures. Pointers are initialized,
+    // and only status 0 is accepted.
     unsafe {
         let hip_init = library
             .get::<HipInit>(b"hipInit\0")

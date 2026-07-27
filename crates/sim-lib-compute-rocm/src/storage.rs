@@ -8,6 +8,8 @@ use std::{
 use sim_kernel::{DefaultFactory, Error, Factory, Result, Symbol, Value};
 use sim_lib_numbers_tensor::{Tensor, TensorLocation, TensorStorage};
 
+use crate::runtime::RocmDeviceBuffer;
+
 /// Opaque ROCm allocation evidence.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct RocmAllocation {
@@ -31,8 +33,13 @@ pub struct RocmResidentStorage {
     allocation: RocmAllocation,
     shape: Arc<[usize]>,
     dtype: Symbol,
-    cells: Arc<[Value]>,
+    backing: RocmBacking,
     materialized: OnceLock<Result<Arc<dyn TensorStorage>>>,
+}
+
+enum RocmBacking {
+    Host(Arc<[Value]>),
+    Device(Arc<RocmDeviceBuffer>),
 }
 
 impl RocmResidentStorage {
@@ -49,7 +56,24 @@ impl RocmResidentStorage {
             allocation,
             shape: shape.into(),
             dtype,
-            cells,
+            backing: RocmBacking::Host(cells),
+            materialized: OnceLock::new(),
+        }
+    }
+
+    pub(crate) fn from_device(
+        site: Symbol,
+        allocation: RocmAllocation,
+        shape: Vec<usize>,
+        dtype: Symbol,
+        buffer: Arc<RocmDeviceBuffer>,
+    ) -> Self {
+        Self {
+            site,
+            allocation,
+            shape: shape.into(),
+            dtype,
+            backing: RocmBacking::Device(buffer),
             materialized: OnceLock::new(),
         }
     }
@@ -61,15 +85,29 @@ impl RocmResidentStorage {
 
     /// Rebuilds a canonical tensor without counting a user readback.
     pub fn resident_tensor(&self) -> Option<Tensor> {
-        Tensor::from_storage(
-            self.shape.to_vec(),
-            self.dtype.clone(),
-            Arc::new(BoxedRocmStorage::new(
-                self.dtype.clone(),
-                self.cells.clone(),
-            )),
-        )
-        .ok()
+        let storage = self.materialize().ok()?;
+        Tensor::from_storage(self.shape.to_vec(), self.dtype.clone(), storage).ok()
+    }
+
+    pub(crate) fn device_buffer(&self) -> Option<&Arc<RocmDeviceBuffer>> {
+        match &self.backing {
+            RocmBacking::Host(_) => None,
+            RocmBacking::Device(buffer) => Some(buffer),
+        }
+    }
+
+    fn materialized_storage(&self) -> Result<Arc<dyn TensorStorage>> {
+        let cells = match &self.backing {
+            RocmBacking::Host(cells) => Arc::clone(cells),
+            RocmBacking::Device(buffer) => buffer
+                .read()
+                .map_err(|error| Error::Eval(error.to_string()))?
+                .into_iter()
+                .map(|value| DefaultFactory.number_literal(self.dtype.clone(), value.to_string()))
+                .collect::<Result<Vec<_>>>()?
+                .into(),
+        };
+        Ok(Arc::new(BoxedRocmStorage::new(self.dtype.clone(), cells)))
     }
 }
 
@@ -79,7 +117,10 @@ impl TensorStorage for RocmResidentStorage {
     }
 
     fn len(&self) -> usize {
-        self.cells.len()
+        match &self.backing {
+            RocmBacking::Host(cells) => cells.len(),
+            RocmBacking::Device(buffer) => buffer.len(),
+        }
     }
 
     fn location(&self) -> TensorLocation {
@@ -95,12 +136,7 @@ impl TensorStorage for RocmResidentStorage {
 
     fn materialize(&self) -> Result<Arc<dyn TensorStorage>> {
         self.materialized
-            .get_or_init(|| {
-                Ok(Arc::new(BoxedRocmStorage::new(
-                    self.dtype.clone(),
-                    self.cells.clone(),
-                )))
-            })
+            .get_or_init(|| self.materialized_storage())
             .clone()
     }
 

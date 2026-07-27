@@ -70,8 +70,8 @@ fn execute_cuda(
 fn fake_loader_controls_site_exports_without_cuda_installed() {
     let available = ComputeCudaLib::from_loader(&FakeCudaLoader::available()).unwrap();
     let manifest = available.manifest();
-    assert_eq!(manifest.exports.len(), 1);
-    assert_eq!(manifest.capabilities, vec![compute_cuda_capability()]);
+    assert!(manifest.exports.is_empty());
+    assert!(manifest.capabilities.is_empty());
 
     let incomplete = ComputeCudaLib::from_loader(&FakeCudaLoader::incomplete()).unwrap();
     assert!(incomplete.manifest().exports.is_empty());
@@ -80,16 +80,16 @@ fn fake_loader_controls_site_exports_without_cuda_installed() {
 }
 
 #[test]
-fn cuda_lib_registers_site_only_after_abi_validation() {
+fn cuda_lib_does_not_register_site_without_live_runtime_handles() {
     let lib = ComputeCudaLib::from_loader(&FakeCudaLoader::available()).unwrap();
     let mut cx = sim_kernel::Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
     cx.grant(compute_cuda_capability());
     cx.load_lib(&lib).unwrap();
-    let site = cx
-        .registry()
-        .site_by_symbol(&compute_cuda_site_symbol())
-        .expect("cuda compute site");
-    assert!(site.object().as_eval_fabric().is_some());
+    assert!(
+        cx.registry()
+            .site_by_symbol(&compute_cuda_site_symbol())
+            .is_none()
+    );
 }
 
 #[test]
@@ -156,7 +156,7 @@ fn unsupported_operations_are_declined_before_acceptance() {
 }
 
 #[test]
-fn half_matmul_requires_validated_cublaslt_path() {
+fn half_matmul_fails_closed_until_a_real_cublaslt_execution_path_exists() {
     let mut cx = test_cx();
     let evidence = ComputeCudaLib::from_loader(&FakeCudaLoader::incomplete())
         .unwrap()
@@ -176,6 +176,6 @@ fn half_matmul_requires_validated_cublaslt_path() {
     ) else {
         panic!("half matmul must require cuBLASLt ABI evidence");
     };
-    assert!(reason.contains("cuBLASLt-supported half"));
+    assert!(reason.contains("dense f32 matmul"));
     assert_eq!(executor.flush().unwrap().accepted, 0);
 }

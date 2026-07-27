@@ -1,0 +1,7 @@
+(sim.compute-vendor-acceptance-manifest/v1
+  (case (id "runtime-probe") (category "vendor/probe"))
+  (case (id "dense-matmul-differential") (category "vendor/matmul-differential"))
+  (case (id "unsupported-failure") (category "vendor/fail-closed"))
+  (case (id "measured-crossover") (category "vendor/crossover"))
+  (case (id "vendor-absent-portability") (category "portable/vendor-absent"))
+)
