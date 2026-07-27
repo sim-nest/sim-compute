@@ -8,6 +8,8 @@ use std::{
 use sim_kernel::{DefaultFactory, Error, Factory, Result, Symbol, Value};
 use sim_lib_numbers_tensor::{Tensor, TensorLocation, TensorStorage};
 
+use crate::runtime::CudaDeviceBuffer;
+
 /// Opaque CUDA allocation evidence.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CudaAllocation {
@@ -31,8 +33,13 @@ pub struct CudaResidentStorage {
     allocation: CudaAllocation,
     shape: Arc<[usize]>,
     dtype: Symbol,
-    cells: Arc<[Value]>,
+    backing: CudaBacking,
     materialized: OnceLock<Result<Arc<dyn TensorStorage>>>,
+}
+
+enum CudaBacking {
+    Host(Arc<[Value]>),
+    Device(Arc<CudaDeviceBuffer>),
 }
 
 impl CudaResidentStorage {
@@ -49,7 +56,24 @@ impl CudaResidentStorage {
             allocation,
             shape: shape.into(),
             dtype,
-            cells,
+            backing: CudaBacking::Host(cells),
+            materialized: OnceLock::new(),
+        }
+    }
+
+    pub(crate) fn from_device(
+        site: Symbol,
+        allocation: CudaAllocation,
+        shape: Vec<usize>,
+        dtype: Symbol,
+        buffer: Arc<CudaDeviceBuffer>,
+    ) -> Self {
+        Self {
+            site,
+            allocation,
+            shape: shape.into(),
+            dtype,
+            backing: CudaBacking::Device(buffer),
             materialized: OnceLock::new(),
         }
     }
@@ -61,15 +85,29 @@ impl CudaResidentStorage {
 
     /// Rebuilds a canonical tensor without counting a user readback.
     pub fn resident_tensor(&self) -> Option<Tensor> {
-        Tensor::from_storage(
-            self.shape.to_vec(),
-            self.dtype.clone(),
-            Arc::new(BoxedCudaStorage::new(
-                self.dtype.clone(),
-                self.cells.clone(),
-            )),
-        )
-        .ok()
+        let storage = self.materialize().ok()?;
+        Tensor::from_storage(self.shape.to_vec(), self.dtype.clone(), storage).ok()
+    }
+
+    pub(crate) fn device_buffer(&self) -> Option<&Arc<CudaDeviceBuffer>> {
+        match &self.backing {
+            CudaBacking::Host(_) => None,
+            CudaBacking::Device(buffer) => Some(buffer),
+        }
+    }
+
+    fn materialized_storage(&self) -> Result<Arc<dyn TensorStorage>> {
+        let cells = match &self.backing {
+            CudaBacking::Host(cells) => Arc::clone(cells),
+            CudaBacking::Device(buffer) => buffer
+                .read()
+                .map_err(|error| Error::Eval(error.to_string()))?
+                .into_iter()
+                .map(|value| DefaultFactory.number_literal(self.dtype.clone(), value.to_string()))
+                .collect::<Result<Vec<_>>>()?
+                .into(),
+        };
+        Ok(Arc::new(BoxedCudaStorage::new(self.dtype.clone(), cells)))
     }
 }
 
@@ -79,7 +117,10 @@ impl TensorStorage for CudaResidentStorage {
     }
 
     fn len(&self) -> usize {
-        self.cells.len()
+        match &self.backing {
+            CudaBacking::Host(cells) => cells.len(),
+            CudaBacking::Device(buffer) => buffer.len(),
+        }
     }
 
     fn location(&self) -> TensorLocation {
@@ -95,12 +136,7 @@ impl TensorStorage for CudaResidentStorage {
 
     fn materialize(&self) -> Result<Arc<dyn TensorStorage>> {
         self.materialized
-            .get_or_init(|| {
-                Ok(Arc::new(BoxedCudaStorage::new(
-                    self.dtype.clone(),
-                    self.cells.clone(),
-                )))
-            })
+            .get_or_init(|| self.materialized_storage())
             .clone()
     }
 

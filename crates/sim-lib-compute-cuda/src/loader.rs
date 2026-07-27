@@ -10,10 +10,24 @@ use std::{
 use libloading::Library;
 
 const DRIVER_NAMES: &[&str] = &["libcuda.so.1", "libcuda.so", "nvcuda.dll"];
+const RUNTIME_NAMES: &[&str] = &[
+    "libcudart.so.13",
+    "libcudart.so.12",
+    "libcudart.so.11.0",
+    "libcudart.so",
+    "cudart64_130.dll",
+    "cudart64_12.dll",
+];
 const CUBLAS_NAMES: &[&str] = &["libcublas.so.13", "libcublas.so.12", "libcublas.so"];
 const CUBLASLT_NAMES: &[&str] = &["libcublasLt.so.13", "libcublasLt.so.12", "libcublasLt.so"];
 
 const DRIVER_SYMBOLS: &[&str] = &["cuInit", "cuDriverGetVersion"];
+const RUNTIME_SYMBOLS: &[&str] = &[
+    "cudaMalloc",
+    "cudaFree",
+    "cudaMemcpy",
+    "cudaDeviceSynchronize",
+];
 const CUBLAS_SYMBOLS: &[&str] = &[
     "cublasCreate_v2",
     "cublasDestroy_v2",
@@ -36,6 +50,8 @@ pub struct CudaSymbolEvidence {
 pub struct CudaAbiEvidence {
     /// Loaded CUDA driver library path or platform name.
     pub driver_library: String,
+    /// Loaded CUDA runtime library path or platform name.
+    pub runtime_library: String,
     /// Loaded cuBLAS library path or platform name.
     pub cublas_library: String,
     /// Loaded cuBLASLt library path or platform name.
@@ -44,6 +60,8 @@ pub struct CudaAbiEvidence {
     pub driver_version: Option<i32>,
     /// Checked driver symbols.
     pub driver_symbols: Vec<CudaSymbolEvidence>,
+    /// Checked CUDA runtime symbols.
+    pub runtime_symbols: Vec<CudaSymbolEvidence>,
     /// Checked cuBLAS symbols.
     pub cublas_symbols: Vec<CudaSymbolEvidence>,
     /// Checked cuBLASLt symbols.
@@ -54,6 +72,7 @@ impl CudaAbiEvidence {
     /// Returns true when all required driver/cuBLAS/cuBLASLt symbols exist.
     pub fn is_complete(&self) -> bool {
         self.driver_symbols.iter().all(|symbol| symbol.present)
+            && self.runtime_symbols.iter().all(|symbol| symbol.present)
             && self.cublas_symbols.iter().all(|symbol| symbol.present)
             && self.cublaslt_symbols.iter().all(|symbol| symbol.present)
     }
@@ -74,15 +93,23 @@ impl CudaAbiEvidence {
 pub struct CudaLibrarySet {
     evidence: CudaAbiEvidence,
     driver: Library,
+    runtime: Library,
     cublas: Library,
     cublaslt: Library,
 }
 
 impl CudaLibrarySet {
-    fn new(evidence: CudaAbiEvidence, driver: Library, cublas: Library, cublaslt: Library) -> Self {
+    fn new(
+        evidence: CudaAbiEvidence,
+        driver: Library,
+        runtime: Library,
+        cublas: Library,
+        cublaslt: Library,
+    ) -> Self {
         Self {
             evidence,
             driver,
+            runtime,
             cublas,
             cublaslt,
         }
@@ -96,6 +123,10 @@ impl CudaLibrarySet {
     /// Returns loaded library handles to keep symbols alive.
     pub fn handles(&self) -> (&Library, &Library, &Library) {
         (&self.driver, &self.cublas, &self.cublaslt)
+    }
+
+    pub(crate) fn execution_handles(&self) -> (&Library, &Library) {
+        (&self.runtime, &self.cublas)
     }
 }
 
@@ -160,9 +191,19 @@ pub trait DynamicCudaLoader {
 }
 
 /// Real dynamic loader using platform CUDA shared libraries.
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 pub struct CudaRuntimeLoader {
     search_dirs: Vec<PathBuf>,
+    search_system: bool,
+}
+
+impl Default for CudaRuntimeLoader {
+    fn default() -> Self {
+        Self {
+            search_dirs: Vec::new(),
+            search_system: true,
+        }
+    }
 }
 
 impl CudaRuntimeLoader {
@@ -173,7 +214,19 @@ impl CudaRuntimeLoader {
 
     /// Builds a loader that first searches explicit directories.
     pub fn with_search_dirs(search_dirs: Vec<PathBuf>) -> Self {
-        Self { search_dirs }
+        Self {
+            search_dirs,
+            search_system: true,
+        }
+    }
+
+    /// Builds a loader restricted to explicit directories. This is used to
+    /// prove fail-closed behavior when vendor libraries are unavailable.
+    pub fn with_search_dirs_only(search_dirs: Vec<PathBuf>) -> Self {
+        Self {
+            search_dirs,
+            search_system: false,
+        }
     }
 }
 
@@ -181,19 +234,23 @@ impl DynamicCudaLoader for CudaRuntimeLoader {
     fn discover(&self) -> Result<CudaRuntimeProbe, CudaLoadError> {
         let mut diagnostics = Vec::new();
         let (driver_name, driver) = self.open_first(DRIVER_NAMES, &mut diagnostics)?;
+        let (runtime_name, runtime) = self.open_first(RUNTIME_NAMES, &mut diagnostics)?;
         let (cublas_name, cublas) = self.open_first(CUBLAS_NAMES, &mut diagnostics)?;
         let (cublaslt_name, cublaslt) = self.open_first(CUBLASLT_NAMES, &mut diagnostics)?;
 
         let driver_symbols = symbol_evidence(&driver, DRIVER_SYMBOLS);
+        let runtime_symbols = symbol_evidence(&runtime, RUNTIME_SYMBOLS);
         let cublas_symbols = symbol_evidence(&cublas, CUBLAS_SYMBOLS);
         let cublaslt_symbols = symbol_evidence(&cublaslt, CUBLASLT_SYMBOLS);
         let driver_version = driver_version(&driver).ok();
         let evidence = CudaAbiEvidence {
             driver_library: driver_name,
+            runtime_library: runtime_name,
             cublas_library: cublas_name,
             cublaslt_library: cublaslt_name,
             driver_version,
             driver_symbols,
+            runtime_symbols,
             cublas_symbols,
             cublaslt_symbols,
         };
@@ -207,6 +264,7 @@ impl DynamicCudaLoader for CudaRuntimeLoader {
         let runtime = Arc::new(CudaLibrarySet::new(
             evidence.clone(),
             driver,
+            runtime,
             cublas,
             cublaslt,
         ));
@@ -224,7 +282,7 @@ impl CudaRuntimeLoader {
         names: &[&str],
         diagnostics: &mut Vec<String>,
     ) -> Result<(String, Library), CudaLoadError> {
-        for name in candidate_paths(&self.search_dirs, names) {
+        for name in candidate_paths(&self.search_dirs, names, self.search_system) {
             match open_library(&name) {
                 Ok(library) => return Ok((name.display().to_string(), library)),
                 Err(error) => diagnostics.push(format!("{}: {error}", name.display())),
@@ -293,10 +351,18 @@ pub fn discover_cuda_runtime() -> Result<CudaRuntimeProbe, CudaLoadError> {
 fn complete_fake_evidence() -> CudaAbiEvidence {
     CudaAbiEvidence {
         driver_library: "fake-libcuda".to_owned(),
+        runtime_library: "fake-libcudart".to_owned(),
         cublas_library: "fake-libcublas".to_owned(),
         cublaslt_library: "fake-libcublasLt".to_owned(),
         driver_version: Some(12_000),
         driver_symbols: DRIVER_SYMBOLS
+            .iter()
+            .map(|name| CudaSymbolEvidence {
+                name: (*name).to_owned(),
+                present: true,
+            })
+            .collect(),
+        runtime_symbols: RUNTIME_SYMBOLS
             .iter()
             .map(|name| CudaSymbolEvidence {
                 name: (*name).to_owned(),
@@ -320,14 +386,16 @@ fn complete_fake_evidence() -> CudaAbiEvidence {
     }
 }
 
-fn candidate_paths(search_dirs: &[PathBuf], names: &[&str]) -> Vec<PathBuf> {
+fn candidate_paths(search_dirs: &[PathBuf], names: &[&str], search_system: bool) -> Vec<PathBuf> {
     let mut candidates = Vec::new();
     for directory in search_dirs {
         for name in names {
             candidates.push(directory.join(name));
         }
     }
-    candidates.extend(names.iter().map(PathBuf::from));
+    if search_system {
+        candidates.extend(names.iter().map(PathBuf::from));
+    }
     candidates
 }
 

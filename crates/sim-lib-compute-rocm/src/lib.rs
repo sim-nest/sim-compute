@@ -4,11 +4,13 @@
 //!
 //! The ROCm provider has no link-time ROCm dependency. It validates HIP and
 //! rocBLAS entry points plus an observed AMD `gfx*` target at runtime and
-//! exports a tensor site only after that ABI evidence exists. The executor
-//! accepts dense matmul for `f32` plus half-family dtypes when rocBLASLt evidence
-//! is present.
+//! exports a tensor site only while the live library handles remain retained.
+//! Dense `f32` matmul executes through rocBLAS and retains the result in device
+//! storage. Half-family requests fail closed until a rocBLASLt execution path
+//! exists.
 
 mod loader;
+mod runtime;
 mod site;
 mod storage;
 

@@ -13,7 +13,10 @@ publish = true
 sim-cookbook = { version = "0.1.3" }
 sim-kernel = { version = "0.1.4" }
 sim-lib-compute-auto = { version = "0.2.0", path = "../sim-lib-compute-auto" }
+sim-lib-compute-cuda = { version = "0.1.0", path = "../sim-lib-compute-cuda" }
 sim-lib-compute-model = { version = "0.2.0", path = "../sim-lib-compute-model" }
+sim-lib-compute-rocm = { version = "0.1.0", path = "../sim-lib-compute-rocm" }
+sim-lib-compute-wgpu = { version = "0.1.0", path = "../sim-lib-compute-wgpu" }
 
 [build-dependencies]
 sim-cookbook = { version = "0.1.3" }

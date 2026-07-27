@@ -3,6 +3,7 @@
 Runtime-loaded CUDA/cuBLAS tensor compute site for SIM.
 
 This crate has no CUDA toolkit or link-time dependency. It validates the CUDA
-driver and cuBLAS/cuBLASLt ABI through dynamic symbols, exports a site only when
-the runtime is present, and accepts only dense matmul requests that the CUDA
-provider can execute semantically.
+driver, runtime, and cuBLAS/cuBLASLt ABI through dynamic symbols, exports a site
+only while live runtime handles are retained, and executes dense `f32` matmul
+through cuBLAS with device-resident results. Half-family requests fail closed
+until a real cuBLASLt execution path is implemented.

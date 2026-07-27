@@ -9,11 +9,12 @@ use sim_kernel::{
 use sim_lib_numbers_tensor::{
     CpuTensorExecutor, SubmissionEvidence, Tensor, TensorExecError, TensorExecution,
     TensorExecutor, TensorExecutorCard, TensorRequest, TensorSite, domains, matmul_exec_op_symbol,
+    parse_f32_literal_cell,
 };
 
 use crate::{
-    DynamicRocmLoader, RocmAbiEvidence, RocmAllocation, RocmLoadError, RocmResidentStorage,
-    RocmRuntimeProbe, discover_rocm_runtime,
+    DynamicRocmLoader, RocmAbiEvidence, RocmAllocation, RocmLibrarySet, RocmLoadError,
+    RocmResidentStorage, RocmRuntimeProbe, discover_rocm_runtime, runtime::RocmDeviceBuffer,
 };
 
 /// Stable symbol for the ROCm runtime library.
@@ -47,6 +48,7 @@ struct RocmExecutorState {
 #[derive(Clone)]
 pub struct RocmTensorExecutor {
     evidence: RocmAbiEvidence,
+    runtime: Option<Arc<RocmLibrarySet>>,
     state: Arc<Mutex<RocmExecutorState>>,
 }
 
@@ -55,6 +57,16 @@ impl RocmTensorExecutor {
     pub fn new(evidence: RocmAbiEvidence) -> Self {
         Self {
             evidence,
+            runtime: None,
+            state: Arc::new(Mutex::new(RocmExecutorState::default())),
+        }
+    }
+
+    /// Builds an executor that submits f32 matmul to a validated ROCm runtime.
+    pub fn from_runtime(runtime: Arc<RocmLibrarySet>) -> Self {
+        Self {
+            evidence: runtime.evidence().clone(),
+            runtime: Some(runtime),
             state: Arc::new(Mutex::new(RocmExecutorState::default())),
         }
     }
@@ -66,24 +78,6 @@ impl RocmTensorExecutor {
 
     fn dtype_supported(&self, dtype: &Symbol) -> bool {
         dtype == &domains::f32()
-            || ((dtype == &domains::f16() || dtype == &domains::bf16())
-                && self.evidence.supports_half_matmul())
-    }
-
-    fn prepare_inputs(request: TensorRequest) -> TensorRequest {
-        let inputs = request
-            .inputs
-            .iter()
-            .map(|tensor| {
-                tensor
-                    .storage()
-                    .as_any()
-                    .downcast_ref::<RocmResidentStorage>()
-                    .and_then(RocmResidentStorage::resident_tensor)
-                    .unwrap_or_else(|| tensor.clone())
-            })
-            .collect();
-        TensorRequest::new(request.operation, inputs, request.output)
     }
 
     fn reserve_allocation(
@@ -101,6 +95,43 @@ impl RocmTensorExecutor {
             bytes,
             operation,
         })
+    }
+
+    fn execute_runtime(
+        &self,
+        runtime: &Arc<RocmLibrarySet>,
+        request: &TensorRequest,
+        allocation: RocmAllocation,
+    ) -> std::result::Result<TensorExecution, TensorExecError> {
+        let [left, right] = request.inputs.as_ref() else {
+            return Err(invalid("rocm matmul requires two inputs"));
+        };
+        let [rows, inner] = left.shape() else {
+            return Err(invalid("rocm matmul left input must be rank two"));
+        };
+        let [right_inner, cols] = right.shape() else {
+            return Err(invalid("rocm matmul right input must be rank two"));
+        };
+        if inner != right_inner || request.output.shape() != [*rows, *cols] {
+            return Err(invalid("rocm matmul shapes do not conform"));
+        }
+        let left = rocm_input(runtime, left)?;
+        let right = rocm_input(runtime, right)?;
+        let output = runtime
+            .matmul(&left, &right, *rows, *inner, *cols)
+            .map_err(execution_error)?;
+        let storage = RocmResidentStorage::from_device(
+            compute_rocm_site_symbol(),
+            allocation,
+            request.output.shape().to_vec(),
+            request.output.dtype().clone(),
+            output,
+        );
+        Ok(TensorExecution::Complete(Tensor::from_storage(
+            request.output.shape().to_vec(),
+            request.output.dtype().clone(),
+            Arc::new(storage),
+        )?))
     }
 }
 
@@ -127,12 +158,14 @@ impl TensorExecutor for RocmTensorExecutor {
         }
         if !self.dtype_supported(request.output.dtype()) {
             return Ok(TensorExecution::Unsupported {
-                reason: Arc::from("rocm provider accepts f32 or rocBLASLt-supported half matmul"),
+                reason: Arc::from("rocm provider accepts dense f32 matmul"),
             });
         }
         let allocation =
             self.reserve_allocation(request.output.shape(), request.operation.symbol.clone())?;
-        let request = Self::prepare_inputs(request);
+        if let Some(runtime) = &self.runtime {
+            return self.execute_runtime(runtime, &request, allocation);
+        }
         let result = CpuTensorExecutor::new().execute(cx, request)?;
         let TensorExecution::Complete(tensor) = result else {
             return Ok(result);
@@ -216,11 +249,11 @@ impl ComputeRocmLib {
         self.probe.as_ref()
     }
 
-    fn available_evidence(&self) -> Option<RocmAbiEvidence> {
+    fn available_runtime(&self) -> Option<Arc<RocmLibrarySet>> {
         self.probe
             .as_ref()
-            .and_then(|probe| probe.evidence.clone())
-            .filter(RocmAbiEvidence::is_complete)
+            .and_then(|probe| probe.runtime.clone())
+            .filter(|runtime| runtime.evidence().is_complete())
     }
 }
 
@@ -233,11 +266,11 @@ impl Lib for ComputeRocmLib {
             target: LibTarget::HostRegistered,
             requires: Vec::new(),
             capabilities: self
-                .available_evidence()
+                .available_runtime()
                 .map(|_| vec![compute_rocm_capability()])
                 .unwrap_or_default(),
             exports: self
-                .available_evidence()
+                .available_runtime()
                 .map(|_| {
                     vec![Export::Site {
                         symbol: compute_rocm_site_symbol(),
@@ -249,10 +282,10 @@ impl Lib for ComputeRocmLib {
     }
 
     fn load(&self, _cx: &mut sim_kernel::LoadCx, linker: &mut Linker<'_>) -> Result<()> {
-        let Some(evidence) = self.available_evidence() else {
+        let Some(runtime) = self.available_runtime() else {
             return Ok(());
         };
-        let executor = Arc::new(RocmTensorExecutor::new(evidence));
+        let executor = Arc::new(RocmTensorExecutor::from_runtime(runtime));
         let site = TensorSite::new(
             compute_rocm_site_symbol(),
             executor,
@@ -263,5 +296,36 @@ impl Lib for ComputeRocmLib {
             DefaultFactory.opaque(Arc::new(site))?,
         )?;
         Ok(())
+    }
+}
+
+fn rocm_input(
+    runtime: &Arc<RocmLibrarySet>,
+    tensor: &Tensor,
+) -> std::result::Result<Arc<RocmDeviceBuffer>, TensorExecError> {
+    if let Some(buffer) = tensor
+        .storage()
+        .as_any()
+        .downcast_ref::<RocmResidentStorage>()
+        .and_then(RocmResidentStorage::device_buffer)
+        .filter(|buffer| Arc::ptr_eq(buffer.runtime(), runtime))
+    {
+        return Ok(Arc::clone(buffer));
+    }
+    let values = tensor
+        .cells()
+        .map_err(TensorExecError::from)?
+        .iter()
+        .map(|cell| {
+            parse_f32_literal_cell(cell)
+                .ok_or_else(|| invalid("rocm matmul input is not canonical f32"))
+        })
+        .collect::<std::result::Result<Vec<_>, _>>()?;
+    runtime.upload(&values).map_err(execution_error)
+}
+
+fn execution_error(error: RocmLoadError) -> TensorExecError {
+    TensorExecError::Eval {
+        message: Arc::from(error.to_string()),
     }
 }
