@@ -1,1 +1,1 @@
-(compute modeled-resident-matrix (site site/compute/model) (chain resident resident) (materializations 1) (readbacks 1))
+(expr:call compute modeled-resident-matrix (expr:call site site/compute/model) (expr:call chain resident resident) (expr:call materializations 1) (expr:call readbacks 1))

@@ -10,4 +10,4 @@ requires = ["compute/femm", "femm-core"]
 
 [[expect]]
 form = 0
-result = "(compute femm resident-csr (method cg) (upload-reuse fingerprint) (work-vectors resident) (sync residual-scalar-per-iteration final-f64-residual) (certificate femm-solve))"
+result = "(expr:call compute femm resident-csr (expr:call method cg) (expr:call upload-reuse fingerprint) (expr:call work-vectors resident) (expr:call sync residual-scalar-per-iteration final-f64-residual) (expr:call certificate femm-solve))"

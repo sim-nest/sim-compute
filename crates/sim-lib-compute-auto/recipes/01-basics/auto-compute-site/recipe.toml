@@ -10,4 +10,4 @@ requires = ["compute/model", "compute/auto", "numbers/tensor"]
 
 [[expect]]
 form = 0
-result = "(compute auto-site (site site/compute/auto) (without-compatible-profile cpu))"
+result = "(expr:call compute auto-site (expr:call site site/compute/auto) (expr:call without-compatible-profile cpu))"

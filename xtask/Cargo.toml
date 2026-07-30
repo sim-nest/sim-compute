@@ -9,6 +9,7 @@ publish = false
 [dependencies]
 sim-kernel = { version = "0.1.4" }
 sim-lib-compute-cli = { path = "../crates/sim-lib-compute-cli" }
+toml_edit = "0.25.13"
 
 [lints]
 workspace = true

@@ -110,7 +110,7 @@ assert_setup_codec = "lisp"
 
 [[expect]]
 form = 0
-result = "(compute modeled-resident-matrix (site site/compute/model) (chain resident resident) (materializations 1) (readbacks 1))"
+result = "(expr:call compute modeled-resident-matrix (expr:call site site/compute/model) (expr:call chain resident resident) (expr:call materializations 1) (expr:call readbacks 1))"
 ```
 
 Specimen `recipe/sim-compute/crates/sim-lib-compute-auto/01-basics/measured-profile-routing` is checked by `xtask check-recipes`.
@@ -130,7 +130,7 @@ requires = ["compute/model", "compute/auto", "table/hash", "numbers/tensor"]
 
 [[expect]]
 form = 0
-result = "(compute auto-profile (table supplied) (synthetic bounded upload download launch element reduction matmul) (physical-device required) (else cpu) (ledger provider materialization-bytes synchronizations))"
+result = "(expr:call compute auto-profile (expr:call table supplied) (expr:call synthetic bounded upload download launch element reduction matmul) (expr:call physical-device required) (expr:call else cpu) (expr:call ledger provider materialization-bytes synchronizations))"
 ```
 
 Specimen `recipe/sim-compute/crates/sim-lib-compute-cuda/01-basics/cuda-discovery` is checked by `xtask check-recipes`.
@@ -1713,7 +1713,7 @@ assert_setup_codec = "lisp"
 
 [[expect]]
 form = 0
-result = "(compute devices (model installed) (auto installed) (profiles table-supplied))"
+result = "(expr:call compute devices (expr:call model installed) (expr:call auto installed) (expr:call profiles table-supplied))"
 ```
 
 ### `feature/sim-compute/femm-resident-solvers`
@@ -1735,7 +1735,7 @@ requires = ["compute/femm", "femm-core"]
 
 [[expect]]
 form = 0
-result = "(compute femm resident-csr (method cg) (upload-reuse fingerprint) (work-vectors resident) (sync residual-scalar-per-iteration final-f64-residual) (certificate femm-solve))"
+result = "(expr:call compute femm resident-csr (expr:call method cg) (expr:call upload-reuse fingerprint) (expr:call work-vectors resident) (expr:call sync residual-scalar-per-iteration final-f64-residual) (expr:call certificate femm-solve))"
 ```
 
 Specimen `spec-test/sim-compute/crates/sim-lib-compute-femm/src/lib` is checked by `cargo test`.
