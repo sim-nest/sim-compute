@@ -30,7 +30,6 @@ claims_anchors = [
   "anchor/doc/generated/repo-contract",
   "anchor/doc/generated/rustdoc-index",
   "anchor/doc/generated/sim-index-fragment",
-  "anchor/repo/sim-compute",
 ]
 claims_surfaces = [
   "cli/xtask",
