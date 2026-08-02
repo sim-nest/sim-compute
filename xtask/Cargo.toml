@@ -7,7 +7,7 @@ readme = "README.md"
 publish = false
 
 [dependencies]
-sim-kernel = { version = "0.1.4" }
+sim-kernel = { version = "0.2.0" }
 sim-lib-compute-cli = { path = "../crates/sim-lib-compute-cli" }
 toml_edit = "0.25.13"
 
