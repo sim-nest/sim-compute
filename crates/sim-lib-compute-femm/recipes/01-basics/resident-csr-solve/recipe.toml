@@ -1,8 +1,13 @@
 id = "resident-csr-solve"
 title = "Resident CSR solve"
 codec = "lisp"
-summary = "Shows a resident CSR Krylov solve accepted only after f64 residual certification."
-tags = ["compute", "femm", "csr", "krylov", "certificate"]
-requires = ["compute/femm", "femm/linear-solver"]
 setup = "setup.siml"
+purpose = "purpose.md"
 expected = "expected.txt"
+order = 10
+tags = ["compute", "femm", "csr", "krylov", "certificate"]
+requires = ["compute/femm", "femm-core"]
+
+[[expect]]
+form = 0
+result = "(expr:call compute femm resident-csr (expr:call method cg) (expr:call upload-reuse fingerprint) (expr:call work-vectors resident) (expr:call sync residual-scalar-per-iteration final-f64-residual) (expr:call certificate femm-solve))"

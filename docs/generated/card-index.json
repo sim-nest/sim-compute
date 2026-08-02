@@ -14,40 +14,40 @@
       "summary": "Automatic tensor compute site selection with CPU fallback."
     },
     {
+      "id": "cookbook/compute-cli",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-compute-cli",
+      "summary": "Loadable CLI recipes for inspecting compute providers."
+    },
+    {
+      "id": "cookbook/compute-cuda",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-compute-cuda",
+      "summary": "CUDA device discovery and resident tensor execution."
+    },
+    {
+      "id": "cookbook/compute-femm",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-compute-femm",
+      "summary": "Provider-neutral resident CSR FEMM solver execution."
+    },
+    {
       "id": "cookbook/compute-model",
       "kind": "cookbook-recipe",
       "owner": "sim-lib-compute-model",
       "summary": "Modeled resident tensor execution for provider and placement tests."
     },
     {
+      "id": "cookbook/compute-rocm",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-compute-rocm",
+      "summary": "ROCm device discovery and resident tensor execution."
+    },
+    {
       "id": "cookbook/compute-wgpu",
       "kind": "cookbook-recipe",
       "owner": "sim-lib-compute-wgpu",
       "summary": "Evidence-based portable GPU adapter discovery."
-    },
-    {
-      "id": "cookbook/sim-lib-compute-cli",
-      "kind": "cookbook-recipe",
-      "owner": "sim-lib-compute-cli",
-      "summary": ""
-    },
-    {
-      "id": "cookbook/sim-lib-compute-cuda",
-      "kind": "cookbook-recipe",
-      "owner": "sim-lib-compute-cuda",
-      "summary": ""
-    },
-    {
-      "id": "cookbook/sim-lib-compute-femm",
-      "kind": "cookbook-recipe",
-      "owner": "sim-lib-compute-femm",
-      "summary": ""
-    },
-    {
-      "id": "cookbook/sim-lib-compute-rocm",
-      "kind": "cookbook-recipe",
-      "owner": "sim-lib-compute-rocm",
-      "summary": ""
     },
     {
       "id": "registry/catalog",

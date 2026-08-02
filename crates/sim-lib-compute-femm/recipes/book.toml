@@ -1,1 +1,5 @@
-title = "sim-lib-compute-femm recipes"
+book = "compute-femm"
+title = "FEMM Compute"
+summary = "Provider-neutral resident CSR FEMM solver execution."
+order = 124
+chapters = ["01-basics"]

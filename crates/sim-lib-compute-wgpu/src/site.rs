@@ -375,7 +375,11 @@ impl Lib for ComputeWgpuLib {
             abi: AbiVersion { major: 0, minor: 1 },
             target: LibTarget::HostRegistered,
             requires: Vec::new(),
-            capabilities: vec![compute_wgpu_capability()],
+            capabilities: if self.discovery.adapters.is_empty() {
+                Vec::new()
+            } else {
+                vec![compute_wgpu_capability()]
+            },
             exports: self
                 .discovery
                 .adapters

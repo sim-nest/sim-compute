@@ -3,10 +3,10 @@
   "generated_by": "cargo run -p xtask -- simdoc",
   "generation_timestamp": "2026-07-24T22:54:42+02:00",
   "generator": "xtask repo-contract v1",
-  "git_commit": "12cb08ae6572946d5c11d06635ad079eecf8533c",
+  "git_commit": "08ae8fc5b9c5c8d8c25141b67320868949de025b",
   "repo": "sim-compute",
   "schema": "sim.provenance.v1",
-  "source_commit": "12cb08ae6572946d5c11d06635ad079eecf8533c",
+  "source_commit": "08ae8fc5b9c5c8d8c25141b67320868949de025b",
   "source_remote": "https://github.com/sim-nest/sim-compute",
   "validation_commands": [
     "cargo fmt --all --check",
@@ -19,9 +19,9 @@
     "cargo run -p xtask -- validation-matrix --check --repo .",
     "cargo run -p xtask -- crate-catalog --check --repo ."
   ],
-  "workspace_hash": "e01569eb7aa0f8d8",
+  "workspace_hash": "4313709d9707847e",
   "workspace_hash_algorithm": "fnv1a64",
-  "workspace_hash_input_count": 96,
+  "workspace_hash_input_count": 97,
   "workspace_hash_inputs": [
     "Cargo.toml",
     "crates/sim-lib-compute-auto/Cargo.toml",
@@ -113,6 +113,7 @@
     "crates/sim-lib-compute-wgpu/src/segments.rs",
     "crates/sim-lib-compute-wgpu/src/site.rs",
     "crates/sim-lib-compute-wgpu/src/storage.rs",
+    "crates/sim-lib-compute-wgpu/src/tests/discovery_tests.rs",
     "crates/sim-lib-compute-wgpu/src/tests/primitive_tests.rs",
     "crates/sim-lib-compute-wgpu/src/tests/residency_tests.rs",
     "crates/sim-lib-compute-wgpu/src/tests.rs",

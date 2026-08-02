@@ -102,7 +102,7 @@ purpose = "purpose.md"
 expected = "expected.txt"
 order = 10
 tags = ["compute", "tensor", "resident", "modeled"]
-requires = ["compute/model", "numbers/tensor", "standard"]
+requires = ["compute/model", "numbers/tensor"]
 capabilities = ["tensor.execute"]
 assert_tags = ["resident", "modeled"]
 assert_capabilities = ["tensor.execute"]
@@ -110,7 +110,7 @@ assert_setup_codec = "lisp"
 
 [[expect]]
 form = 0
-result = "(compute modeled-resident-matrix (site site/compute/model) (chain resident resident) (materializations 1) (readbacks 1))"
+result = "(expr:call compute modeled-resident-matrix (expr:call site site/compute/model) (expr:call chain resident resident) (expr:call materializations 1) (expr:call readbacks 1))"
 ```
 
 Specimen `recipe/sim-compute/crates/sim-lib-compute-auto/01-basics/measured-profile-routing` is checked by `xtask check-recipes`.
@@ -126,11 +126,11 @@ purpose = "purpose.md"
 expected = "expected.txt"
 order = 20
 tags = ["compute", "tensor", "auto", "profile", "routing"]
-requires = ["compute/auto", "compute/profile", "storage/table", "numbers/tensor", "standard"]
+requires = ["compute/model", "compute/auto", "table/hash", "numbers/tensor"]
 
 [[expect]]
 form = 0
-result = "(compute auto-profile (table supplied) (synthetic bounded upload download launch element reduction matmul) (physical-device required) (else cpu) (ledger provider materialization-bytes synchronizations))"
+result = "(expr:call compute auto-profile (expr:call table supplied) (expr:call synthetic bounded upload download launch element reduction matmul) (expr:call physical-device required) (expr:call else cpu) (expr:call ledger provider materialization-bytes synchronizations))"
 ```
 
 Specimen `recipe/sim-compute/crates/sim-lib-compute-cuda/01-basics/cuda-discovery` is checked by `xtask check-recipes`.
@@ -140,10 +140,17 @@ Source `crates/sim-lib-compute-cuda/recipes/01-basics/cuda-discovery/recipe.toml
 ```toml
 id = "cuda-discovery"
 title = "CUDA discovery"
-language = "lisp"
+codec = "lisp"
 setup = "setup.siml"
-expected = "expected.txt"
 purpose = "purpose.md"
+expected = "expected.txt"
+order = 10
+tags = ["compute", "tensor", "cuda", "hardware", "evidence", "sandbox-descriptor"]
+requires = ["compute/cuda", "numbers/tensor"]
+
+[[expect]]
+form = 0
+result = "(compute cuda-discovery (site site/compute/cuda) (evidence driver cublas cublasLt))"
 ```
 
 Specimen `recipe/sim-compute/crates/sim-lib-compute-wgpu/01-basics/wgpu-discovery` is checked by `xtask check-recipes`.
@@ -153,16 +160,18 @@ Source `crates/sim-lib-compute-wgpu/recipes/01-basics/wgpu-discovery/recipe.toml
 ```toml
 id = "wgpu-discovery"
 title = "WGPU discovery"
-summary = "A host-emulated wgpu site appears only after successful probe evidence."
-tags = ["compute", "tensor", "wgpu", "hardware", "evidence"]
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+expected = "expected.txt"
+order = 10
+tags = ["compute", "tensor", "wgpu", "hardware", "evidence", "sandbox-descriptor"]
 requires = ["compute/wgpu", "numbers/tensor"]
-capabilities = ["device.gpu.wgpu"]
 assert_tags = ["wgpu", "evidence"]
-assert_capabilities = ["device.gpu.wgpu"]
+assert_setup_codec = "lisp"
 
-[[steps]]
-name = "probe"
-command = "cat expected.txt"
+[[expect]]
+form = 0
 result = "(compute wgpu-discovery (site site/compute/wgpu/0) (evidence-kind host-emulated) (evidence transfer mapping allocation))"
 ```
 
@@ -173,10 +182,17 @@ Source `crates/sim-lib-compute-rocm/recipes/01-basics/rocm-discovery/recipe.toml
 ```toml
 id = "rocm-discovery"
 title = "ROCm discovery"
-language = "lisp"
+codec = "lisp"
 setup = "setup.siml"
-expected = "expected.txt"
 purpose = "purpose.md"
+expected = "expected.txt"
+order = 10
+tags = ["compute", "tensor", "rocm", "hardware", "evidence", "sandbox-descriptor"]
+requires = ["compute/rocm", "numbers/tensor"]
+
+[[expect]]
+form = 0
+result = "(compute rocm-discovery (site site/compute/rocm) (evidence hip rocblas gfx-target rocblaslt-optional))"
 ```
 
 Specimen `spec-test/sim-compute/crates/sim-lib-compute-model/src/tests` is checked by `cargo test`.
@@ -1067,6 +1083,7 @@ use crate::{
 
 // conformance: wgpu discovery records evidence, exports only successful adapter sites, and plans bounded resident submissions.
 
+mod discovery_tests;
 mod primitive_tests;
 mod residency_tests;
 
@@ -1256,59 +1273,6 @@ fn resident_storage(tensor: &Tensor) -> &WgpuResidentStorage {
         .as_any()
         .downcast_ref::<WgpuResidentStorage>()
         .expect("wgpu resident storage")
-}
-
-#[test]
-fn discovery_keeps_only_successful_probe_backed_adapters() {
-    let discovery = WgpuDiscovery::from_probes(
-        vec![
-            adapter("zeta", "Vulkan", true),
-            adapter("alpha", "Vulkan", true),
-            adapter("placeholder", "Noop", false),
-        ],
-        Vec::new(),
-    );
-
-    assert_eq!(discovery.adapters.len(), 2);
-    assert_eq!(discovery.adapters[0].adapter.name, "alpha");
-    assert_eq!(discovery.adapters[0].adapter.ordinal, 0);
-    assert_eq!(discovery.adapters[1].adapter.name, "zeta");
-    assert_eq!(discovery.adapters[1].adapter.ordinal, 1);
-    assert!(
-        discovery
-            .diagnostics
-            .iter()
-            .any(|diagnostic| diagnostic.contains("did not pass required probes"))
-    );
-}
-
-#[test]
-fn host_emulated_wgpu_probe_cannot_satisfy_physical_acceptance() {
-    let host_emulated_wgpu = adapter("alpha", "Vulkan", true);
-
-    assert!(verify_physical(&host_emulated_wgpu).is_err());
-}
-
-#[test]
-fn wgpu_lib_exports_sites_only_for_successful_discovery() {
-    let discovery = WgpuDiscovery::from_probes(vec![adapter("alpha", "Vulkan", true)], Vec::new());
-    let executor = WgpuTensorExecutor::new(discovery.adapters[0].clone());
-    let card = sim_lib_numbers_tensor::TensorExecutor::card(&executor);
-    assert_eq!(card.device_capability, Some(compute_wgpu_capability()));
-
-    let lib = ComputeWgpuLib::from_discovery(discovery);
-    let manifest = sim_kernel::Lib::manifest(&lib);
-    assert_eq!(manifest.exports.len(), 1);
-    assert_eq!(manifest.capabilities, vec![compute_wgpu_capability()]);
-
-    let mut cx = sim_kernel::Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
-    cx.grant(compute_wgpu_capability());
-    cx.load_lib(&lib).unwrap();
-    let site = cx
-        .registry()
-        .site_by_symbol(&compute_wgpu_site_symbol(0))
-        .expect("wgpu compute site");
-    assert!(site.object().as_eval_fabric().is_some());
 }
 
 #[test]
@@ -1736,15 +1700,20 @@ Source `crates/sim-lib-compute-cli/recipes/01-basics/inspect-compute-device/reci
 ```toml
 id = "inspect-compute-device"
 title = "Inspect compute device"
-description = "Show bounded compute CLI evidence for installed sites and injected profile storage."
-level = "basic"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+expected = "expected.txt"
+order = 10
 tags = ["compute", "cli", "device", "profile"]
-requires = ["compute/cli", "compute/provider", "storage/table"]
+requires = ["compute/model", "compute/auto", "compute/cli", "table/hash"]
 capabilities = ["compute.device"]
 assert_capabilities = ["compute.device"]
-setup = "setup.siml"
-expected = "expected.txt"
-result = "(compute devices (model installed) (auto installed) (profiles table-supplied))"
+assert_setup_codec = "lisp"
+
+[[expect]]
+form = 0
+result = "(expr:call compute devices (expr:call model installed) (expr:call auto installed) (expr:call profiles table-supplied))"
 ```
 
 ### `feature/sim-compute/femm-resident-solvers`
@@ -1757,11 +1726,16 @@ Source `crates/sim-lib-compute-femm/recipes/01-basics/resident-csr-solve/recipe.
 id = "resident-csr-solve"
 title = "Resident CSR solve"
 codec = "lisp"
-summary = "Shows a resident CSR Krylov solve accepted only after f64 residual certification."
-tags = ["compute", "femm", "csr", "krylov", "certificate"]
-requires = ["compute/femm", "femm/linear-solver"]
 setup = "setup.siml"
+purpose = "purpose.md"
 expected = "expected.txt"
+order = 10
+tags = ["compute", "femm", "csr", "krylov", "certificate"]
+requires = ["compute/femm", "femm-core"]
+
+[[expect]]
+form = 0
+result = "(expr:call compute femm resident-csr (expr:call method cg) (expr:call upload-reuse fingerprint) (expr:call work-vectors resident) (expr:call sync residual-scalar-per-iteration final-f64-residual) (expr:call certificate femm-solve))"
 ```
 
 Specimen `spec-test/sim-compute/crates/sim-lib-compute-femm/src/lib` is checked by `cargo test`.

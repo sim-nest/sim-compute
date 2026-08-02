@@ -1,6 +1,13 @@
 id = "cuda-discovery"
 title = "CUDA discovery"
-language = "lisp"
+codec = "lisp"
 setup = "setup.siml"
-expected = "expected.txt"
 purpose = "purpose.md"
+expected = "expected.txt"
+order = 10
+tags = ["compute", "tensor", "cuda", "hardware", "evidence", "sandbox-descriptor"]
+requires = ["compute/cuda", "numbers/tensor"]
+
+[[expect]]
+form = 0
+result = "(compute cuda-discovery (site site/compute/cuda) (evidence driver cublas cublasLt))"
