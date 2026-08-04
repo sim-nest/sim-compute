@@ -46,16 +46,41 @@ jobs:
     needs: scope
     if: ${{ needs.scope.outputs.run-heavy == 'true' }}
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: sim-compute
     env:
       SIMDOC_TOOLING_MANIFEST: ${{ github.workspace }}/sim-tooling/Cargo.toml
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          path: sim-compute
       - uses: actions/checkout@v4
         with:
           repository: sim-nest/sim-tooling
           path: sim-tooling
+      - name: Check out shared simdoc siblings
+        uses: actions/checkout@v4
+        with:
+          repository: sim-nest/sim-citizen
+          path: sim-citizen
+      - uses: actions/checkout@v4
+        with:
+          repository: sim-nest/sim-codecs
+          path: sim-codecs
+      - uses: actions/checkout@v4
+        with:
+          repository: sim-nest/sim-foundation
+          path: sim-foundation
+      - uses: actions/checkout@v4
+        with:
+          repository: sim-nest/sim-kernel
+          path: sim-kernel
+      - uses: actions/checkout@v4
+        with:
+          repository: sim-nest/sim-shape
+          path: sim-shape
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
