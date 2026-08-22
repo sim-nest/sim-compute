@@ -36,8 +36,8 @@ pub use pipeline::{
 };
 pub use probe::{
     AllocationAttempt, ProbeEvidence, ProbePolicy, RequestedWgpuProfile, TransferEvidence,
-    WgpuAdapterEvidence, WgpuAdapterProbe, WgpuCapabilityEvidence, WgpuDiscovery,
-    WgpuDiscoveryError, WgpuLimitEvidence, discover_wgpu_adapters,
+    WgpuAdapterEvidence, WgpuAdapterProbe, WgpuAdapterRuntime, WgpuCapabilityEvidence,
+    WgpuDiscovery, WgpuDiscoveryError, WgpuLimitEvidence, WgpuProbePort,
 };
 pub use queue::{WgpuQueueLimits, WgpuQueueSnapshot, WgpuSubmissionQueue};
 pub use segments::{WgpuResidentSegment, WgpuSegmentPlan};

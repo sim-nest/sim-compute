@@ -99,7 +99,8 @@ pub struct CudaLibrarySet {
 }
 
 impl CudaLibrarySet {
-    fn new(
+    /// Joins capsule-loaded libraries to their validated ABI evidence.
+    pub fn new(
         evidence: CudaAbiEvidence,
         driver: Library,
         runtime: Library,
@@ -188,6 +189,18 @@ impl std::error::Error for CudaLoadError {}
 pub trait DynamicCudaLoader {
     /// Performs CUDA runtime discovery.
     fn discover(&self) -> Result<CudaRuntimeProbe, CudaLoadError>;
+}
+
+/// Capsule membrane used by the provider to receive an explicit probe.
+pub trait CudaProbePort {
+    /// Returns a capsule-owned CUDA probe without ambient rediscovery.
+    fn probe_cuda(&self) -> Result<CudaRuntimeProbe, CudaLoadError>;
+}
+
+impl<T: DynamicCudaLoader + ?Sized> CudaProbePort for T {
+    fn probe_cuda(&self) -> Result<CudaRuntimeProbe, CudaLoadError> {
+        self.discover()
+    }
 }
 
 /// Real dynamic loader using platform CUDA shared libraries.

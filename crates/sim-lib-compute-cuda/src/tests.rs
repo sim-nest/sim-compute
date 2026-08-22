@@ -68,20 +68,20 @@ fn execute_cuda(
 
 #[test]
 fn fake_loader_controls_site_exports_without_cuda_installed() {
-    let available = ComputeCudaLib::from_loader(&FakeCudaLoader::available()).unwrap();
+    let available = ComputeCudaLib::from_probe_port(&FakeCudaLoader::available()).unwrap();
     let manifest = available.manifest();
     assert!(manifest.exports.is_empty());
     assert!(manifest.capabilities.is_empty());
 
-    let incomplete = ComputeCudaLib::from_loader(&FakeCudaLoader::incomplete()).unwrap();
+    let incomplete = ComputeCudaLib::from_probe_port(&FakeCudaLoader::incomplete()).unwrap();
     assert!(incomplete.manifest().exports.is_empty());
 
-    assert!(ComputeCudaLib::from_loader(&FakeCudaLoader::absent()).is_err());
+    assert!(ComputeCudaLib::from_probe_port(&FakeCudaLoader::absent()).is_err());
 }
 
 #[test]
 fn cuda_lib_does_not_register_site_without_live_runtime_handles() {
-    let lib = ComputeCudaLib::from_loader(&FakeCudaLoader::available()).unwrap();
+    let lib = ComputeCudaLib::from_probe_port(&FakeCudaLoader::available()).unwrap();
     let mut cx = sim_kernel::Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
     cx.grant(compute_cuda_capability());
     cx.load_lib(&lib).unwrap();
@@ -95,7 +95,7 @@ fn cuda_lib_does_not_register_site_without_live_runtime_handles() {
 #[test]
 fn dense_f32_matmul_returns_cuda_resident_storage() {
     let mut cx = test_cx();
-    let evidence = ComputeCudaLib::from_loader(&FakeCudaLoader::available())
+    let evidence = ComputeCudaLib::from_probe_port(&FakeCudaLoader::available())
         .unwrap()
         .probe_evidence()
         .and_then(|probe| probe.evidence.clone())
@@ -133,7 +133,7 @@ fn dense_f32_matmul_returns_cuda_resident_storage() {
 #[test]
 fn unsupported_operations_are_declined_before_acceptance() {
     let mut cx = test_cx();
-    let evidence = ComputeCudaLib::from_loader(&FakeCudaLoader::available())
+    let evidence = ComputeCudaLib::from_probe_port(&FakeCudaLoader::available())
         .unwrap()
         .probe_evidence()
         .and_then(|probe| probe.evidence.clone())
@@ -158,7 +158,7 @@ fn unsupported_operations_are_declined_before_acceptance() {
 #[test]
 fn half_matmul_fails_closed_until_a_real_cublaslt_execution_path_exists() {
     let mut cx = test_cx();
-    let evidence = ComputeCudaLib::from_loader(&FakeCudaLoader::incomplete())
+    let evidence = ComputeCudaLib::from_probe_port(&FakeCudaLoader::incomplete())
         .unwrap()
         .probe_evidence()
         .and_then(|probe| probe.evidence.clone())

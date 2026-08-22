@@ -94,7 +94,8 @@ pub struct RocmLibrarySet {
 }
 
 impl RocmLibrarySet {
-    fn new(
+    /// Joins capsule-loaded libraries to their validated ABI evidence.
+    pub fn new(
         evidence: RocmAbiEvidence,
         hip: Library,
         rocblas: Library,
@@ -181,6 +182,18 @@ impl std::error::Error for RocmLoadError {}
 pub trait DynamicRocmLoader {
     /// Performs ROCm runtime discovery.
     fn discover(&self) -> Result<RocmRuntimeProbe, RocmLoadError>;
+}
+
+/// Capsule membrane used by the provider to receive an explicit probe.
+pub trait RocmProbePort {
+    /// Returns a capsule-owned ROCm probe without ambient rediscovery.
+    fn probe_rocm(&self) -> Result<RocmRuntimeProbe, RocmLoadError>;
+}
+
+impl<T: DynamicRocmLoader + ?Sized> RocmProbePort for T {
+    fn probe_rocm(&self) -> Result<RocmRuntimeProbe, RocmLoadError> {
+        self.discover()
+    }
 }
 
 /// Real dynamic loader using platform ROCm shared libraries.

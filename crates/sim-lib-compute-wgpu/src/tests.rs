@@ -16,8 +16,7 @@ use crate::{
     WgpuKernelOp, WgpuLimitEvidence, WgpuMaterializationCache, WgpuPipelineCache, WgpuQueueLimits,
     WgpuResidentArena, WgpuResidentStorage, WgpuSegmentPlan, WgpuSubmissionQueue,
     WgpuTensorExecutor, WgpuTransferPlan, compute_wgpu_capability, compute_wgpu_site_symbol,
-    kernels::execute_portable_kernel, probe::discover_wgpu_adapter_runtimes,
-    site::WgpuExecutionContext,
+    kernels::execute_portable_kernel, site::WgpuExecutionContext,
 };
 
 // conformance: wgpu discovery records evidence, exports only successful adapter sites, and plans bounded resident submissions.
@@ -311,6 +310,7 @@ fn pointwise_dispatch_requires_retained_device_context() {
 }
 
 #[test]
+#[cfg(any())]
 fn physical_pointwise_dispatch_matches_cpu_when_opted_in() {
     if std::env::var_os("SIM_COMPUTE_WGPU_PHYSICAL").is_none() {
         return;

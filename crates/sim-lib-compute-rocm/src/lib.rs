@@ -16,7 +16,7 @@ mod storage;
 
 pub use loader::{
     DynamicRocmLoader, FakeRocmLoader, RocmAbiEvidence, RocmLibrarySet, RocmLoadError,
-    RocmRuntimeLoader, RocmRuntimeProbe, RocmSymbolEvidence, discover_rocm_runtime,
+    RocmProbePort, RocmRuntimeLoader, RocmRuntimeProbe, RocmSymbolEvidence, discover_rocm_runtime,
 };
 pub use site::{
     ComputeRocmLib, RocmTensorExecutor, compute_rocm_capability, compute_rocm_lib_symbol,
