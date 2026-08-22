@@ -19,7 +19,7 @@ sim-lib-compute-rocm = { version = "0.1.1", path = "../sim-lib-compute-rocm" }
 sim-lib-compute-wgpu = { version = "0.2.0", path = "../sim-lib-compute-wgpu" }
 
 [build-dependencies]
-sim-cookbook = { version = "0.2.0" }
+sim-cookbook-build = { version = "0.1.0" }
 
 [dev-dependencies]
 sim-kernel = { version = "0.2.0", features = ["test-support"] }
