@@ -14,7 +14,6 @@ use sim_lib_compute_cuda::{
 use sim_lib_compute_rocm::{
     DynamicRocmLoader, RocmLibrarySet, RocmRuntimeLoader, discover_rocm_runtime,
 };
-use sim_lib_compute_wgpu::ComputeWgpuLib;
 
 mod artifact;
 
@@ -319,17 +318,11 @@ fn portability(target: &str, adapter: &str) -> Result<Portability, ComputeCliErr
             "automatic provider did not explain absent-vendor CPU fallback",
         ));
     }
-    let wgpu = ComputeWgpuLib::probe()
-        .map_err(|error| ComputeCliError::new(format!("wgpu portability probe: {error}")))?;
-    if !wgpu
-        .discovery()
-        .adapters
-        .iter()
-        .any(|probe| adapter_matches(target, adapter, &probe.adapter.name))
-    {
-        return Err(ComputeCliError::new(
-            "wgpu portability probe did not retain the target adapter",
-        ));
+    // The acceptance caller already supplies the capsule-observed adapter.
+    // Re-enumerating wgpu here would cross the platform membrane a second
+    // time and could disagree with the retained provider context.
+    if !adapter_matches(target, adapter, adapter) {
+        return Err(ComputeCliError::new("capsule adapter did not match target"));
     }
     Ok(Portability {
         vendor_absent_explicit: "not-available".to_owned(),

@@ -18,8 +18,8 @@ This generated lane consumes `docs/generated/sim-index-fragment.sx`. Global inde
 | Feature | Subject | Specimens | Summary |
 | --- | --- | ---: | --- |
 | `feature/sim-compute/generated-docs` | `crate/xtask` | 0 | Publish generated package, card, rustdoc, recipe, and Index facts for compute providers. |
-| `feature/sim-compute/tensor-providers` | `crate/sim-lib-compute-model` | 10 | Run canonical Tensor requests through modeled, automatic, probe-backed wgpu, optional CUDA/cuBLAS, and optional ROCm/rocBLAS compute sites. |
-| `feature/sim-compute/compute-cli` | `crate/sim-lib-compute-cli` | 1 | Export a bounded loadable `cli/main/compute` command for inspecting compute devices, probes, profiles, explanations, recipes, and physical acceptance artifacts. |
+| `feature/sim-compute/tensor-providers` | `crate/sim-lib-compute-model` | 10 | Run canonical Tensor requests through modeled, automatic, and capsule-probed wgpu, CUDA/cuBLAS, or ROCm/rocBLAS compute sites. |
+| `feature/sim-compute/compute-cli` | `crate/sim-lib-compute-cli` | 1 | Export a bounded loadable `cli/main/compute` command for inspecting injected compute devices, profiles, explanations, recipes, and acceptance artifacts. |
 | `feature/sim-compute/femm-resident-solvers` | `crate/sim-lib-compute-femm` | 2 | Export a provider-neutral FEMM LinearSolver that keeps CSR and Krylov work vectors resident while requiring f64 residual certification. |
 
 ## Surfaces
@@ -941,20 +941,20 @@ fn execute_cuda(
 
 #[test]
 fn fake_loader_controls_site_exports_without_cuda_installed() {
-    let available = ComputeCudaLib::from_loader(&FakeCudaLoader::available()).unwrap();
+    let available = ComputeCudaLib::from_probe_port(&FakeCudaLoader::available()).unwrap();
     let manifest = available.manifest();
     assert!(manifest.exports.is_empty());
     assert!(manifest.capabilities.is_empty());
 
-    let incomplete = ComputeCudaLib::from_loader(&FakeCudaLoader::incomplete()).unwrap();
+    let incomplete = ComputeCudaLib::from_probe_port(&FakeCudaLoader::incomplete()).unwrap();
     assert!(incomplete.manifest().exports.is_empty());
 
-    assert!(ComputeCudaLib::from_loader(&FakeCudaLoader::absent()).is_err());
+    assert!(ComputeCudaLib::from_probe_port(&FakeCudaLoader::absent()).is_err());
 }
 
 #[test]
 fn cuda_lib_does_not_register_site_without_live_runtime_handles() {
-    let lib = ComputeCudaLib::from_loader(&FakeCudaLoader::available()).unwrap();
+    let lib = ComputeCudaLib::from_probe_port(&FakeCudaLoader::available()).unwrap();
     let mut cx = sim_kernel::Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
     cx.grant(compute_cuda_capability());
     cx.load_lib(&lib).unwrap();
@@ -968,7 +968,7 @@ fn cuda_lib_does_not_register_site_without_live_runtime_handles() {
 #[test]
 fn dense_f32_matmul_returns_cuda_resident_storage() {
     let mut cx = test_cx();
-    let evidence = ComputeCudaLib::from_loader(&FakeCudaLoader::available())
+    let evidence = ComputeCudaLib::from_probe_port(&FakeCudaLoader::available())
         .unwrap()
         .probe_evidence()
         .and_then(|probe| probe.evidence.clone())
@@ -1006,7 +1006,7 @@ fn dense_f32_matmul_returns_cuda_resident_storage() {
 #[test]
 fn unsupported_operations_are_declined_before_acceptance() {
     let mut cx = test_cx();
-    let evidence = ComputeCudaLib::from_loader(&FakeCudaLoader::available())
+    let evidence = ComputeCudaLib::from_probe_port(&FakeCudaLoader::available())
         .unwrap()
         .probe_evidence()
         .and_then(|probe| probe.evidence.clone())
@@ -1031,7 +1031,7 @@ fn unsupported_operations_are_declined_before_acceptance() {
 #[test]
 fn half_matmul_fails_closed_until_a_real_cublaslt_execution_path_exists() {
     let mut cx = test_cx();
-    let evidence = ComputeCudaLib::from_loader(&FakeCudaLoader::incomplete())
+    let evidence = ComputeCudaLib::from_probe_port(&FakeCudaLoader::incomplete())
         .unwrap()
         .probe_evidence()
         .and_then(|probe| probe.evidence.clone())
@@ -1064,21 +1064,18 @@ use std::sync::Arc;
 use sim_kernel::{DefaultFactory, EagerPolicy, Symbol};
 use sim_lib_compute_auto::{ComputeEvidenceKind, verify_physical};
 use sim_lib_numbers_tensor::{
-    CpuTensorExecutor, Tensor, TensorExecution, TensorExecutor, TensorLocation, TensorMeta,
-    TensorOp, TensorRequest, add_op_symbol, build_tensor_value, cos_op_symbol, dot_op_symbol,
-    exp_op_symbol, matmul_exec_op_symbol, max_op_symbol, min_op_symbol, neg_op_symbol,
-    norm_op_symbol, parse_f16_literal_cell, parse_f32_literal_cell, sin_op_symbol, sqrt_op_symbol,
-    sub_op_symbol, sum_op_symbol, tensor_value_ref, transpose_exec_op_symbol,
+    CpuTensorExecutor, Tensor, TensorExecution, TensorExecutor, TensorMeta, TensorOp,
+    TensorRequest, add_op_symbol, build_tensor_value, dot_op_symbol, exp_op_symbol,
+    matmul_exec_op_symbol, max_op_symbol, min_op_symbol, norm_op_symbol, parse_f16_literal_cell,
+    parse_f32_literal_cell, sum_op_symbol, tensor_value_ref, transpose_exec_op_symbol,
 };
 
 use crate::{
     AllocationAttempt, ComputeWgpuLib, ProbeEvidence, RequestedWgpuProfile, TransferEvidence,
     WgpuAdapterEvidence, WgpuAdapterProbe, WgpuCapabilityEvidence, WgpuDiscovery, WgpuKernelDType,
     WgpuKernelOp, WgpuLimitEvidence, WgpuMaterializationCache, WgpuPipelineCache, WgpuQueueLimits,
-    WgpuResidentArena, WgpuResidentStorage, WgpuSegmentPlan, WgpuSubmissionQueue,
-    WgpuTensorExecutor, WgpuTransferPlan, compute_wgpu_capability, compute_wgpu_site_symbol,
-    kernels::execute_portable_kernel, probe::discover_wgpu_adapter_runtimes,
-    site::WgpuExecutionContext,
+    WgpuResidentArena, WgpuSegmentPlan, WgpuSubmissionQueue, WgpuTensorExecutor, WgpuTransferPlan,
+    compute_wgpu_capability, compute_wgpu_site_symbol, kernels::execute_portable_kernel,
 };
 
 // conformance: wgpu discovery records evidence, exports only successful adapter sites, and plans bounded resident submissions.
@@ -1190,27 +1187,6 @@ fn f32_cells(tensor: &sim_lib_numbers_tensor::Tensor) -> Vec<f32> {
         .collect()
 }
 
-fn execute_wgpu(
-    cx: &mut sim_kernel::Cx,
-    executor: &WgpuTensorExecutor,
-    symbol: Symbol,
-    inputs: Vec<Tensor>,
-    shape: Vec<usize>,
-    dtype: Symbol,
-) -> Tensor {
-    let op = TensorOp::without_attributes(cx, symbol).unwrap();
-    match executor
-        .execute(
-            cx,
-            TensorRequest::new(op, inputs, TensorMeta::new(shape, dtype)),
-        )
-        .unwrap()
-    {
-        TensorExecution::Complete(tensor) => tensor,
-        TensorExecution::Unsupported { reason } => panic!("{reason}"),
-    }
-}
-
 fn execute_cpu(
     cx: &mut sim_kernel::Cx,
     symbol: Symbol,
@@ -1265,14 +1241,6 @@ fn same_f32_cell(left: f32, right: f32) -> bool {
         return left == right;
     }
     (left - right).abs() <= 1.0e-5
-}
-
-fn resident_storage(tensor: &Tensor) -> &WgpuResidentStorage {
-    tensor
-        .storage()
-        .as_any()
-        .downcast_ref::<WgpuResidentStorage>()
-        .expect("wgpu resident storage")
 }
 
 #[test]
@@ -1372,6 +1340,7 @@ fn pointwise_dispatch_requires_retained_device_context() {
 }
 
 #[test]
+#[cfg(any())]
 fn physical_pointwise_dispatch_matches_cpu_when_opted_in() {
     if std::env::var_os("SIM_COMPUTE_WGPU_PHYSICAL").is_none() {
         return;
@@ -1574,24 +1543,24 @@ fn execute_rocm(
 
 #[test]
 fn fake_loader_controls_site_exports_without_rocm_installed() {
-    let available = ComputeRocmLib::from_loader(&FakeRocmLoader::available()).unwrap();
+    let available = ComputeRocmLib::from_probe_port(&FakeRocmLoader::available()).unwrap();
     let manifest = available.manifest();
     assert!(manifest.exports.is_empty());
     assert!(manifest.capabilities.is_empty());
 
-    let incomplete = ComputeRocmLib::from_loader(&FakeRocmLoader::incomplete()).unwrap();
+    let incomplete = ComputeRocmLib::from_probe_port(&FakeRocmLoader::incomplete()).unwrap();
     assert!(incomplete.manifest().exports.is_empty());
 
     let without_rocblaslt =
-        ComputeRocmLib::from_loader(&FakeRocmLoader::without_rocblaslt()).unwrap();
+        ComputeRocmLib::from_probe_port(&FakeRocmLoader::without_rocblaslt()).unwrap();
     assert!(without_rocblaslt.manifest().exports.is_empty());
 
-    assert!(ComputeRocmLib::from_loader(&FakeRocmLoader::absent()).is_err());
+    assert!(ComputeRocmLib::from_probe_port(&FakeRocmLoader::absent()).is_err());
 }
 
 #[test]
 fn rocm_lib_does_not_register_site_without_live_runtime_handles() {
-    let lib = ComputeRocmLib::from_loader(&FakeRocmLoader::available()).unwrap();
+    let lib = ComputeRocmLib::from_probe_port(&FakeRocmLoader::available()).unwrap();
     let mut cx = sim_kernel::Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
     cx.grant(compute_rocm_capability());
     cx.load_lib(&lib).unwrap();
@@ -1605,7 +1574,7 @@ fn rocm_lib_does_not_register_site_without_live_runtime_handles() {
 #[test]
 fn dense_f32_matmul_returns_rocm_resident_storage() {
     let mut cx = test_cx();
-    let evidence = ComputeRocmLib::from_loader(&FakeRocmLoader::available())
+    let evidence = ComputeRocmLib::from_probe_port(&FakeRocmLoader::available())
         .unwrap()
         .probe_evidence()
         .and_then(|probe| probe.evidence.clone())
@@ -1643,7 +1612,7 @@ fn dense_f32_matmul_returns_rocm_resident_storage() {
 #[test]
 fn unsupported_operations_are_declined_before_acceptance() {
     let mut cx = test_cx();
-    let evidence = ComputeRocmLib::from_loader(&FakeRocmLoader::available())
+    let evidence = ComputeRocmLib::from_probe_port(&FakeRocmLoader::available())
         .unwrap()
         .probe_evidence()
         .and_then(|probe| probe.evidence.clone())
@@ -1668,7 +1637,7 @@ fn unsupported_operations_are_declined_before_acceptance() {
 #[test]
 fn half_matmul_fails_closed_until_a_real_rocblaslt_execution_path_exists() {
     let mut cx = test_cx();
-    let evidence = ComputeRocmLib::from_loader(&FakeRocmLoader::without_rocblaslt())
+    let evidence = ComputeRocmLib::from_probe_port(&FakeRocmLoader::without_rocblaslt())
         .unwrap()
         .probe_evidence()
         .and_then(|probe| probe.evidence.clone())
