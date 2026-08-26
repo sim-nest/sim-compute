@@ -15,7 +15,11 @@ use crate::{
 // conformance: ROCm discovery records ABI evidence, exports only validated sites, and accepts dense matmul while declining unsupported requests before acceptance.
 
 fn test_cx() -> sim_kernel::Cx {
-    let mut cx = sim_kernel::Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    let mut cx = sim_kernel::Cx::new(
+        Arc::new(EagerPolicy),
+        Arc::new(DefaultFactory),
+        sim_kernel::HandleSeed::new(0x7a38_73e7_9deb_ba9d),
+    );
     cx.load_lib(&sim_lib_numbers_arith::NumbersArithmeticLib::new())
         .unwrap();
     cx.load_lib(&sim_lib_numbers_f64::F64NumbersLib::new())
@@ -86,7 +90,11 @@ fn fake_loader_controls_site_exports_without_rocm_installed() {
 #[test]
 fn rocm_lib_does_not_register_site_without_live_runtime_handles() {
     let lib = ComputeRocmLib::from_probe_port(&FakeRocmLoader::available()).unwrap();
-    let mut cx = sim_kernel::Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    let mut cx = sim_kernel::Cx::new(
+        Arc::new(EagerPolicy),
+        Arc::new(DefaultFactory),
+        sim_kernel::HandleSeed::new(0xf47b_ac26_5521_82f4),
+    );
     cx.grant(compute_rocm_capability());
     cx.load_lib(&lib).unwrap();
     assert!(

@@ -216,7 +216,11 @@ use crate::{
 // conformance: modeled compute provider returns resident Tensor storage, bounded flush evidence, and deterministic faults.
 
 fn test_cx() -> sim_kernel::Cx {
-    let mut cx = sim_kernel::Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    let mut cx = sim_kernel::Cx::new(
+        Arc::new(EagerPolicy),
+        Arc::new(DefaultFactory),
+        sim_kernel::HandleSeed::new(0x7191_bc98_ed8b_0794),
+    );
     cx.load_lib(&sim_lib_numbers_arith::NumbersArithmeticLib::new())
         .unwrap();
     cx.load_lib(&sim_lib_numbers_f64::F64NumbersLib::new())
@@ -588,7 +592,11 @@ use crate::{
 // conformance: auto compute site selects modeled providers and falls back to CPU without a compatible profile.
 
 fn test_cx() -> sim_kernel::Cx {
-    let mut cx = sim_kernel::Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    let mut cx = sim_kernel::Cx::new(
+        Arc::new(EagerPolicy),
+        Arc::new(DefaultFactory),
+        sim_kernel::HandleSeed::new(0xf2f4_1606_c2b1_13ea),
+    );
     cx.load_lib(&sim_lib_numbers_arith::NumbersArithmeticLib::new())
         .unwrap();
     cx.load_lib(&sim_lib_numbers_f64::F64NumbersLib::new())
@@ -888,7 +896,11 @@ use crate::{
 // conformance: CUDA discovery records ABI evidence, exports only validated sites, and accepts dense matmul while declining unsupported requests before acceptance.
 
 fn test_cx() -> sim_kernel::Cx {
-    let mut cx = sim_kernel::Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    let mut cx = sim_kernel::Cx::new(
+        Arc::new(EagerPolicy),
+        Arc::new(DefaultFactory),
+        sim_kernel::HandleSeed::new(0x7eb3_b7d0_272c_a1a3),
+    );
     cx.load_lib(&sim_lib_numbers_arith::NumbersArithmeticLib::new())
         .unwrap();
     cx.load_lib(&sim_lib_numbers_f64::F64NumbersLib::new())
@@ -955,7 +967,11 @@ fn fake_loader_controls_site_exports_without_cuda_installed() {
 #[test]
 fn cuda_lib_does_not_register_site_without_live_runtime_handles() {
     let lib = ComputeCudaLib::from_probe_port(&FakeCudaLoader::available()).unwrap();
-    let mut cx = sim_kernel::Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    let mut cx = sim_kernel::Cx::new(
+        Arc::new(EagerPolicy),
+        Arc::new(DefaultFactory),
+        sim_kernel::HandleSeed::new(0xdb81_a03b_e2c0_179d),
+    );
     cx.grant(compute_cuda_capability());
     cx.load_lib(&lib).unwrap();
     assert!(
@@ -1147,7 +1163,11 @@ fn adapter_with_limits(
 }
 
 fn test_cx() -> sim_kernel::Cx {
-    let mut cx = sim_kernel::Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    let mut cx = sim_kernel::Cx::new(
+        Arc::new(EagerPolicy),
+        Arc::new(DefaultFactory),
+        sim_kernel::HandleSeed::new(0xdca2_9a8e_6840_5a5e),
+    );
     cx.load_lib(&sim_lib_numbers_arith::NumbersArithmeticLib::new())
         .unwrap();
     cx.load_lib(&sim_lib_numbers_f64::F64NumbersLib::new())
@@ -1490,7 +1510,11 @@ use crate::{
 // conformance: ROCm discovery records ABI evidence, exports only validated sites, and accepts dense matmul while declining unsupported requests before acceptance.
 
 fn test_cx() -> sim_kernel::Cx {
-    let mut cx = sim_kernel::Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    let mut cx = sim_kernel::Cx::new(
+        Arc::new(EagerPolicy),
+        Arc::new(DefaultFactory),
+        sim_kernel::HandleSeed::new(0x7a38_73e7_9deb_ba9d),
+    );
     cx.load_lib(&sim_lib_numbers_arith::NumbersArithmeticLib::new())
         .unwrap();
     cx.load_lib(&sim_lib_numbers_f64::F64NumbersLib::new())
@@ -1561,7 +1585,11 @@ fn fake_loader_controls_site_exports_without_rocm_installed() {
 #[test]
 fn rocm_lib_does_not_register_site_without_live_runtime_handles() {
     let lib = ComputeRocmLib::from_probe_port(&FakeRocmLoader::available()).unwrap();
-    let mut cx = sim_kernel::Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    let mut cx = sim_kernel::Cx::new(
+        Arc::new(EagerPolicy),
+        Arc::new(DefaultFactory),
+        sim_kernel::HandleSeed::new(0xf47b_ac26_5521_82f4),
+    );
     cx.grant(compute_rocm_capability());
     cx.load_lib(&lib).unwrap();
     assert!(

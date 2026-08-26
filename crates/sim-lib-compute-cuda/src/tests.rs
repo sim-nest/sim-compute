@@ -15,7 +15,11 @@ use crate::{
 // conformance: CUDA discovery records ABI evidence, exports only validated sites, and accepts dense matmul while declining unsupported requests before acceptance.
 
 fn test_cx() -> sim_kernel::Cx {
-    let mut cx = sim_kernel::Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    let mut cx = sim_kernel::Cx::new(
+        Arc::new(EagerPolicy),
+        Arc::new(DefaultFactory),
+        sim_kernel::HandleSeed::new(0x7eb3_b7d0_272c_a1a3),
+    );
     cx.load_lib(&sim_lib_numbers_arith::NumbersArithmeticLib::new())
         .unwrap();
     cx.load_lib(&sim_lib_numbers_f64::F64NumbersLib::new())
@@ -82,7 +86,11 @@ fn fake_loader_controls_site_exports_without_cuda_installed() {
 #[test]
 fn cuda_lib_does_not_register_site_without_live_runtime_handles() {
     let lib = ComputeCudaLib::from_probe_port(&FakeCudaLoader::available()).unwrap();
-    let mut cx = sim_kernel::Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    let mut cx = sim_kernel::Cx::new(
+        Arc::new(EagerPolicy),
+        Arc::new(DefaultFactory),
+        sim_kernel::HandleSeed::new(0xdb81_a03b_e2c0_179d),
+    );
     cx.grant(compute_cuda_capability());
     cx.load_lib(&lib).unwrap();
     assert!(

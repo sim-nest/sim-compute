@@ -17,7 +17,11 @@ pub(crate) struct ProviderWork<'a> {
 
 impl<'a> ProviderWork<'a> {
     pub(crate) fn new(solver: &'a ResidentCsrSolver) -> Self {
-        let mut cx = Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+        let mut cx = Cx::new(
+            Arc::new(EagerPolicy),
+            Arc::new(DefaultFactory),
+            sim_kernel::HandleSeed::new(0x4645_4d4d),
+        );
         cx.load_lib(&sim_lib_numbers_arith::NumbersArithmeticLib::new())
             .expect("numbers arithmetic lib loads");
         cx.load_lib(&sim_lib_numbers_f64::F64NumbersLib::new())

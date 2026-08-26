@@ -43,7 +43,11 @@ fn wgpu_lib_exports_sites_only_for_successful_discovery() {
     assert_eq!(manifest.exports.len(), 1);
     assert_eq!(manifest.capabilities, vec![compute_wgpu_capability()]);
 
-    let mut cx = sim_kernel::Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    let mut cx = sim_kernel::Cx::new(
+        Arc::new(EagerPolicy),
+        Arc::new(DefaultFactory),
+        sim_kernel::HandleSeed::new(0x2925_503d_4ecb_793d),
+    );
     cx.grant(compute_wgpu_capability());
     cx.load_lib(&lib).unwrap();
     let site = cx
@@ -61,6 +65,10 @@ fn empty_wgpu_discovery_loads_without_device_authority() {
     assert!(manifest.exports.is_empty());
     assert!(manifest.capabilities.is_empty());
 
-    let mut cx = sim_kernel::Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    let mut cx = sim_kernel::Cx::new(
+        Arc::new(EagerPolicy),
+        Arc::new(DefaultFactory),
+        sim_kernel::HandleSeed::new(0x2578_9dd9_b1df_7e65),
+    );
     cx.load_lib(&lib).unwrap();
 }
