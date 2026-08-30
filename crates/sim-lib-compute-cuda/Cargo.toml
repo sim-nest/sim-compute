@@ -1,6 +1,6 @@
 [package]
 name = "sim-lib-compute-cuda"
-version = "0.2.0"
+version = "0.3.0"
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
@@ -11,18 +11,18 @@ publish = true
 
 [dependencies]
 libloading = "0.8"
-sim-cookbook = { version = "0.2.0" }
-sim-kernel = { version = "0.2.0" }
-sim-lib-numbers-tensor = { version = "0.2.1" }
+sim-cookbook = { version = "0.3.0" }
+sim-kernel = { version = "0.3.0" }
+sim-lib-numbers-tensor = { version = "0.3.0" }
 
 [build-dependencies]
 sim-cookbook-build = { version = "0.1.0" }
 
 [dev-dependencies]
-sim-kernel = { version = "0.2.0", features = ["test-support"] }
-sim-lib-numbers-arith = { version = "0.3.0" }
-sim-lib-numbers-f64 = { version = "0.3.0" }
-sim-lib-numbers-float = { version = "0.3.0" }
+sim-kernel = { version = "0.3.0", features = ["test-support"] }
+sim-lib-numbers-arith = { version = "0.4.0" }
+sim-lib-numbers-f64 = { version = "0.4.0" }
+sim-lib-numbers-float = { version = "0.4.0" }
 
 [lints.rust]
 unsafe_code = "allow"

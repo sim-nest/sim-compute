@@ -1,6 +1,6 @@
 [package]
 name = "sim-lib-compute-cli"
-version = "0.2.0"
+version = "0.3.0"
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
@@ -10,19 +10,19 @@ readme = "README.md"
 publish = true
 
 [dependencies]
-sim-cookbook = { version = "0.2.0" }
-sim-kernel = { version = "0.2.0" }
-sim-lib-compute-auto = { version = "0.3.0", path = "../sim-lib-compute-auto" }
-sim-lib-compute-cuda = { version = "0.2.0", path = "../sim-lib-compute-cuda" }
-sim-lib-compute-model = { version = "0.3.0", path = "../sim-lib-compute-model" }
-sim-lib-compute-rocm = { version = "0.1.1", path = "../sim-lib-compute-rocm" }
-sim-lib-compute-wgpu = { version = "0.2.0", path = "../sim-lib-compute-wgpu" }
+sim-cookbook = { version = "0.3.0" }
+sim-kernel = { version = "0.3.0" }
+sim-lib-compute-auto = { version = "0.4.0", path = "../sim-lib-compute-auto" }
+sim-lib-compute-cuda = { version = "0.3.0", path = "../sim-lib-compute-cuda" }
+sim-lib-compute-model = { version = "0.4.0", path = "../sim-lib-compute-model" }
+sim-lib-compute-rocm = { version = "0.2.0", path = "../sim-lib-compute-rocm" }
+sim-lib-compute-wgpu = { version = "0.3.0", path = "../sim-lib-compute-wgpu" }
 
 [build-dependencies]
 sim-cookbook-build = { version = "0.1.0" }
 
 [dev-dependencies]
-sim-kernel = { version = "0.2.0", features = ["test-support"] }
+sim-kernel = { version = "0.3.0", features = ["test-support"] }
 
 [lints]
 workspace = true
