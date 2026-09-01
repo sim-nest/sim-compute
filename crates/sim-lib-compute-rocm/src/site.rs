@@ -13,8 +13,8 @@ use sim_lib_numbers_tensor::{
 };
 
 use crate::{
-    DynamicRocmLoader, RocmAbiEvidence, RocmAllocation, RocmLibrarySet, RocmLoadError,
-    RocmResidentStorage, RocmRuntimeProbe, discover_rocm_runtime, runtime::RocmDeviceBuffer,
+    RocmAbiEvidence, RocmAllocation, RocmLibrarySet, RocmLoadError, RocmProbePort,
+    RocmResidentStorage, RocmRuntimeProbe, runtime::RocmDeviceBuffer,
 };
 
 /// Stable symbol for the ROCm runtime library.
@@ -225,17 +225,10 @@ pub struct ComputeRocmLib {
 }
 
 impl ComputeRocmLib {
-    /// Probes local ROCm dynamic libraries and builds a provider library.
-    pub fn probe() -> std::result::Result<Self, RocmLoadError> {
+    /// Builds a provider from an explicit capsule probe port.
+    pub fn from_probe_port(port: &dyn RocmProbePort) -> std::result::Result<Self, RocmLoadError> {
         Ok(Self {
-            probe: Some(discover_rocm_runtime()?),
-        })
-    }
-
-    /// Builds a provider from an injected loader.
-    pub fn from_loader(loader: &dyn DynamicRocmLoader) -> std::result::Result<Self, RocmLoadError> {
-        Ok(Self {
-            probe: Some(loader.discover()?),
+            probe: Some(port.probe_rocm()?),
         })
     }
 

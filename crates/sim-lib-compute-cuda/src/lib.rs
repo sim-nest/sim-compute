@@ -14,8 +14,8 @@ mod site;
 mod storage;
 
 pub use loader::{
-    CudaAbiEvidence, CudaLibrarySet, CudaLoadError, CudaRuntimeLoader, CudaRuntimeProbe,
-    CudaSymbolEvidence, DynamicCudaLoader, FakeCudaLoader, discover_cuda_runtime,
+    CudaAbiEvidence, CudaLibrarySet, CudaLoadError, CudaProbePort, CudaRuntimeLoader,
+    CudaRuntimeProbe, CudaSymbolEvidence, DynamicCudaLoader, FakeCudaLoader, discover_cuda_runtime,
 };
 pub use site::{
     ComputeCudaLib, CudaTensorExecutor, compute_cuda_capability, compute_cuda_lib_symbol,

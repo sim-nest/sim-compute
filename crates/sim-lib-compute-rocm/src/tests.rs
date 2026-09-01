@@ -15,7 +15,11 @@ use crate::{
 // conformance: ROCm discovery records ABI evidence, exports only validated sites, and accepts dense matmul while declining unsupported requests before acceptance.
 
 fn test_cx() -> sim_kernel::Cx {
-    let mut cx = sim_kernel::Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    let mut cx = sim_kernel::Cx::new(
+        Arc::new(EagerPolicy),
+        Arc::new(DefaultFactory),
+        sim_kernel::HandleSeed::new(0x7a38_73e7_9deb_ba9d),
+    );
     cx.load_lib(&sim_lib_numbers_arith::NumbersArithmeticLib::new())
         .unwrap();
     cx.load_lib(&sim_lib_numbers_f64::F64NumbersLib::new())
@@ -68,25 +72,29 @@ fn execute_rocm(
 
 #[test]
 fn fake_loader_controls_site_exports_without_rocm_installed() {
-    let available = ComputeRocmLib::from_loader(&FakeRocmLoader::available()).unwrap();
+    let available = ComputeRocmLib::from_probe_port(&FakeRocmLoader::available()).unwrap();
     let manifest = available.manifest();
     assert!(manifest.exports.is_empty());
     assert!(manifest.capabilities.is_empty());
 
-    let incomplete = ComputeRocmLib::from_loader(&FakeRocmLoader::incomplete()).unwrap();
+    let incomplete = ComputeRocmLib::from_probe_port(&FakeRocmLoader::incomplete()).unwrap();
     assert!(incomplete.manifest().exports.is_empty());
 
     let without_rocblaslt =
-        ComputeRocmLib::from_loader(&FakeRocmLoader::without_rocblaslt()).unwrap();
+        ComputeRocmLib::from_probe_port(&FakeRocmLoader::without_rocblaslt()).unwrap();
     assert!(without_rocblaslt.manifest().exports.is_empty());
 
-    assert!(ComputeRocmLib::from_loader(&FakeRocmLoader::absent()).is_err());
+    assert!(ComputeRocmLib::from_probe_port(&FakeRocmLoader::absent()).is_err());
 }
 
 #[test]
 fn rocm_lib_does_not_register_site_without_live_runtime_handles() {
-    let lib = ComputeRocmLib::from_loader(&FakeRocmLoader::available()).unwrap();
-    let mut cx = sim_kernel::Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    let lib = ComputeRocmLib::from_probe_port(&FakeRocmLoader::available()).unwrap();
+    let mut cx = sim_kernel::Cx::new(
+        Arc::new(EagerPolicy),
+        Arc::new(DefaultFactory),
+        sim_kernel::HandleSeed::new(0xf47b_ac26_5521_82f4),
+    );
     cx.grant(compute_rocm_capability());
     cx.load_lib(&lib).unwrap();
     assert!(
@@ -99,7 +107,7 @@ fn rocm_lib_does_not_register_site_without_live_runtime_handles() {
 #[test]
 fn dense_f32_matmul_returns_rocm_resident_storage() {
     let mut cx = test_cx();
-    let evidence = ComputeRocmLib::from_loader(&FakeRocmLoader::available())
+    let evidence = ComputeRocmLib::from_probe_port(&FakeRocmLoader::available())
         .unwrap()
         .probe_evidence()
         .and_then(|probe| probe.evidence.clone())
@@ -137,7 +145,7 @@ fn dense_f32_matmul_returns_rocm_resident_storage() {
 #[test]
 fn unsupported_operations_are_declined_before_acceptance() {
     let mut cx = test_cx();
-    let evidence = ComputeRocmLib::from_loader(&FakeRocmLoader::available())
+    let evidence = ComputeRocmLib::from_probe_port(&FakeRocmLoader::available())
         .unwrap()
         .probe_evidence()
         .and_then(|probe| probe.evidence.clone())
@@ -162,7 +170,7 @@ fn unsupported_operations_are_declined_before_acceptance() {
 #[test]
 fn half_matmul_fails_closed_until_a_real_rocblaslt_execution_path_exists() {
     let mut cx = test_cx();
-    let evidence = ComputeRocmLib::from_loader(&FakeRocmLoader::without_rocblaslt())
+    let evidence = ComputeRocmLib::from_probe_port(&FakeRocmLoader::without_rocblaslt())
         .unwrap()
         .probe_evidence()
         .and_then(|probe| probe.evidence.clone())

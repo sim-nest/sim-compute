@@ -750,9 +750,7 @@ dependencies = [
 
 [[package]]
 name = "sim-citizen"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "be0642ec328afcbb0ac615a0f7550846bd1df9f79820de624f45ea640a4a5e5e"
+version = "0.3.0"
 dependencies = [
  "inventory",
  "sim-kernel",
@@ -761,9 +759,7 @@ dependencies = [
 
 [[package]]
 name = "sim-citizen-derive"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3a1d8410aba0b26fb2e41555aa65ee953c9fdbe6c1c0f3ad9aaefc0542b97dfe"
+version = "0.3.0"
 dependencies = [
  "proc-macro-crate",
  "proc-macro2",
@@ -773,11 +769,12 @@ dependencies = [
 
 [[package]]
 name = "sim-codec"
-version = "0.1.7"
+version = "0.2.0"
 dependencies = [
  "sim-citizen",
  "sim-citizen-derive",
  "sim-cookbook",
+ "sim-cookbook-build",
  "sim-kernel",
  "sim-lib-net-core",
  "sim-shape",
@@ -785,9 +782,7 @@ dependencies = [
 
 [[package]]
 name = "sim-config"
-version = "0.1.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "87e9c061d40550c99467a766a9ffe743c34645472ea1e35c6a8fb3ae3267c2df"
+version = "0.2.0"
 dependencies = [
  "sim-kernel",
  "sim-table-core",
@@ -796,9 +791,7 @@ dependencies = [
 
 [[package]]
 name = "sim-cookbook"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "209a43be7311949b2ffe382acb7fe185464ab55536823c78b15da8e1386675a4"
+version = "0.3.0"
 dependencies = [
  "sim-config",
  "sim-kernel",
@@ -806,20 +799,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "sim-cookbook-build"
+version = "0.1.0"
+dependencies = [
+ "sim-cookbook",
+]
+
+[[package]]
 name = "sim-kernel"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1fb22a716eaf2000f9dbb6948d7654712c6c9b4d60cecf7816259c4d4ab494c1"
+version = "0.3.0"
 dependencies = [
  "thiserror 1.0.69",
 ]
 
 [[package]]
 name = "sim-lib-compute-auto"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "sim-citizen",
  "sim-cookbook",
+ "sim-cookbook-build",
  "sim-kernel",
  "sim-lib-compute-model",
  "sim-lib-numbers-arith",
@@ -831,9 +830,10 @@ dependencies = [
 
 [[package]]
 name = "sim-lib-compute-cli"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "sim-cookbook",
+ "sim-cookbook-build",
  "sim-kernel",
  "sim-lib-compute-auto",
  "sim-lib-compute-cuda",
@@ -844,10 +844,11 @@ dependencies = [
 
 [[package]]
 name = "sim-lib-compute-cuda"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "libloading",
  "sim-cookbook",
+ "sim-cookbook-build",
  "sim-kernel",
  "sim-lib-numbers-arith",
  "sim-lib-numbers-f64",
@@ -857,9 +858,10 @@ dependencies = [
 
 [[package]]
 name = "sim-lib-compute-femm"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "sim-cookbook",
+ "sim-cookbook-build",
  "sim-kernel",
  "sim-lib-compute-model",
  "sim-lib-femm-core",
@@ -872,9 +874,10 @@ dependencies = [
 
 [[package]]
 name = "sim-lib-compute-model"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "sim-cookbook",
+ "sim-cookbook-build",
  "sim-kernel",
  "sim-lib-numbers-arith",
  "sim-lib-numbers-f64",
@@ -890,10 +893,11 @@ dependencies = [
 
 [[package]]
 name = "sim-lib-compute-rocm"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "libloading",
  "sim-cookbook",
+ "sim-cookbook-build",
  "sim-kernel",
  "sim-lib-numbers-arith",
  "sim-lib-numbers-f64",
@@ -903,11 +907,12 @@ dependencies = [
 
 [[package]]
 name = "sim-lib-compute-wgpu"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "half",
  "pollster",
  "sim-cookbook",
+ "sim-cookbook-build",
  "sim-kernel",
  "sim-lib-compute-auto",
  "sim-lib-numbers-arith",
@@ -919,9 +924,10 @@ dependencies = [
 
 [[package]]
 name = "sim-lib-femm-assembly"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "sim-cookbook",
+ "sim-cookbook-build",
  "sim-kernel",
  "sim-lib-femm-core",
  "sim-lib-femm-geometry",
@@ -934,9 +940,10 @@ dependencies = [
 
 [[package]]
 name = "sim-lib-femm-core"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "sim-cookbook",
+ "sim-cookbook-build",
  "sim-kernel",
  "sim-lib-numbers-numeric",
  "thiserror 1.0.69",
@@ -944,9 +951,10 @@ dependencies = [
 
 [[package]]
 name = "sim-lib-femm-flow"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "sim-cookbook",
+ "sim-cookbook-build",
  "sim-kernel",
  "sim-lib-femm-core",
  "sim-lib-numbers-func",
@@ -955,9 +963,10 @@ dependencies = [
 
 [[package]]
 name = "sim-lib-femm-geometry"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "sim-cookbook",
+ "sim-cookbook-build",
  "sim-kernel",
  "sim-lib-femm-core",
  "sim-value",
@@ -965,9 +974,10 @@ dependencies = [
 
 [[package]]
 name = "sim-lib-femm-material"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "sim-cookbook",
+ "sim-cookbook-build",
  "sim-kernel",
  "sim-lib-femm-core",
  "sim-value",
@@ -975,9 +985,10 @@ dependencies = [
 
 [[package]]
 name = "sim-lib-femm-mesh"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "sim-cookbook",
+ "sim-cookbook-build",
  "sim-kernel",
  "sim-lib-femm-core",
  "sim-lib-femm-geometry",
@@ -987,23 +998,26 @@ dependencies = [
 
 [[package]]
 name = "sim-lib-femm-physics"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "sim-cookbook",
+ "sim-cookbook-build",
  "sim-kernel",
  "sim-lib-femm-assembly",
  "sim-lib-femm-core",
  "sim-lib-femm-space",
  "sim-lib-numbers-ad",
+ "sim-lib-physics-adapter",
  "sim-value",
 ]
 
 [[package]]
 name = "sim-lib-femm-post"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "sim-citizen",
  "sim-cookbook",
+ "sim-cookbook-build",
  "sim-kernel",
  "sim-lib-femm-core",
  "sim-lib-femm-flow",
@@ -1013,9 +1027,10 @@ dependencies = [
 
 [[package]]
 name = "sim-lib-femm-solve"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "sim-cookbook",
+ "sim-cookbook-build",
  "sim-kernel",
  "sim-lib-femm-assembly",
  "sim-lib-femm-core",
@@ -1032,9 +1047,10 @@ dependencies = [
 
 [[package]]
 name = "sim-lib-femm-space"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "sim-cookbook",
+ "sim-cookbook-build",
  "sim-kernel",
  "sim-lib-femm-core",
  "sim-lib-femm-mesh",
@@ -1042,25 +1058,26 @@ dependencies = [
 
 [[package]]
 name = "sim-lib-net-core"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cb052dce08de1678dfe18c21866d01619561eb15e474d40f0bbead55c9059331"
+version = "0.3.0"
 dependencies = [
  "sim-cookbook",
+ "sim-cookbook-build",
 ]
 
 [[package]]
 name = "sim-lib-numbers-ad"
-version = "0.2.1"
+version = "0.3.0"
 dependencies = [
  "sim-cookbook",
+ "sim-cookbook-build",
 ]
 
 [[package]]
 name = "sim-lib-numbers-arith"
-version = "0.3.1"
+version = "0.4.0"
 dependencies = [
  "sim-cookbook",
+ "sim-cookbook-build",
  "sim-kernel",
  "sim-lib-numbers-core",
  "sim-shape",
@@ -1068,12 +1085,13 @@ dependencies = [
 
 [[package]]
 name = "sim-lib-numbers-cas"
-version = "0.3.1"
+version = "0.4.0"
 dependencies = [
  "sim-citizen",
  "sim-citizen-derive",
  "sim-codec",
  "sim-cookbook",
+ "sim-cookbook-build",
  "sim-kernel",
  "sim-lib-numbers-core",
  "sim-shape",
@@ -1081,9 +1099,10 @@ dependencies = [
 
 [[package]]
 name = "sim-lib-numbers-cas-eval"
-version = "0.3.1"
+version = "0.4.0"
 dependencies = [
  "sim-cookbook",
+ "sim-cookbook-build",
  "sim-kernel",
  "sim-lib-numbers-cas",
  "sim-lib-numbers-core",
@@ -1091,29 +1110,32 @@ dependencies = [
 
 [[package]]
 name = "sim-lib-numbers-codec"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "sim-cookbook",
+ "sim-cookbook-build",
  "sim-kernel",
  "sim-lib-numbers-core",
 ]
 
 [[package]]
 name = "sim-lib-numbers-core"
-version = "0.3.1"
+version = "0.4.0"
 dependencies = [
  "sim-cookbook",
+ "sim-cookbook-build",
  "sim-kernel",
  "sim-shape",
 ]
 
 [[package]]
 name = "sim-lib-numbers-f64"
-version = "0.3.1"
+version = "0.4.0"
 dependencies = [
  "sim-citizen",
  "sim-citizen-derive",
  "sim-cookbook",
+ "sim-cookbook-build",
  "sim-kernel",
  "sim-lib-numbers-core",
  "sim-shape",
@@ -1121,11 +1143,12 @@ dependencies = [
 
 [[package]]
 name = "sim-lib-numbers-float"
-version = "0.3.1"
+version = "0.4.0"
 dependencies = [
  "sim-citizen",
  "sim-citizen-derive",
  "sim-cookbook",
+ "sim-cookbook-build",
  "sim-kernel",
  "sim-lib-numbers-core",
  "sim-shape",
@@ -1133,11 +1156,12 @@ dependencies = [
 
 [[package]]
 name = "sim-lib-numbers-func"
-version = "0.3.1"
+version = "0.4.0"
 dependencies = [
  "sim-citizen",
  "sim-citizen-derive",
  "sim-cookbook",
+ "sim-cookbook-build",
  "sim-kernel",
  "sim-lib-numbers-cas",
  "sim-lib-numbers-cas-eval",
@@ -1147,12 +1171,13 @@ dependencies = [
 
 [[package]]
 name = "sim-lib-numbers-i64"
-version = "0.3.1"
+version = "0.4.0"
 dependencies = [
  "num-bigint",
  "sim-citizen",
  "sim-citizen-derive",
  "sim-cookbook",
+ "sim-cookbook-build",
  "sim-kernel",
  "sim-lib-numbers-core",
  "sim-shape",
@@ -1160,9 +1185,10 @@ dependencies = [
 
 [[package]]
 name = "sim-lib-numbers-numeric"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "sim-cookbook",
+ "sim-cookbook-build",
  "sim-kernel",
  "sim-lib-numbers-cas",
  "sim-lib-numbers-core",
@@ -1173,9 +1199,10 @@ dependencies = [
 
 [[package]]
 name = "sim-lib-numbers-rk"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "sim-cookbook",
+ "sim-cookbook-build",
  "sim-kernel",
  "sim-lib-numbers-codec",
  "sim-lib-numbers-core",
@@ -1187,12 +1214,13 @@ dependencies = [
 
 [[package]]
 name = "sim-lib-numbers-tensor"
-version = "0.2.1"
+version = "0.3.0"
 dependencies = [
  "half",
  "sim-citizen",
  "sim-citizen-derive",
  "sim-cookbook",
+ "sim-cookbook-build",
  "sim-kernel",
  "sim-lib-numbers-core",
  "sim-shape",
@@ -1200,17 +1228,22 @@ dependencies = [
 
 [[package]]
 name = "sim-lib-numbers-tensor-bcast"
-version = "0.3.1"
+version = "0.4.0"
 dependencies = [
  "sim-cookbook",
+ "sim-cookbook-build",
  "sim-kernel",
  "sim-lib-numbers-core",
  "sim-lib-numbers-tensor",
 ]
 
 [[package]]
+name = "sim-lib-physics-adapter"
+version = "0.1.0"
+
+[[package]]
 name = "sim-shape"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "sim-citizen",
  "sim-citizen-derive",
@@ -1219,9 +1252,7 @@ dependencies = [
 
 [[package]]
 name = "sim-table-core"
-version = "0.1.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eebc79391094d5a02711ca4d7bbb8ff5525574cae9d8e305ed1ce11257a12098"
+version = "0.2.0"
 dependencies = [
  "sim-kernel",
  "sim-value",
@@ -1229,9 +1260,7 @@ dependencies = [
 
 [[package]]
 name = "sim-value"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a5a3ca34efc2b8cd76bf8a99164b12984adffac302f910989acbb0378f20e04f"
+version = "0.3.0"
 dependencies = [
  "sim-kernel",
 ]
@@ -1367,9 +1396,9 @@ dependencies = [
 
 [[package]]
 name = "toml_parser"
-version = "1.1.2+spec-1.1.0"
+version = "1.1.3+spec-1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a2abe9b86193656635d2411dc43050282ca48aa31c2451210f4202550afb7526"
+checksum = "1d38ac1cf9b95face32296c0a3ede1fdc270627c9d9c02a7274dd6d960dc4d56"
 dependencies = [
  "winnow",
 ]
@@ -1795,8 +1824,6 @@ checksum = "3ae8337f8a065cfc972643663ea4279e04e7256de865aa66fe25cec5fb912d3f"
 name = "xtask"
 version = "0.0.0"
 dependencies = [
- "sim-kernel",
- "sim-lib-compute-cli",
  "toml_edit",
 ]
 
@@ -1819,1835 +1846,3 @@ dependencies = [
  "quote",
  "syn 2.0.119",
 ]
-
-[[patch.unused]]
-name = "sim-list-cell"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-list-lazy"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-table-db"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-table-fs"
-version = "0.1.4"
-
-[[patch.unused]]
-name = "sim-table-hash"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-table-http"
-version = "0.1.1"
-
-[[patch.unused]]
-name = "sim-table-lazy"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-table-mount"
-version = "0.1.1"
-
-[[patch.unused]]
-name = "sim-table-override"
-version = "0.1.1"
-
-[[patch.unused]]
-name = "sim-lib-interference-compute"
-version = "0.1.0"
-
-[[patch.unused]]
-name = "sim-lib-interference-core"
-version = "0.1.0"
-
-[[patch.unused]]
-name = "sim-lib-interference-runtime"
-version = "0.1.0"
-
-[[patch.unused]]
-name = "sim-lib-interference-solve"
-version = "0.1.0"
-
-[[patch.unused]]
-name = "sim-lib-audio-dsp"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-lib-audio-graph-core"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-lib-audio-graph-live"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-lib-plugin-clap"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-lib-plugin-core"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-lib-plugin-lv2"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-lib-plugin-vst3"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-lib-plugin-wasm"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-lib-stream-alsa"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-lib-stream-asio"
-version = "0.1.1"
-
-[[patch.unused]]
-name = "sim-lib-stream-coreaudio"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-lib-stream-cpal"
-version = "0.1.4"
-
-[[patch.unused]]
-name = "sim-lib-stream-jack"
-version = "0.1.1"
-
-[[patch.unused]]
-name = "sim-lib-stream-jack-provider"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-stream-pipewire"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-lib-stream-portaudio"
-version = "0.1.1"
-
-[[patch.unused]]
-name = "sim-expr-tree"
-version = "0.1.0"
-
-[[patch.unused]]
-name = "sim-expr-tree-calc"
-version = "0.1.0"
-
-[[patch.unused]]
-name = "sim-expr-tree-core"
-version = "0.1.0"
-
-[[patch.unused]]
-name = "sim-lib-expr-tree"
-version = "0.1.0"
-
-[[patch.unused]]
-name = "sim-lib-expr-tree-serve"
-version = "0.1.0"
-
-[[patch.unused]]
-name = "sim-lib-expr-tree-server"
-version = "0.1.0"
-
-[[patch.unused]]
-name = "sim-lib-view-expr-tree"
-version = "0.1.0"
-
-[[patch.unused]]
-name = "sim-auto"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-codec-uds"
-version = "0.1.1"
-
-[[patch.unused]]
-name = "sim-lib-auto-core"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-auto-diag"
-version = "0.1.1"
-
-[[patch.unused]]
-name = "sim-lib-auto-info"
-version = "0.1.1"
-
-[[patch.unused]]
-name = "sim-lib-auto-order"
-version = "0.1.1"
-
-[[patch.unused]]
-name = "sim-lib-auto-parts"
-version = "0.1.1"
-
-[[patch.unused]]
-name = "sim-lib-auto-vehicle"
-version = "0.1.1"
-
-[[patch.unused]]
-name = "sim-lib-auto-vendor"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-view-bay"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-incremental-core"
-version = "0.1.1"
-
-[[patch.unused]]
-name = "sim-lib-binding"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-lib-control"
-version = "0.1.4"
-
-[[patch.unused]]
-name = "sim-lib-core"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-lib-dispatch"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-lib-exec"
-version = "0.1.1"
-
-[[patch.unused]]
-name = "sim-lib-incremental"
-version = "0.1.1"
-
-[[patch.unused]]
-name = "sim-lib-lang-cl"
-version = "0.1.4"
-
-[[patch.unused]]
-name = "sim-lib-lang-clojure"
-version = "0.1.4"
-
-[[patch.unused]]
-name = "sim-lib-lang-genconf"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-lib-lang-islisp"
-version = "0.1.4"
-
-[[patch.unused]]
-name = "sim-lib-lang-julia"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-lib-lang-lua"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-lib-lang-matrix"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-lib-lang-prolog"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-lib-lang-ruby"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-lib-lang-scheme"
-version = "0.1.5"
-
-[[patch.unused]]
-name = "sim-lib-lang-typed-lazy"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-lib-logic"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-lib-mutation"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-lib-namespace"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-lib-pattern"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-lib-sequence"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-lib-standard-core"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-lib-stream-halo"
-version = "0.1.1"
-
-[[patch.unused]]
-name = "sim-lib-stream-host"
-version = "0.1.6"
-
-[[patch.unused]]
-name = "sim-lib-stream-viture"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-stream-wristbridge"
-version = "0.1.1"
-
-[[patch.unused]]
-name = "sim-nest"
-version = "0.1.27"
-
-[[patch.unused]]
-name = "sim-lib-numbers-bigint"
-version = "0.3.1"
-
-[[patch.unused]]
-name = "sim-lib-numbers-bool"
-version = "0.3.1"
-
-[[patch.unused]]
-name = "sim-lib-numbers-cas-diff"
-version = "0.3.1"
-
-[[patch.unused]]
-name = "sim-lib-numbers-complex"
-version = "0.3.1"
-
-[[patch.unused]]
-name = "sim-lib-numbers-exotic"
-version = "0.3.0"
-
-[[patch.unused]]
-name = "sim-lib-numbers-fixed"
-version = "0.3.0"
-
-[[patch.unused]]
-name = "sim-lib-numbers-prelude"
-version = "0.3.0"
-
-[[patch.unused]]
-name = "sim-lib-numbers-quad"
-version = "0.3.0"
-
-[[patch.unused]]
-name = "sim-lib-numbers-rational"
-version = "0.3.1"
-
-[[patch.unused]]
-name = "sim-lib-numbers-signal"
-version = "0.1.0"
-
-[[patch.unused]]
-name = "sim-lib-numbers-stats"
-version = "0.3.1"
-
-[[patch.unused]]
-name = "sim-lib-numbers-tensor-bit"
-version = "0.3.0"
-
-[[patch.unused]]
-name = "sim-lib-numbers-tensor-cmplxf"
-version = "0.3.1"
-
-[[patch.unused]]
-name = "sim-lib-numbers-tensor-f32"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-numbers-tensor-f64"
-version = "0.3.0"
-
-[[patch.unused]]
-name = "sim-lib-numbers-tensor-half"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-numbers-tensor-i64"
-version = "0.3.0"
-
-[[patch.unused]]
-name = "sim-lib-numbers-tensor-linalg"
-version = "0.3.1"
-
-[[patch.unused]]
-name = "sim-lib-numbers-tensor-rat64"
-version = "0.3.1"
-
-[[patch.unused]]
-name = "sim-lib-intent"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-scene"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-view"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-view-agent"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-lib-view-bridge"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-lib-view-codec"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-lib-view-daw"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-lib-view-device"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-lib-view-doc"
-version = "0.1.4"
-
-[[patch.unused]]
-name = "sim-lib-view-interference"
-version = "0.1.0"
-
-[[patch.unused]]
-name = "sim-lib-view-math"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-lib-view-spatial"
-version = "0.1.1"
-
-[[patch.unused]]
-name = "sim-lib-view-wasm-frame"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-lib-view-wrist"
-version = "0.1.1"
-
-[[patch.unused]]
-name = "sim-lib-web-bridge"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-lib-web-layout"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-web-shell"
-version = "0.1.11"
-
-[[patch.unused]]
-name = "sim-lib-discrete"
-version = "0.1.4"
-
-[[patch.unused]]
-name = "sim-lib-discrete-algebra"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-discrete-comb"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-discrete-graph"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-discrete-rank"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-lib-discrete-search"
-version = "0.1.1"
-
-[[patch.unused]]
-name = "sim-lib-discrete-spectral"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-codec-algol"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-codec-binary"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-codec-binary-base64"
-version = "0.1.4"
-
-[[patch.unused]]
-name = "sim-codec-bitwise"
-version = "0.1.4"
-
-[[patch.unused]]
-name = "sim-codec-bitwise-base64"
-version = "0.1.4"
-
-[[patch.unused]]
-name = "sim-codec-bridge"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-codec-chat"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-codec-config"
-version = "0.1.1"
-
-[[patch.unused]]
-name = "sim-codec-doc"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-codec-index"
-version = "0.1.1"
-
-[[patch.unused]]
-name = "sim-codec-json"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-codec-lisp"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-codec-lua"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-codec-mcp"
-version = "0.1.4"
-
-[[patch.unused]]
-name = "sim-codec-pratt"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-test-support"
-version = "0.1.1"
-
-[[patch.unused]]
-name = "sim-wasm-abi"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-index"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-lib-repl"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-run"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-run-core"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-run-loaders"
-version = "0.1.5"
-
-[[patch.unused]]
-name = "sim-view-tty"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-index-core"
-version = "0.1.1"
-
-[[patch.unused]]
-name = "sim-lib-surface-card"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-macros"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-femm-codec"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-femm-field"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-femm-fixtures"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-femm-function"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-femm-ode"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-femm-prelude"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-femm-query"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-femm-sensitiv"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-femm-tape"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-rank"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-lib-stream-audio"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-lib-stream-clock"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-lib-stream-combinators"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-lib-stream-core"
-version = "0.1.4"
-
-[[patch.unused]]
-name = "sim-lib-stream-device"
-version = "0.1.1"
-
-[[patch.unused]]
-name = "sim-lib-stream-prelude"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-stream-wrist"
-version = "0.1.1"
-
-[[patch.unused]]
-name = "sim-lib-stream-xr"
-version = "0.1.1"
-
-[[patch.unused]]
-name = "sim-lib-topology"
-version = "0.1.4"
-
-[[patch.unused]]
-name = "sim-auto"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-codec-algol"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-codec-binary"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-codec-binary-base64"
-version = "0.1.4"
-
-[[patch.unused]]
-name = "sim-codec-bitwise"
-version = "0.1.4"
-
-[[patch.unused]]
-name = "sim-codec-bitwise-base64"
-version = "0.1.4"
-
-[[patch.unused]]
-name = "sim-codec-bridge"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-codec-chat"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-codec-config"
-version = "0.1.1"
-
-[[patch.unused]]
-name = "sim-codec-doc"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-codec-index"
-version = "0.1.1"
-
-[[patch.unused]]
-name = "sim-codec-json"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-codec-lisp"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-codec-lua"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-codec-mcp"
-version = "0.1.4"
-
-[[patch.unused]]
-name = "sim-codec-pratt"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-codec-uds"
-version = "0.1.1"
-
-[[patch.unused]]
-name = "sim-expr-tree"
-version = "0.1.0"
-
-[[patch.unused]]
-name = "sim-expr-tree-calc"
-version = "0.1.0"
-
-[[patch.unused]]
-name = "sim-expr-tree-core"
-version = "0.1.0"
-
-[[patch.unused]]
-name = "sim-incremental-core"
-version = "0.1.1"
-
-[[patch.unused]]
-name = "sim-index-core"
-version = "0.1.1"
-
-[[patch.unused]]
-name = "sim-lib-agent"
-version = "0.1.14"
-
-[[patch.unused]]
-name = "sim-lib-agent-runner-core"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-agent-runner-http"
-version = "0.1.7"
-
-[[patch.unused]]
-name = "sim-lib-agent-runner-local"
-version = "0.1.4"
-
-[[patch.unused]]
-name = "sim-lib-agent-runner-process"
-version = "0.1.5"
-
-[[patch.unused]]
-name = "sim-lib-audio-dsp"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-lib-audio-graph-core"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-lib-audio-graph-live"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-lib-auto-core"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-auto-diag"
-version = "0.1.1"
-
-[[patch.unused]]
-name = "sim-lib-auto-info"
-version = "0.1.1"
-
-[[patch.unused]]
-name = "sim-lib-auto-order"
-version = "0.1.1"
-
-[[patch.unused]]
-name = "sim-lib-auto-parts"
-version = "0.1.1"
-
-[[patch.unused]]
-name = "sim-lib-auto-vehicle"
-version = "0.1.1"
-
-[[patch.unused]]
-name = "sim-lib-auto-vendor"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-binding"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-lib-bridge"
-version = "0.1.6"
-
-[[patch.unused]]
-name = "sim-lib-control"
-version = "0.1.4"
-
-[[patch.unused]]
-name = "sim-lib-cookbook"
-version = "0.1.15"
-
-[[patch.unused]]
-name = "sim-lib-core"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-lib-daw-session"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-lib-discrete"
-version = "0.1.4"
-
-[[patch.unused]]
-name = "sim-lib-discrete-algebra"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-discrete-comb"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-discrete-graph"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-discrete-rank"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-lib-discrete-search"
-version = "0.1.1"
-
-[[patch.unused]]
-name = "sim-lib-discrete-spectral"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-dispatch"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-lib-exec"
-version = "0.1.1"
-
-[[patch.unused]]
-name = "sim-lib-expr-tree"
-version = "0.1.0"
-
-[[patch.unused]]
-name = "sim-lib-expr-tree-serve"
-version = "0.1.0"
-
-[[patch.unused]]
-name = "sim-lib-expr-tree-server"
-version = "0.1.0"
-
-[[patch.unused]]
-name = "sim-lib-femm-codec"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-femm-field"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-femm-fixtures"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-femm-function"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-femm-ode"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-femm-prelude"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-femm-query"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-femm-sensitiv"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-femm-tape"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-forge"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-lib-incremental"
-version = "0.1.1"
-
-[[patch.unused]]
-name = "sim-lib-index"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-lib-intent"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-interference-compute"
-version = "0.1.0"
-
-[[patch.unused]]
-name = "sim-lib-interference-core"
-version = "0.1.0"
-
-[[patch.unused]]
-name = "sim-lib-interference-runtime"
-version = "0.1.0"
-
-[[patch.unused]]
-name = "sim-lib-interference-solve"
-version = "0.1.0"
-
-[[patch.unused]]
-name = "sim-lib-lang-cl"
-version = "0.1.4"
-
-[[patch.unused]]
-name = "sim-lib-lang-clojure"
-version = "0.1.4"
-
-[[patch.unused]]
-name = "sim-lib-lang-genconf"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-lib-lang-islisp"
-version = "0.1.4"
-
-[[patch.unused]]
-name = "sim-lib-lang-julia"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-lib-lang-lua"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-lib-lang-matrix"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-lib-lang-prolog"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-lib-lang-ruby"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-lib-lang-scheme"
-version = "0.1.5"
-
-[[patch.unused]]
-name = "sim-lib-lang-typed-lazy"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-lib-logic"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-lib-mcp"
-version = "0.1.7"
-
-[[patch.unused]]
-name = "sim-lib-midi-ble"
-version = "0.1.4"
-
-[[patch.unused]]
-name = "sim-lib-midi-core"
-version = "0.1.4"
-
-[[patch.unused]]
-name = "sim-lib-midi-live"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-lib-midi-rtmidi"
-version = "0.1.6"
-
-[[patch.unused]]
-name = "sim-lib-midi-shapes"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-midi-smf"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-midi-sysex"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-lib-midi-wasm-frame"
-version = "0.1.4"
-
-[[patch.unused]]
-name = "sim-lib-music-analysis"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-lib-music-combinators"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-lib-music-consonance"
-version = "0.1.0"
-
-[[patch.unused]]
-name = "sim-lib-music-core"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-music-counterpoint"
-version = "0.1.0"
-
-[[patch.unused]]
-name = "sim-lib-music-lift"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-lib-music-lower"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-lib-music-notation"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-music-serial"
-version = "0.1.0"
-
-[[patch.unused]]
-name = "sim-lib-music-shapes"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-music-synth"
-version = "0.1.6"
-
-[[patch.unused]]
-name = "sim-lib-music-transform"
-version = "0.1.4"
-
-[[patch.unused]]
-name = "sim-lib-music-wasm-frame"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-lib-mutation"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-lib-namespace"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-lib-numbers-bigint"
-version = "0.3.1"
-
-[[patch.unused]]
-name = "sim-lib-numbers-bool"
-version = "0.3.1"
-
-[[patch.unused]]
-name = "sim-lib-numbers-cas-diff"
-version = "0.3.1"
-
-[[patch.unused]]
-name = "sim-lib-numbers-complex"
-version = "0.3.1"
-
-[[patch.unused]]
-name = "sim-lib-numbers-exotic"
-version = "0.3.0"
-
-[[patch.unused]]
-name = "sim-lib-numbers-fixed"
-version = "0.3.0"
-
-[[patch.unused]]
-name = "sim-lib-numbers-prelude"
-version = "0.3.0"
-
-[[patch.unused]]
-name = "sim-lib-numbers-quad"
-version = "0.3.0"
-
-[[patch.unused]]
-name = "sim-lib-numbers-rational"
-version = "0.3.1"
-
-[[patch.unused]]
-name = "sim-lib-numbers-signal"
-version = "0.1.0"
-
-[[patch.unused]]
-name = "sim-lib-numbers-stats"
-version = "0.3.1"
-
-[[patch.unused]]
-name = "sim-lib-numbers-tensor-bit"
-version = "0.3.0"
-
-[[patch.unused]]
-name = "sim-lib-numbers-tensor-cmplxf"
-version = "0.3.1"
-
-[[patch.unused]]
-name = "sim-lib-numbers-tensor-f32"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-numbers-tensor-f64"
-version = "0.3.0"
-
-[[patch.unused]]
-name = "sim-lib-numbers-tensor-half"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-numbers-tensor-i64"
-version = "0.3.0"
-
-[[patch.unused]]
-name = "sim-lib-numbers-tensor-linalg"
-version = "0.3.1"
-
-[[patch.unused]]
-name = "sim-lib-numbers-tensor-rat64"
-version = "0.3.1"
-
-[[patch.unused]]
-name = "sim-lib-openai-server"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-pattern"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-lib-pitch-chord"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-pitch-core"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-pitch-dissonance"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-lib-pitch-namer"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-lib-pitch-namer-forte"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-pitch-namer-jazz"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-pitch-namer-riemann"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-pitch-namer-roman"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-pitch-ratio"
-version = "0.1.0"
-
-[[patch.unused]]
-name = "sim-lib-pitch-scale"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-pitch-serial"
-version = "0.1.0"
-
-[[patch.unused]]
-name = "sim-lib-pitch-set"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-pitch-shapes"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-pitch-wasm-frame"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-lib-plugin-clap"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-lib-plugin-core"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-lib-plugin-lv2"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-lib-plugin-vst3"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-lib-plugin-wasm"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-lib-rank"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-lib-repl"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-scene"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-sequence"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-lib-serial-core"
-version = "0.1.0"
-
-[[patch.unused]]
-name = "sim-lib-server"
-version = "0.1.10"
-
-[[patch.unused]]
-name = "sim-lib-skill"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-lib-sound-audio-lift"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-lib-sound-bridge"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-lib-sound-core"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-sound-dissonance"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-lib-sound-gm"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-lib-sound-render"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-lib-sound-shapes"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-sound-spectrum"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-lib-sound-timbre"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-lib-sound-tuning"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-sound-wasm-frame"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-lib-standard-core"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-lib-stream-alsa"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-lib-stream-asio"
-version = "0.1.1"
-
-[[patch.unused]]
-name = "sim-lib-stream-audio"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-lib-stream-bridge"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-lib-stream-clock"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-lib-stream-combinators"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-lib-stream-core"
-version = "0.1.4"
-
-[[patch.unused]]
-name = "sim-lib-stream-coreaudio"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-lib-stream-cpal"
-version = "0.1.4"
-
-[[patch.unused]]
-name = "sim-lib-stream-device"
-version = "0.1.1"
-
-[[patch.unused]]
-name = "sim-lib-stream-fabric"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-stream-file"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-lib-stream-halo"
-version = "0.1.1"
-
-[[patch.unused]]
-name = "sim-lib-stream-host"
-version = "0.1.6"
-
-[[patch.unused]]
-name = "sim-lib-stream-jack"
-version = "0.1.1"
-
-[[patch.unused]]
-name = "sim-lib-stream-jack-provider"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-stream-midi"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-lib-stream-pipewire"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-lib-stream-portaudio"
-version = "0.1.1"
-
-[[patch.unused]]
-name = "sim-lib-stream-prelude"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-stream-viture"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-stream-wrist"
-version = "0.1.1"
-
-[[patch.unused]]
-name = "sim-lib-stream-wristbridge"
-version = "0.1.1"
-
-[[patch.unused]]
-name = "sim-lib-stream-xr"
-version = "0.1.1"
-
-[[patch.unused]]
-name = "sim-lib-surface-card"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-lib-topology"
-version = "0.1.4"
-
-[[patch.unused]]
-name = "sim-lib-view"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-view-agent"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-lib-view-bay"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-view-bridge"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-lib-view-codec"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-lib-view-daw"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-lib-view-device"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-lib-view-doc"
-version = "0.1.4"
-
-[[patch.unused]]
-name = "sim-lib-view-expr-tree"
-version = "0.1.0"
-
-[[patch.unused]]
-name = "sim-lib-view-interference"
-version = "0.1.0"
-
-[[patch.unused]]
-name = "sim-lib-view-math"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-lib-view-spatial"
-version = "0.1.1"
-
-[[patch.unused]]
-name = "sim-lib-view-wasm-frame"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-lib-view-wrist"
-version = "0.1.1"
-
-[[patch.unused]]
-name = "sim-lib-web-bridge"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-lib-web-layout"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-list-cell"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-list-lazy"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-macros"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-mcp-server"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-nest"
-version = "0.1.27"
-
-[[patch.unused]]
-name = "sim-run"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-run-core"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-run-loaders"
-version = "0.1.5"
-
-[[patch.unused]]
-name = "sim-table-db"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-table-fs"
-version = "0.1.4"
-
-[[patch.unused]]
-name = "sim-table-hash"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-table-http"
-version = "0.1.1"
-
-[[patch.unused]]
-name = "sim-table-lazy"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-table-mount"
-version = "0.1.1"
-
-[[patch.unused]]
-name = "sim-table-override"
-version = "0.1.1"
-
-[[patch.unused]]
-name = "sim-table-remote"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-test-support"
-version = "0.1.1"
-
-[[patch.unused]]
-name = "sim-view-tty"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-wasm-abi"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-web-shell"
-version = "0.1.11"
-
-[[patch.unused]]
-name = "sim-lib-agent"
-version = "0.1.14"
-
-[[patch.unused]]
-name = "sim-lib-agent-runner-core"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-agent-runner-http"
-version = "0.1.7"
-
-[[patch.unused]]
-name = "sim-lib-agent-runner-local"
-version = "0.1.4"
-
-[[patch.unused]]
-name = "sim-lib-agent-runner-process"
-version = "0.1.5"
-
-[[patch.unused]]
-name = "sim-lib-bridge"
-version = "0.1.6"
-
-[[patch.unused]]
-name = "sim-lib-cookbook"
-version = "0.1.15"
-
-[[patch.unused]]
-name = "sim-lib-forge"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-lib-mcp"
-version = "0.1.7"
-
-[[patch.unused]]
-name = "sim-lib-openai-server"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-server"
-version = "0.1.10"
-
-[[patch.unused]]
-name = "sim-lib-skill"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-lib-stream-fabric"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-mcp-server"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-table-remote"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-lib-daw-session"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-lib-midi-ble"
-version = "0.1.4"
-
-[[patch.unused]]
-name = "sim-lib-midi-core"
-version = "0.1.4"
-
-[[patch.unused]]
-name = "sim-lib-midi-live"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-lib-midi-rtmidi"
-version = "0.1.6"
-
-[[patch.unused]]
-name = "sim-lib-midi-shapes"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-midi-smf"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-midi-sysex"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-lib-midi-wasm-frame"
-version = "0.1.4"
-
-[[patch.unused]]
-name = "sim-lib-music-analysis"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-lib-music-combinators"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-lib-music-consonance"
-version = "0.1.0"
-
-[[patch.unused]]
-name = "sim-lib-music-core"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-music-counterpoint"
-version = "0.1.0"
-
-[[patch.unused]]
-name = "sim-lib-music-lift"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-lib-music-lower"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-lib-music-notation"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-music-serial"
-version = "0.1.0"
-
-[[patch.unused]]
-name = "sim-lib-music-shapes"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-music-synth"
-version = "0.1.6"
-
-[[patch.unused]]
-name = "sim-lib-music-transform"
-version = "0.1.4"
-
-[[patch.unused]]
-name = "sim-lib-music-wasm-frame"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-lib-pitch-chord"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-pitch-core"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-pitch-dissonance"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-lib-pitch-namer"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-lib-pitch-namer-forte"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-pitch-namer-jazz"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-pitch-namer-riemann"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-pitch-namer-roman"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-pitch-ratio"
-version = "0.1.0"
-
-[[patch.unused]]
-name = "sim-lib-pitch-scale"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-pitch-serial"
-version = "0.1.0"
-
-[[patch.unused]]
-name = "sim-lib-pitch-set"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-pitch-shapes"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-pitch-wasm-frame"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-lib-serial-core"
-version = "0.1.0"
-
-[[patch.unused]]
-name = "sim-lib-sound-audio-lift"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-lib-sound-bridge"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-lib-sound-core"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-sound-dissonance"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-lib-sound-gm"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-lib-sound-render"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-lib-sound-shapes"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-sound-spectrum"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-lib-sound-timbre"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-lib-sound-tuning"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "sim-lib-sound-wasm-frame"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-lib-stream-bridge"
-version = "0.1.2"
-
-[[patch.unused]]
-name = "sim-lib-stream-file"
-version = "0.1.3"
-
-[[patch.unused]]
-name = "sim-lib-stream-midi"
-version = "0.1.3"

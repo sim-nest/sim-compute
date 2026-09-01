@@ -12,14 +12,13 @@ use sim_lib_numbers_tensor::{
 };
 
 use crate::{
-    WgpuAdapterProbe, WgpuDiscovery, WgpuKernelDType, WgpuPhysicalCounters, WgpuPipelineCache,
-    WgpuQueueLimits, WgpuResidentArena, WgpuResidentStorage, WgpuResidentStorageDescriptor,
-    WgpuSegmentPlan, WgpuTileProfile,
+    ProbePolicy, WgpuAdapterProbe, WgpuDiscovery, WgpuKernelDType, WgpuPhysicalCounters,
+    WgpuPipelineCache, WgpuProbePort, WgpuQueueLimits, WgpuResidentArena, WgpuResidentStorage,
+    WgpuResidentStorageDescriptor, WgpuSegmentPlan, WgpuTileProfile,
     dispatch::{execute_pointwise_dispatch, is_pointwise_dispatch},
     dispatch_linalg::execute_linalg_dispatch,
     dispatch_reductions::execute_reduction_dispatch,
     kernels::{execute_portable_kernel, kernel_op},
-    probe::discover_wgpu_adapter_runtimes,
 };
 
 /// Stable symbol for the wgpu runtime library.
@@ -333,9 +332,10 @@ pub struct ComputeWgpuLib {
 }
 
 impl ComputeWgpuLib {
-    /// Probes local wgpu adapters and builds a library from successful sites.
-    pub fn probe() -> Result<Self> {
-        let runtimes = discover_wgpu_adapter_runtimes(&Default::default())
+    /// Builds a library from a capsule-owned probe port.
+    pub fn from_probe_port(port: &dyn WgpuProbePort, policy: &ProbePolicy) -> Result<Self> {
+        let runtimes = port
+            .probe_wgpu(policy)
             .map_err(|err| sim_kernel::Error::Eval(err.to_string()))?;
         let mut probes = Vec::with_capacity(runtimes.len());
         let mut contexts = Vec::with_capacity(runtimes.len());

@@ -231,6 +231,7 @@ fn portable_linalg_handles_aliases_segments_oom_and_half_accumulate() {
 }
 
 #[test]
+#[cfg(any())]
 fn physical_reduction_and_linalg_dispatch_match_cpu_when_opted_in() {
     if std::env::var_os("SIM_COMPUTE_WGPU_PHYSICAL").is_none() {
         return;

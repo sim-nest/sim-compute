@@ -152,7 +152,11 @@ fn refuses_transpose_stale_nonfinite_and_uncertified_solves() {
 
 #[test]
 fn loadable_library_exports_femm_linear_solver_value() {
-    let mut cx = Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    let mut cx = Cx::new(
+        Arc::new(EagerPolicy),
+        Arc::new(DefaultFactory),
+        sim_kernel::HandleSeed::new(0xc926_8ebd_a432_398a),
+    );
     cx.load_lib(&ComputeFemmLib::default()).unwrap();
 
     let value = cx

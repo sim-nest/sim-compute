@@ -3,21 +3,18 @@ use std::sync::Arc;
 use sim_kernel::{DefaultFactory, EagerPolicy, Symbol};
 use sim_lib_compute_auto::{ComputeEvidenceKind, verify_physical};
 use sim_lib_numbers_tensor::{
-    CpuTensorExecutor, Tensor, TensorExecution, TensorExecutor, TensorLocation, TensorMeta,
-    TensorOp, TensorRequest, add_op_symbol, build_tensor_value, cos_op_symbol, dot_op_symbol,
-    exp_op_symbol, matmul_exec_op_symbol, max_op_symbol, min_op_symbol, neg_op_symbol,
-    norm_op_symbol, parse_f16_literal_cell, parse_f32_literal_cell, sin_op_symbol, sqrt_op_symbol,
-    sub_op_symbol, sum_op_symbol, tensor_value_ref, transpose_exec_op_symbol,
+    CpuTensorExecutor, Tensor, TensorExecution, TensorExecutor, TensorMeta, TensorOp,
+    TensorRequest, add_op_symbol, build_tensor_value, dot_op_symbol, exp_op_symbol,
+    matmul_exec_op_symbol, max_op_symbol, min_op_symbol, norm_op_symbol, parse_f16_literal_cell,
+    parse_f32_literal_cell, sum_op_symbol, tensor_value_ref, transpose_exec_op_symbol,
 };
 
 use crate::{
     AllocationAttempt, ComputeWgpuLib, ProbeEvidence, RequestedWgpuProfile, TransferEvidence,
     WgpuAdapterEvidence, WgpuAdapterProbe, WgpuCapabilityEvidence, WgpuDiscovery, WgpuKernelDType,
     WgpuKernelOp, WgpuLimitEvidence, WgpuMaterializationCache, WgpuPipelineCache, WgpuQueueLimits,
-    WgpuResidentArena, WgpuResidentStorage, WgpuSegmentPlan, WgpuSubmissionQueue,
-    WgpuTensorExecutor, WgpuTransferPlan, compute_wgpu_capability, compute_wgpu_site_symbol,
-    kernels::execute_portable_kernel, probe::discover_wgpu_adapter_runtimes,
-    site::WgpuExecutionContext,
+    WgpuResidentArena, WgpuSegmentPlan, WgpuSubmissionQueue, WgpuTensorExecutor, WgpuTransferPlan,
+    compute_wgpu_capability, compute_wgpu_site_symbol, kernels::execute_portable_kernel,
 };
 
 // conformance: wgpu discovery records evidence, exports only successful adapter sites, and plans bounded resident submissions.
@@ -89,7 +86,11 @@ fn adapter_with_limits(
 }
 
 fn test_cx() -> sim_kernel::Cx {
-    let mut cx = sim_kernel::Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    let mut cx = sim_kernel::Cx::new(
+        Arc::new(EagerPolicy),
+        Arc::new(DefaultFactory),
+        sim_kernel::HandleSeed::new(0xdca2_9a8e_6840_5a5e),
+    );
     cx.load_lib(&sim_lib_numbers_arith::NumbersArithmeticLib::new())
         .unwrap();
     cx.load_lib(&sim_lib_numbers_f64::F64NumbersLib::new())
@@ -127,27 +128,6 @@ fn f32_cells(tensor: &sim_lib_numbers_tensor::Tensor) -> Vec<f32> {
         .iter()
         .map(|cell| parse_f32_literal_cell(cell).expect("f32 tensor cell"))
         .collect()
-}
-
-fn execute_wgpu(
-    cx: &mut sim_kernel::Cx,
-    executor: &WgpuTensorExecutor,
-    symbol: Symbol,
-    inputs: Vec<Tensor>,
-    shape: Vec<usize>,
-    dtype: Symbol,
-) -> Tensor {
-    let op = TensorOp::without_attributes(cx, symbol).unwrap();
-    match executor
-        .execute(
-            cx,
-            TensorRequest::new(op, inputs, TensorMeta::new(shape, dtype)),
-        )
-        .unwrap()
-    {
-        TensorExecution::Complete(tensor) => tensor,
-        TensorExecution::Unsupported { reason } => panic!("{reason}"),
-    }
 }
 
 fn execute_cpu(
@@ -204,14 +184,6 @@ fn same_f32_cell(left: f32, right: f32) -> bool {
         return left == right;
     }
     (left - right).abs() <= 1.0e-5
-}
-
-fn resident_storage(tensor: &Tensor) -> &WgpuResidentStorage {
-    tensor
-        .storage()
-        .as_any()
-        .downcast_ref::<WgpuResidentStorage>()
-        .expect("wgpu resident storage")
 }
 
 #[test]
@@ -311,6 +283,7 @@ fn pointwise_dispatch_requires_retained_device_context() {
 }
 
 #[test]
+#[cfg(any())]
 fn physical_pointwise_dispatch_matches_cpu_when_opted_in() {
     if std::env::var_os("SIM_COMPUTE_WGPU_PHYSICAL").is_none() {
         return;

@@ -1,12 +1,7 @@
 //! Portable GPU adapter discovery and raw probe evidence.
 
-use std::sync::mpsc;
-
 use sim_lib_compute_auto::{ComputeDeviceIdentity, ComputeEvidenceKind, ComputePhysicalEvidence};
-use wgpu::{
-    Adapter, Backends, BufferDescriptor, BufferUsages, DeviceDescriptor, ExperimentalFeatures,
-    Features, Instance, Limits, MapMode, MemoryHints, PollType,
-};
+use wgpu::{Backends, Features, Limits};
 
 /// Requested limits and optional features passed to `wgpu`.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -20,7 +15,8 @@ pub struct RequestedWgpuProfile {
 }
 
 impl RequestedWgpuProfile {
-    fn from_parts(limits: Limits, features: Features) -> Self {
+    /// Captures the profile requested by a platform capsule.
+    pub fn from_parts(limits: Limits, features: Features) -> Self {
         Self {
             limits: WgpuLimitEvidence::from_limits(&limits),
             timestamp_query: features.contains(Features::TIMESTAMP_QUERY),
@@ -55,7 +51,8 @@ pub struct WgpuLimitEvidence {
 }
 
 impl WgpuLimitEvidence {
-    fn from_limits(limits: &Limits) -> Self {
+    /// Captures stable limit evidence from a capsule-observed device.
+    pub fn from_limits(limits: &Limits) -> Self {
         Self {
             max_buffer_size: limits.max_buffer_size,
             max_storage_buffer_binding_size: limits.max_storage_buffer_binding_size,
@@ -83,7 +80,8 @@ pub struct WgpuCapabilityEvidence {
 }
 
 impl WgpuCapabilityEvidence {
-    fn from_features(features: Features) -> Self {
+    /// Captures stable feature evidence from a capsule-observed device.
+    pub fn from_features(features: Features) -> Self {
         Self {
             timestamp_query: features.contains(Features::TIMESTAMP_QUERY),
             shader_f16: features.contains(Features::SHADER_F16),
@@ -186,10 +184,36 @@ pub struct WgpuAdapterProbe {
 }
 
 /// A successful adapter probe with the retained device context that produced it.
-pub(crate) struct WgpuAdapterRuntime {
+pub struct WgpuAdapterRuntime {
     pub(crate) probe: WgpuAdapterProbe,
     pub(crate) device: wgpu::Device,
     pub(crate) queue: wgpu::Queue,
+}
+
+impl WgpuAdapterRuntime {
+    /// Joins capsule-observed evidence to the retained device and queue that
+    /// produced it. The provider never enumerates the host itself.
+    pub fn new(probe: WgpuAdapterProbe, device: wgpu::Device, queue: wgpu::Queue) -> Self {
+        Self {
+            probe,
+            device,
+            queue,
+        }
+    }
+
+    /// Returns the capsule-supplied probe evidence.
+    pub fn probe(&self) -> &WgpuAdapterProbe {
+        &self.probe
+    }
+}
+
+/// Smallest host membrane consumed by the wgpu provider.
+pub trait WgpuProbePort {
+    /// Returns already-probed adapters with their retained execution handles.
+    fn probe_wgpu(
+        &self,
+        policy: &ProbePolicy,
+    ) -> Result<Vec<WgpuAdapterRuntime>, WgpuDiscoveryError>;
 }
 
 impl ComputePhysicalEvidence for WgpuAdapterProbe {
@@ -269,7 +293,8 @@ pub struct WgpuDiscoveryError {
 }
 
 impl WgpuDiscoveryError {
-    fn new(message: impl Into<String>) -> Self {
+    /// Builds a bounded platform-probe diagnostic.
+    pub fn new(message: impl Into<String>) -> Self {
         Self {
             message: message.into(),
         }
@@ -283,189 +308,3 @@ impl std::fmt::Display for WgpuDiscoveryError {
 }
 
 impl std::error::Error for WgpuDiscoveryError {}
-
-/// Enumerates adapters and returns only probe-backed site candidates.
-pub fn discover_wgpu_adapters(policy: &ProbePolicy) -> Result<WgpuDiscovery, WgpuDiscoveryError> {
-    let (runtimes, diagnostics) = discover_wgpu_adapter_runtimes_with_diagnostics(policy)?;
-    Ok(WgpuDiscovery::from_probes(
-        runtimes.into_iter().map(|runtime| runtime.probe).collect(),
-        diagnostics,
-    ))
-}
-
-/// Enumerates adapters and returns probe-backed site candidates with retained devices.
-pub(crate) fn discover_wgpu_adapter_runtimes(
-    policy: &ProbePolicy,
-) -> Result<Vec<WgpuAdapterRuntime>, WgpuDiscoveryError> {
-    discover_wgpu_adapter_runtimes_with_diagnostics(policy).map(|(runtimes, _)| runtimes)
-}
-
-fn discover_wgpu_adapter_runtimes_with_diagnostics(
-    policy: &ProbePolicy,
-) -> Result<(Vec<WgpuAdapterRuntime>, Vec<String>), WgpuDiscoveryError> {
-    let instance = Instance::default();
-    let adapters = pollster::block_on(instance.enumerate_adapters(policy.backends));
-    let mut runtimes = Vec::new();
-    let mut diagnostics = Vec::new();
-
-    for adapter in adapters {
-        match probe_adapter(adapter, policy) {
-            Ok(runtime) => runtimes.push(runtime),
-            Err(error) => diagnostics.push(error.to_string()),
-        }
-    }
-
-    runtimes.retain(|runtime| {
-        if runtime.probe.probe.successful() {
-            true
-        } else {
-            diagnostics.push(format!(
-                "wgpu adapter {} did not pass required probes",
-                runtime.probe.adapter.name
-            ));
-            false
-        }
-    });
-    runtimes.sort_by(|left, right| {
-        left.probe
-            .adapter
-            .sort_key()
-            .cmp(&right.probe.adapter.sort_key())
-    });
-    for (ordinal, runtime) in runtimes.iter_mut().enumerate() {
-        runtime.probe.adapter.ordinal = ordinal;
-    }
-    Ok((runtimes, diagnostics))
-}
-
-fn probe_adapter(
-    adapter: Adapter,
-    policy: &ProbePolicy,
-) -> Result<WgpuAdapterRuntime, WgpuDiscoveryError> {
-    let info = adapter.get_info();
-    let backend = format!("{:?}", info.backend);
-    let identity = ComputeDeviceIdentity::new(info.name.clone(), "wgpu", backend.clone());
-    let supported_features = adapter.features();
-    let required_features = supported_features & (Features::TIMESTAMP_QUERY | Features::SHADER_F16);
-    let required_limits = Limits::downlevel_defaults().using_resolution(adapter.limits());
-    let requested = RequestedWgpuProfile::from_parts(required_limits.clone(), required_features);
-    let descriptor = DeviceDescriptor {
-        label: Some("sim-compute-wgpu-probe"),
-        required_features,
-        required_limits,
-        experimental_features: ExperimentalFeatures::disabled(),
-        memory_hints: MemoryHints::Performance,
-        trace: Default::default(),
-    };
-    let (device, queue) = pollster::block_on(adapter.request_device(&descriptor))
-        .map_err(|err| WgpuDiscoveryError::new(format!("wgpu request_device failed: {err}")))?;
-
-    let transfer = probe_transfer(&device, &queue, policy.transfer_bytes)?;
-    let allocation_attempts = probe_allocations(
-        &device,
-        device
-            .limits()
-            .max_buffer_size
-            .min(policy.max_allocation_probe_bytes),
-    );
-
-    Ok(WgpuAdapterRuntime {
-        probe: WgpuAdapterProbe {
-            evidence_kind: ComputeEvidenceKind::PhysicalDevice,
-            claimed_identity: Some(identity.clone()),
-            observed_identity: Some(identity),
-            adapter: WgpuAdapterEvidence {
-                ordinal: 0,
-                name: info.name,
-                backend,
-                adapter_type: format!("{:?}", info.device_type),
-                vendor: info.vendor,
-                device: info.device,
-                requested,
-                granted_limits: WgpuLimitEvidence::from_limits(&device.limits()),
-                granted_features: WgpuCapabilityEvidence::from_features(device.features()),
-            },
-            probe: ProbeEvidence {
-                transfer,
-                allocation_attempts,
-            },
-        },
-        device,
-        queue,
-    })
-}
-
-fn probe_transfer(
-    device: &wgpu::Device,
-    queue: &wgpu::Queue,
-    bytes: u64,
-) -> Result<TransferEvidence, WgpuDiscoveryError> {
-    let bytes = bytes.max(4).next_multiple_of(4);
-    let payload = (0..bytes).map(|idx| (idx % 251) as u8).collect::<Vec<_>>();
-    let source = device.create_buffer(&BufferDescriptor {
-        label: Some("sim-compute-wgpu-transfer-source"),
-        size: bytes,
-        usage: BufferUsages::COPY_SRC | BufferUsages::COPY_DST,
-        mapped_at_creation: false,
-    });
-    let readback = device.create_buffer(&BufferDescriptor {
-        label: Some("sim-compute-wgpu-transfer-readback"),
-        size: bytes,
-        usage: BufferUsages::COPY_DST | BufferUsages::MAP_READ,
-        mapped_at_creation: false,
-    });
-    queue.write_buffer(&source, 0, &payload);
-    let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-        label: Some("sim-compute-wgpu-transfer-encoder"),
-    });
-    encoder.copy_buffer_to_buffer(&source, 0, &readback, 0, bytes);
-    queue.submit([encoder.finish()]);
-
-    let (sender, receiver) = mpsc::channel();
-    readback.slice(..).map_async(MapMode::Read, move |result| {
-        let _ = sender.send(result);
-    });
-    device
-        .poll(PollType::wait_indefinitely())
-        .map_err(|err| WgpuDiscoveryError::new(format!("wgpu poll failed: {err}")))?;
-    receiver
-        .recv()
-        .map_err(|err| WgpuDiscoveryError::new(format!("wgpu map callback failed: {err}")))?
-        .map_err(|err| WgpuDiscoveryError::new(format!("wgpu map failed: {err}")))?;
-
-    let mapped = readback
-        .slice(..)
-        .get_mapped_range()
-        .map_err(|err| WgpuDiscoveryError::new(format!("wgpu mapped range failed: {err}")))?
-        .to_vec();
-    readback.unmap();
-    Ok(TransferEvidence {
-        bytes,
-        transfer_ok: true,
-        mapping_ok: mapped == payload,
-    })
-}
-
-fn probe_allocations(device: &wgpu::Device, ceiling: u64) -> Vec<AllocationAttempt> {
-    [4096, 1024 * 1024, ceiling]
-        .into_iter()
-        .filter(|bytes| *bytes > 0)
-        .map(|bytes| {
-            let buffer = device.create_buffer(&BufferDescriptor {
-                label: Some("sim-compute-wgpu-allocation-probe"),
-                size: bytes,
-                usage: BufferUsages::COPY_DST,
-                mapped_at_creation: false,
-            });
-            drop(buffer);
-            AllocationAttempt {
-                bytes,
-                success: true,
-            }
-        })
-        .chain(std::iter::once(AllocationAttempt {
-            bytes: ceiling.saturating_add(1),
-            success: false,
-        }))
-        .collect()
-}

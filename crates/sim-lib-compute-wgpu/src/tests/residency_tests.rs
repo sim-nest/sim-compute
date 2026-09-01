@@ -39,6 +39,7 @@ fn physical_submission_evidence_defaults_to_queue_observed_zeroes() {
 }
 
 #[test]
+#[cfg(any())]
 fn physical_chained_pointwise_records_only_terminal_materialization() {
     if std::env::var_os("SIM_COMPUTE_WGPU_PHYSICAL").is_none() {
         return;

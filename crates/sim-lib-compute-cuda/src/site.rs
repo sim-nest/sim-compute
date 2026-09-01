@@ -13,8 +13,8 @@ use sim_lib_numbers_tensor::{
 };
 
 use crate::{
-    CudaAbiEvidence, CudaAllocation, CudaLibrarySet, CudaLoadError, CudaResidentStorage,
-    CudaRuntimeProbe, DynamicCudaLoader, discover_cuda_runtime, runtime::CudaDeviceBuffer,
+    CudaAbiEvidence, CudaAllocation, CudaLibrarySet, CudaLoadError, CudaProbePort,
+    CudaResidentStorage, CudaRuntimeProbe, runtime::CudaDeviceBuffer,
 };
 
 /// Stable symbol for the CUDA runtime library.
@@ -225,17 +225,10 @@ pub struct ComputeCudaLib {
 }
 
 impl ComputeCudaLib {
-    /// Probes local CUDA dynamic libraries and builds a provider library.
-    pub fn probe() -> std::result::Result<Self, CudaLoadError> {
+    /// Builds a provider from an explicit capsule probe port.
+    pub fn from_probe_port(port: &dyn CudaProbePort) -> std::result::Result<Self, CudaLoadError> {
         Ok(Self {
-            probe: Some(discover_cuda_runtime()?),
-        })
-    }
-
-    /// Builds a provider from an injected loader.
-    pub fn from_loader(loader: &dyn DynamicCudaLoader) -> std::result::Result<Self, CudaLoadError> {
-        Ok(Self {
-            probe: Some(loader.discover()?),
+            probe: Some(port.probe_cuda()?),
         })
     }
 

@@ -4,7 +4,6 @@ use std::{
     ffi::c_void,
     fmt,
     path::{Path, PathBuf},
-    process::Command,
     sync::Arc,
 };
 
@@ -74,15 +73,6 @@ impl RocmAbiEvidence {
             && self.hip_symbols.iter().all(|symbol| symbol.present)
             && self.rocblas_symbols.iter().all(|symbol| symbol.present)
     }
-
-    /// Returns true when half-family matmul may use the validated rocBLASLt path.
-    pub fn supports_half_matmul(&self) -> bool {
-        self.rocblas_symbols
-            .iter()
-            .any(|symbol| symbol.name == "rocblas_gemm_ex" && symbol.present)
-            && !self.rocblaslt_symbols.is_empty()
-            && self.rocblaslt_symbols.iter().all(|symbol| symbol.present)
-    }
 }
 
 /// Loaded ROCm runtime libraries kept alive for function-pointer validity.
@@ -94,7 +84,8 @@ pub struct RocmLibrarySet {
 }
 
 impl RocmLibrarySet {
-    fn new(
+    /// Joins capsule-loaded libraries to their validated ABI evidence.
+    pub fn new(
         evidence: RocmAbiEvidence,
         hip: Library,
         rocblas: Library,
@@ -183,11 +174,24 @@ pub trait DynamicRocmLoader {
     fn discover(&self) -> Result<RocmRuntimeProbe, RocmLoadError>;
 }
 
+/// Capsule membrane used by the provider to receive an explicit probe.
+pub trait RocmProbePort {
+    /// Returns a capsule-owned ROCm probe without ambient rediscovery.
+    fn probe_rocm(&self) -> Result<RocmRuntimeProbe, RocmLoadError>;
+}
+
+impl<T: DynamicRocmLoader + ?Sized> RocmProbePort for T {
+    fn probe_rocm(&self) -> Result<RocmRuntimeProbe, RocmLoadError> {
+        self.discover()
+    }
+}
+
 /// Real dynamic loader using platform ROCm shared libraries.
 #[derive(Clone, Debug)]
 pub struct RocmRuntimeLoader {
     search_dirs: Vec<PathBuf>,
     search_system: bool,
+    observed_gfx_targets: Vec<String>,
 }
 
 impl Default for RocmRuntimeLoader {
@@ -195,6 +199,7 @@ impl Default for RocmRuntimeLoader {
         Self {
             search_dirs: Vec::new(),
             search_system: true,
+            observed_gfx_targets: Vec::new(),
         }
     }
 }
@@ -210,6 +215,7 @@ impl RocmRuntimeLoader {
         Self {
             search_dirs,
             search_system: true,
+            observed_gfx_targets: Vec::new(),
         }
     }
 
@@ -219,7 +225,14 @@ impl RocmRuntimeLoader {
         Self {
             search_dirs,
             search_system: false,
+            observed_gfx_targets: Vec::new(),
         }
+    }
+
+    /// Supplies capsule-observed AMD targets without spawning a host tool.
+    pub fn with_observed_gfx_targets(mut self, targets: Vec<String>) -> Self {
+        self.observed_gfx_targets = targets;
+        self
     }
 }
 
@@ -242,7 +255,7 @@ impl DynamicRocmLoader for RocmRuntimeLoader {
             .map(|(_, library)| symbol_evidence(library, ROCBLASLT_SYMBOLS))
             .unwrap_or_default();
         let hip_runtime_version = hip_runtime_version(&hip).ok();
-        let observed_gfx_targets = observed_gfx_targets();
+        let observed_gfx_targets = self.observed_gfx_targets.clone();
         let evidence = RocmAbiEvidence {
             hip_library: hip_name,
             rocblas_library: rocblas_name,
@@ -476,25 +489,4 @@ fn hip_runtime_version(library: &Library) -> Result<i32, RocmLoadError> {
         }
         Ok(version)
     }
-}
-
-fn observed_gfx_targets() -> Vec<String> {
-    let Ok(output) = Command::new("rocm_agent_enumerator").output() else {
-        return Vec::new();
-    };
-    if !output.status.success() {
-        return Vec::new();
-    }
-    let Ok(stdout) = String::from_utf8(output.stdout) else {
-        return Vec::new();
-    };
-    let mut targets = stdout
-        .lines()
-        .map(str::trim)
-        .filter(|line| line.starts_with("gfx") && *line != "gfx000")
-        .map(ToOwned::to_owned)
-        .collect::<Vec<_>>();
-    targets.sort();
-    targets.dedup();
-    targets
 }

@@ -13,7 +13,11 @@ use crate::{
 // conformance: compute CLI exports bounded devices, probe, profile, explain, and recipe evidence through a loadable command.
 
 fn test_cx() -> (sim_kernel::Cx, sim_kernel::GrantSeat) {
-    sim_kernel::Cx::new_seated(Arc::new(EagerPolicy), Arc::new(DefaultFactory))
+    sim_kernel::Cx::new_seated(
+        Arc::new(EagerPolicy),
+        Arc::new(DefaultFactory),
+        sim_kernel::HandleSeed::new(0x6c1a_6a44_1db6_8e11),
+    )
 }
 
 fn grant(cx: &mut sim_kernel::Cx, seat: &sim_kernel::GrantSeat) {
