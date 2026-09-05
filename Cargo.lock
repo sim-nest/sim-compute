@@ -907,7 +907,7 @@ dependencies = [
 
 [[package]]
 name = "sim-lib-compute-wgpu"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "half",
  "pollster",
@@ -1243,7 +1243,7 @@ version = "0.2.0"
 
 [[package]]
 name = "sim-shape"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "sim-citizen",
  "sim-citizen-derive",

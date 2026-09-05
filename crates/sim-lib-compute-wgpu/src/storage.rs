@@ -133,10 +133,12 @@ impl TensorStorage for WgpuResidentStorage {
                     })
                     .map_err(Error::Eval)?;
                 let cells = values
-                    .chunks_exact(4)
+                    .as_chunks::<4>()
+                    .0
+                    .iter()
                     .take(self.len)
                     .map(|bytes| {
-                        let value = f32::from_ne_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]);
+                        let value = f32::from_ne_bytes(*bytes);
                         DefaultFactory.number_literal(self.dtype.clone(), value.to_string())
                     })
                     .collect::<Result<Vec<_>>>()?;
