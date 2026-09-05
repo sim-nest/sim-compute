@@ -426,9 +426,11 @@ pub(crate) fn read_f32s(
         .to_vec();
     readback.unmap();
     Ok(mapped
-        .chunks_exact(4)
+        .as_chunks::<4>()
+        .0
+        .iter()
         .take(len)
-        .map(|bytes| f32::from_ne_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]))
+        .map(|bytes| f32::from_ne_bytes(*bytes))
         .collect())
 }
 
