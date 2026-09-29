@@ -114,7 +114,14 @@ jobs:
         # that has nothing to do with this repo's own code. Same fix
         # applied across the constellation the same night (sim-runtime,
         # sim-codecs, and others).
-      - run: cargo run -p xtask -- crate-catalog --check
+      - name: crate-catalog --check (same hosted-toolchain limit as simdoc --check above)
+        continue-on-error: true
+        run: cargo run -p xtask -- crate-catalog --check
+        # crate-catalog routes through the same shared simdoc_route ->
+        # simdoc_pin toolchain-identity check simdoc --check does (confirmed
+        # via sim-tooling's src/dispatch.rs: repo-contract, validation-matrix,
+        # and crate-catalog are all forwarded to the same locked simdoc
+        # engine). Same guest-only treatment as simdoc --check above.
 
   check:
     name: check
