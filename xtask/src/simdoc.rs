@@ -50,6 +50,10 @@ fn locate_simdoc_manifest(repo_root: &Path) -> Result<PathBuf, String> {
         // refuses the simdoc verb, so resolve the isolated encoder.
         return isolated_manifest_from_hint(Path::new(&path));
     }
+    locate_sibling_manifest(repo_root)
+}
+
+fn locate_sibling_manifest(repo_root: &Path) -> Result<PathBuf, String> {
     let isolated = repo_root
         .parent()
         .unwrap_or(repo_root)
@@ -143,29 +147,57 @@ fn locate_sim_tooling_manifest(repo_root: &Path) -> Result<PathBuf, String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{encoder_command, isolated_manifest_from_hint, locate_simdoc_manifest};
-    use std::env;
+    use super::{encoder_command, isolated_manifest_from_hint, locate_sibling_manifest};
+    use std::fs;
     use std::path::{Path, PathBuf};
+    use std::time::{SystemTime, UNIX_EPOCH};
 
-    fn isolated_rel() -> PathBuf {
-        Path::new("crates").join("simdoc").join("Cargo.toml")
+    struct Fixture {
+        root: PathBuf,
+    }
+
+    impl Fixture {
+        fn new() -> Self {
+            let root = std::env::temp_dir().join(format!(
+                "sim-compute-simdoc-{}-{}",
+                std::process::id(),
+                SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .expect("clock")
+                    .as_nanos()
+            ));
+            let simdoc = root.join("sim-tooling/crates/simdoc");
+            fs::create_dir_all(&simdoc).expect("fixture directory");
+            fs::write(simdoc.join("Cargo.toml"), "[package]\nname = \"simdoc\"\n")
+                .expect("fixture manifest");
+            fs::write(simdoc.join("Cargo.lock"), "# fixture\n").expect("fixture lock");
+            fs::create_dir_all(root.join("repo")).expect("fixture repo");
+            Self { root }
+        }
+
+        fn manifest(&self) -> PathBuf {
+            self.root.join("sim-tooling/crates/simdoc/Cargo.toml")
+        }
+
+        fn repo(&self) -> PathBuf {
+            self.root.join("repo")
+        }
+    }
+
+    impl Drop for Fixture {
+        fn drop(&mut self) {
+            let _ = fs::remove_dir_all(&self.root);
+        }
     }
 
     #[test]
     fn tooling_hints_resolve_to_the_isolated_encoder() {
-        let repo = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .parent()
-            .expect("xtask lives in the repository root")
-            .to_path_buf();
-        let selected = locate_simdoc_manifest(&repo).expect("isolated encoder");
-        assert!(selected.ends_with(isolated_rel()));
+        let fixture = Fixture::new();
+        let selected = locate_sibling_manifest(&fixture.repo()).expect("isolated encoder");
+        assert_eq!(selected, fixture.manifest());
         assert!(selected.with_file_name("Cargo.lock").is_file());
 
-        let tooling = selected
-            .parent()
-            .and_then(Path::parent)
-            .and_then(Path::parent)
-            .expect("crates/simdoc lives in the tooling checkout");
+        let tooling = fixture.root.join("sim-tooling");
         assert_eq!(
             isolated_manifest_from_hint(&tooling.join("Cargo.toml")).expect("workspace hint"),
             selected
@@ -175,7 +207,7 @@ mod tests {
             selected
         );
         assert_eq!(
-            isolated_manifest_from_hint(tooling).expect("checkout hint"),
+            isolated_manifest_from_hint(&tooling).expect("checkout hint"),
             selected
         );
     }
