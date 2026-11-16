@@ -19,3 +19,6 @@ homepage = "https://github.com/sim-nest/sim-compute"
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
+
+[workspace.metadata.sim]
+docs-command = "cargo run -p xtask -- simdoc"

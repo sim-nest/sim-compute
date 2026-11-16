@@ -1,3 +1,8 @@
+// SPDX-License-Identifier: MPL-2.0
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
 use std::sync::Arc;
 
 use sim_kernel::{DefaultFactory, EagerPolicy, Lib};
@@ -199,7 +204,7 @@ fn acceptance_verify_is_read_only_and_capture_requires_capability() {
         "--target".to_owned(),
         "gpu:nvidia/rtx-5080-laptop".to_owned(),
         "--output".to_owned(),
-        "/tmp/sim-compute-acceptance-test.sx".to_owned(),
+        "acceptance-test.sx".to_owned(),
     ])
     .unwrap();
     let (mut cx, seat) = test_cx();
