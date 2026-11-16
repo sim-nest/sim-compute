@@ -84,11 +84,6 @@ claims_surfaces = [
   "site/sim-lib-compute-wgpu",
 ]
 claims_specimens = [
-  "recipe/sim-compute/crates/sim-lib-compute-model/01-basics/modeled-resident-matrix",
-  "recipe/sim-compute/crates/sim-lib-compute-auto/01-basics/measured-profile-routing",
-  "recipe/sim-compute/crates/sim-lib-compute-cuda/01-basics/cuda-discovery",
-  "recipe/sim-compute/crates/sim-lib-compute-wgpu/01-basics/wgpu-discovery",
-  "recipe/sim-compute/crates/sim-lib-compute-rocm/01-basics/rocm-discovery",
   "spec-test/sim-compute/crates/sim-lib-compute-model/src/tests",
   "spec-test/sim-compute/crates/sim-lib-compute-auto/src/tests",
   "spec-test/sim-compute/crates/sim-lib-compute-cuda/src/tests",
@@ -130,7 +125,7 @@ claims_surfaces = [
   "cli/compute",
 ]
 claims_specimens = [
-  "recipe/sim-compute/crates/sim-lib-compute-cli/01-basics/inspect-compute-device",
+  "spec-test/sim-compute/crates/sim-lib-compute-cli/src/tests",
 ]
 
 [[route]]
@@ -156,7 +151,6 @@ claims_anchors = [
   "anchor/rustdoc/sim-lib-compute-femm/resident-csr-solver",
 ]
 claims_specimens = [
-  "recipe/sim-compute/crates/sim-lib-compute-femm/01-basics/resident-csr-solve",
   "spec-test/sim-compute/crates/sim-lib-compute-femm/src/lib",
 ]
 
